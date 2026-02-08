@@ -1,23 +1,33 @@
 package auth
 
 import (
+	"golang.org/x/oauth2"
 	"github.com/gorilla/mux"
 
-	"github.com/gczuczy/ed-survey-tools/pkg/config"
+	c "github.com/gczuczy/ed-survey-tools/pkg/config"
 	"github.com/gczuczy/ed-survey-tools/pkg/http/wrappers"
 )
 
 var (
-	oauth2config *config.OAuth2Config
-	scopes string
+	config *c.OAuth2Config
+	oauth2config *oauth2.Config
 )
 
+func Init(r *mux.Router, cfg *c.OAuth2Config) error {
+	config = cfg
 
-func Init(r *mux.Router, cfg *config.OAuth2Config) error {
-	oauth2config = cfg
-	scopes = "auth"
+	oauth2config = &oauth2.Config{
+		ClientID: config.ClientID,
+		ClientSecret: config.ClientSecret,
+		Endpoint: oauth2.Endpoint{
+			AuthURL: config.AuthorizeURL,
+			TokenURL: config.TokenURL,
+		},
+		Scopes: append([]string{"auth", "capi"}, config.ExtraScopes...),
+	}
 
  	r.HandleFunc("/config", wrappers.Wrap(configHandler))
+ 	r.HandleFunc("/callback", wrappers.Wrap(callbackHandler))
 
 	return nil
 }

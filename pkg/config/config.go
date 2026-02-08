@@ -34,6 +34,8 @@ type OAuth2Config struct {
 	Issuer string `koanf:"issuer"`
 	AuthorizeURL string `koanf:"authorizeUrl"`
 	TokenURL string `koanf:"tokenUrl"`
+	UserInfoURL string `koanf:"userinfoUrl"`
+	ExtraScopes []string `koanf:"extrascopes"`
 }
 
 
@@ -69,6 +71,9 @@ func ParseConfig(k *koanf.Koanf) (*Config, error) {
 	}
 	if len(cfg.OAuth2.TokenURL)==0 {
 		cfg.OAuth2.TokenURL = fmt.Sprintf("%s/token", cfg.OAuth2.Issuer)
+	}
+	if len(cfg.OAuth2.UserInfoURL)==0 {
+		cfg.OAuth2.UserInfoURL = fmt.Sprintf("%s/decode", cfg.OAuth2.Issuer)
 	}
 
 	return &cfg, nil

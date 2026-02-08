@@ -3,6 +3,10 @@ SPABALL=pkg/http/webroot.tar
 SPADIR=${CURDIR}/frontend
 SPADISTDIR=$(SPADIR)/dist/ed-survey-tools/browser
 
+MOCKIDP_VERSION?=3.0.1
+MOCKIDP_IMAGE=ghcr.io/navikt/mock-oauth2-server:$(MOCKIDP_VERSION)
+MOCKIDP_PORT?=8080
+
 $(DISTDIR):
 	mkdir -p $@
 
@@ -28,3 +32,7 @@ frontend: $(SPABALL)
 $(SPABALL): $(shell find $(SPADIR)/src -type f)
 	$(MAKE) -C $(SPADIR) build
 	tar -C $(SPADISTDIR)/ -cvf $@ .
+
+.PHONY: mock-idp
+mock-idp:
+	docker run -p $(MOCKIDP_PORT):8080 -it $(MOCKIDP_IMAGE)

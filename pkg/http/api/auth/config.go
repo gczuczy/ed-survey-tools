@@ -17,7 +17,7 @@ type Config struct {
 	Scope string `json:"scope"`
 }
 
-func configHandler(r *http.Request) (any, wrappers.Error) {
+func configHandler(r *http.Request) wrappers.IResponse {
 
 	var host string
 	if r.Host == "localhost" || r.Host == "127.0.0.1" ||
@@ -28,12 +28,12 @@ func configHandler(r *http.Request) (any, wrappers.Error) {
 		host = fmt.Sprintf("https://%s", r.Host)
 	}
 
-	return Config{
-		Issuer: oauth2config.Issuer,
-		ClientID: oauth2config.ClientID,
+	return wrappers.Success(Config{
+		Issuer: config.Issuer,
+		ClientID: config.ClientID,
 		RedirectURI: fmt.Sprintf("%s/api/auth/callback", host),
-		Scope: scopes,
-		AuthURL: oauth2config.AuthorizeURL,
-		TokenURL: oauth2config.TokenURL,
-	}, nil
+		Scope: strings.Join(oauth2config.Scopes, " "),
+		AuthURL: config.AuthorizeURL,
+		TokenURL: config.TokenURL,
+	})
 }
