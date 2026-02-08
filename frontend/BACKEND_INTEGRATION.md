@@ -8,7 +8,7 @@ This document describes the backend endpoints required for the ED Survey Tools f
 
 **Endpoint:** `GET /api/oauth/config`
 
-**Purpose:** Provides OAuth2/OIDC configuration to the frontend.
+**Purpose:** Provides OAuth2 configuration to the frontend. Since the provider does not expose `.well-known/openid-configuration`, the authorization and token endpoint URLs are supplied explicitly.
 
 **Response Format:**
 ```json
@@ -16,15 +16,19 @@ This document describes the backend endpoints required for the ED Survey Tools f
   "issuer": "https://your-idp.example.com",
   "clientId": "your-spa-client-id",
   "redirectUri": "http://localhost:4200/api/auth/callback",
-  "scope": "openid profile email"
+  "authUrl": "https://your-idp.example.com/auth",
+  "tokenUrl": "https://your-idp.example.com/token",
+  "scope": "auth"
 }
 ```
 
 **Fields:**
-- `issuer` (required) - The OAuth2/OIDC provider's issuer URL. The frontend will fetch `/.well-known/openid-configuration` from this URL.
+- `issuer` (required) - The OAuth2 provider's base URL.
 - `clientId` (required) - The client ID registered at the IdP for this SPA.
 - `redirectUri` (optional) - The callback URL. Defaults to `{origin}/api/auth/callback` if not provided.
-- `scope` (optional) - OAuth2 scopes to request. Defaults to `"openid profile email"`.
+- `authUrl` (required) - The authorization endpoint URL. Since the OAuth2 provider does not expose `.well-known/openid-configuration`, this must be provided explicitly.
+- `tokenUrl` (required) - The token endpoint URL. Same reasoning as `authUrl`.
+- `scope` (optional) - OAuth2 scopes to request. Defaults to `"auth"`.
 
 **Example Implementation:**
 ```bash
@@ -33,7 +37,9 @@ app.get('/api/oauth/config', (req, res) => {
     issuer: process.env.OAUTH_ISSUER,
     clientId: process.env.OAUTH_CLIENT_ID,
     redirectUri: `${req.protocol}://${req.get('host')}/api/auth/callback`,
-    scope: 'openid profile email'
+    authUrl: process.env.OAUTH_AUTH_URL,
+    tokenUrl: process.env.OAUTH_TOKEN_URL,
+    scope: 'auth'
   });
 });
 ```
@@ -45,7 +51,9 @@ func handleOAuthConfig(w http.ResponseWriter, r *http.Request) {
     "issuer":      os.Getenv("OAUTH_ISSUER"),
     "clientId":    os.Getenv("OAUTH_CLIENT_ID"),
     "redirectUri": "http://localhost:4200/api/auth/callback",
-    "scope":       "openid profile email",
+    "authUrl":     os.Getenv("OAUTH_AUTH_URL"),
+    "tokenUrl":    os.Getenv("OAUTH_TOKEN_URL"),
+    "scope":       "auth",
   }
   w.Header().Set("Content-Type", "application/json")
   json.NewEncoder(w).Encode(config)
@@ -63,8 +71,8 @@ func handleOAuthConfig(w http.ResponseWriter, r *http.Request) {
 **Flow:**
 ```
 1. IdP redirects here with: ?code=xxx&state=yyy
-2. Backend exchanges code for tokens with IdP
-3. Backend extracts user identity (sub, email, etc.)
+2. Backend exchanges code for tokens at the token endpoint
+3. Backend extracts user identity from the access token (e.g. via userinfo endpoint)
 4. Backend creates server-side session
 5. Backend redirects to frontend with session cookie
 ```
@@ -78,14 +86,14 @@ func handleOAuthConfig(w http.ResponseWriter, r *http.Request) {
 **Implementation Steps:**
 
 1. **Exchange authorization code for tokens**
-   - Make POST request to IdP token endpoint
+   - Make POST request to the token endpoint (explicitly configured, not discovered via `.well-known/openid-configuration`)
    - Include: code, client_id, client_secret (if applicable), redirect_uri, grant_type=authorization_code
-   - Receive: access_token, id_token, refresh_token (optional)
+   - Receive: access_token, refresh_token (optional)
 
-2. **Validate and decode ID token**
-   - Verify signature using IdP's JWKS
-   - Validate issuer, audience, expiration
-   - Extract user claims (sub, email, name, etc.)
+2. **Retrieve user identity**
+   - Use the access token to call the provider's userinfo endpoint
+   - Or decode provider-specific fields from the token response
+   - Extract user details (user ID, email, name, etc.)
 
 3. **Create server-side session**
    - Store user identity in session store (Redis, database, etc.)
@@ -97,28 +105,26 @@ func handleOAuthConfig(w http.ResponseWriter, r *http.Request) {
    - The frontend's angular-oauth2-oidc will complete the PKCE flow
    - Frontend will then have the access token in browser sessionStorage
 
-**Example Implementation (Go with Gorilla sessions and go-oidc):**
+**Example Implementation (Go with Gorilla sessions and plain OAuth2):**
 
 ```go
 package main
 
 import (
-	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"os"
 
-	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 )
 
 var (
 	oauth2Config *oauth2.Config
-	oidcVerifier *oidc.IDTokenVerifier
 	store        *sessions.CookieStore
 )
 
@@ -140,27 +146,18 @@ func init() {
 }
 
 func main() {
-	ctx := context.Background()
-
-	// Initialize OIDC provider
-	provider, err := oidc.NewProvider(ctx, os.Getenv("OAUTH_ISSUER"))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Configure OAuth2
+	// Configure OAuth2 with explicit endpoint URLs
+	// No OIDC discovery - the provider does not serve .well-known/openid-configuration
 	oauth2Config = &oauth2.Config{
 		ClientID:     os.Getenv("OAUTH_CLIENT_ID"),
 		ClientSecret: os.Getenv("OAUTH_CLIENT_SECRET"),
 		RedirectURL:  "http://localhost:4200/api/auth/callback",
-		Endpoint:     provider.Endpoint(),
-		Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  os.Getenv("OAUTH_AUTH_URL"),
+			TokenURL: os.Getenv("OAUTH_TOKEN_URL"),
+		},
+		Scopes: []string{"auth"},
 	}
-
-	// Configure OIDC verifier
-	oidcVerifier = provider.Verifier(&oidc.Config{
-		ClientID: os.Getenv("OAUTH_CLIENT_ID"),
-	})
 
 	// Routes
 	http.HandleFunc("/api/oauth/config", handleOAuthConfig)
@@ -178,7 +175,9 @@ func handleOAuthConfig(w http.ResponseWriter, r *http.Request) {
 		"issuer":      os.Getenv("OAUTH_ISSUER"),
 		"clientId":    os.Getenv("OAUTH_CLIENT_ID"),
 		"redirectUri": "http://localhost:4200/api/auth/callback",
-		"scope":       "openid profile email",
+		"authUrl":     os.Getenv("OAUTH_AUTH_URL"),
+		"tokenUrl":    os.Getenv("OAUTH_TOKEN_URL"),
+		"scope":       "auth",
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -198,7 +197,7 @@ func handleAuthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Exchange code for tokens
+	// Exchange code for tokens at the explicit token endpoint
 	oauth2Token, err := oauth2Config.Exchange(ctx, code)
 	if err != nil {
 		log.Printf("Code exchange failed: %v", err)
@@ -206,37 +205,34 @@ func handleAuthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Extract ID token
-	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
-	if !ok {
-		http.Error(w, "No id_token in token response", http.StatusInternalServerError)
-		return
-	}
-
-	// Verify ID token
-	idToken, err := oidcVerifier.Verify(ctx, rawIDToken)
+	// Use the access token to retrieve user info from the provider
+	client := oauth2Config.Client(ctx, oauth2Token)
+	userinfoURL := os.Getenv("OAUTH_ISSUER") + "/me"
+	resp, err := client.Get(userinfoURL)
 	if err != nil {
-		log.Printf("ID token verification failed: %v", err)
-		http.Error(w, "Failed to verify ID token", http.StatusInternalServerError)
+		log.Printf("Failed to fetch user info: %v", err)
+		http.Error(w, "Failed to fetch user info", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		http.Error(w, "Failed to read user info response", http.StatusInternalServerError)
 		return
 	}
 
-	// Extract claims
-	var claims struct {
-		Sub   string `json:"sub"`
-		Email string `json:"email"`
-		Name  string `json:"name"`
-	}
-	if err := idToken.Claims(&claims); err != nil {
-		http.Error(w, "Failed to parse claims", http.StatusInternalServerError)
+	var userInfo map[string]interface{}
+	if err := json.Unmarshal(body, &userInfo); err != nil {
+		http.Error(w, "Failed to parse user info", http.StatusInternalServerError)
 		return
 	}
 
-	// Create session
+	// Create session - adapt the field names to your provider's response
 	session, _ := store.Get(r, "auth-session")
-	session.Values["user_id"] = claims.Sub
-	session.Values["user_email"] = claims.Email
-	session.Values["user_name"] = claims.Name
+	session.Values["user_id"] = userInfo["id"]
+	session.Values["user_email"] = userInfo["email"]
+	session.Values["user_name"] = userInfo["name"]
 	session.Values["access_token"] = oauth2Token.AccessToken
 
 	if err := session.Save(r, w); err != nil {
@@ -307,7 +303,6 @@ func generateRandomString(length int) string {
 
 **Required Go dependencies:**
 ```bash
-go get github.com/coreos/go-oidc/v3/oidc
 go get github.com/gorilla/sessions
 go get golang.org/x/oauth2
 ```
@@ -319,7 +314,6 @@ module your-backend
 go 1.21
 
 require (
-	github.com/coreos/go-oidc/v3 v3.9.0
 	github.com/gorilla/sessions v1.2.2
 	golang.org/x/oauth2 v0.16.0
 )
@@ -330,7 +324,6 @@ require (
 ```python
 from flask import Flask, redirect, request, session
 import requests
-import jwt
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key'
@@ -340,13 +333,13 @@ def auth_callback():
     # Get authorization code from IdP
     code = request.args.get('code')
     state = request.args.get('state')
-    
+
     if not code:
         return 'Missing authorization code', 400
-    
-    # Exchange code for tokens
+
+    # Exchange code for tokens at the explicit token endpoint
     token_response = requests.post(
-        f"{OAUTH_ISSUER}/oauth/token",
+        OAUTH_TOKEN_URL,
         data={
             'grant_type': 'authorization_code',
             'code': code,
@@ -355,22 +348,25 @@ def auth_callback():
             'client_secret': OAUTH_CLIENT_SECRET
         }
     )
-    
+
     if token_response.status_code != 200:
         return 'Token exchange failed', 500
-    
+
     tokens = token_response.json()
-    
-    # Decode ID token to get user info
-    id_token = tokens['id_token']
-    user_info = jwt.decode(id_token, options={"verify_signature": False})
-    
-    # Store user in session
-    session['user_id'] = user_info['sub']
+
+    # Use the access token to fetch user info from the provider
+    userinfo_response = requests.get(
+        f"{OAUTH_ISSUER}/me",
+        headers={'Authorization': f"Bearer {tokens['access_token']}"}
+    )
+    user_info = userinfo_response.json()
+
+    # Store user in session - adapt field names to your provider
+    session['user_id'] = user_info.get('id')
     session['user_email'] = user_info.get('email')
     session['user_name'] = user_info.get('name')
     session['access_token'] = tokens['access_token']
-    
+
     # Redirect back to frontend with original code/state
     # The frontend will complete its own PKCE flow
     return redirect(f"/?code={code}&state={state}")
@@ -560,7 +556,7 @@ http.ListenAndServe(":8081", handler)
      │                                             │
      │ 5. Receive tokens                           │
      │ ◄────────────────────────────────────────────
-     │ {access_token, id_token, refresh_token}     │
+     │ {access_token, refresh_token}               │
      │                                             │
      │ 6. Create session, set cookie                │
      │                                              │
@@ -618,12 +614,13 @@ curl -b cookies.txt http://localhost:8081/api/auth/user
 
 Your backend should configure these environment variables:
 
-**For Go backend:**
 ```bash
-# OAuth2/OIDC Provider
+# OAuth2 Provider
 OAUTH_ISSUER=https://your-idp.example.com
 OAUTH_CLIENT_ID=your-spa-client-id
 OAUTH_CLIENT_SECRET=your-client-secret  # Required for code exchange
+OAUTH_AUTH_URL=https://your-idp.example.com/auth      # Authorization endpoint
+OAUTH_TOKEN_URL=https://your-idp.example.com/token    # Token endpoint
 
 # Session
 SESSION_SECRET=your-random-secret-key-here
@@ -631,15 +628,6 @@ SESSION_SECRET=your-random-secret-key-here
 # Application
 PORT=8081
 NODE_ENV=development  # or production
-```
-
-**For Python backend:**
-```bash
-# Same as above, plus:
-OAUTH_AUTH_URL=https://your-idp.example.com/authorize
-OAUTH_TOKEN_URL=https://your-idp.example.com/oauth/token
-OAUTH_USERINFO_URL=https://your-idp.example.com/userinfo
-SESSION_COOKIE_NAME=edsurvey.sid
 ```
 
 ---
@@ -661,9 +649,7 @@ Register your application at the IdP with these settings:
 - PKCE enabled (optional but recommended)
 
 **Scopes:**
-- `openid` (required)
-- `profile`
-- `email`
+- `auth`
 - Any custom scopes your app needs
 
 ---
@@ -684,6 +670,11 @@ Register your application at the IdP with these settings:
 - Verify session secret is set
 - Ensure cookies are being sent (credentials: true in CORS)
 
+### "Discovery document not found"
+- This is expected if your provider does not serve `.well-known/openid-configuration`
+- Ensure the frontend has `oidc: false` in its OAuthService configuration
+- Ensure the backend provides explicit `authUrl` and `tokenUrl` in `/api/auth/config`
+
 ### "Frontend can't complete PKCE"
 - The frontend MUST receive the original `code` and `state` parameters
 - Backend redirect must be: `/?code={code}&state={state}`
@@ -697,19 +688,18 @@ Register your application at the IdP with these settings:
 
 1. ✅ Serve OAuth config at `/api/oauth/config`
 2. ✅ Handle callback at `/api/auth/callback`
-3. ✅ Exchange authorization code for tokens
-4. ✅ Extract user identity from tokens
+3. ✅ Exchange authorization code for tokens at the explicit token endpoint
+4. ✅ Extract user identity (e.g. via userinfo endpoint)
 5. ✅ Create server-side session
 6. ✅ Redirect back to frontend with code/state preserved
 
 **What the backend gets:**
 
-- User identity (sub, email, name, etc.) from ID token
+- User identity (ID, email, name, etc.) from the provider's userinfo endpoint
 - Server-side session with authenticated user
 - Ability to make API calls on behalf of the user
 
 **What the frontend gets:**
 
-- Access token (via angular-oauth2-oidc PKCE flow)
-- User info from ID token claims
+- Access token (via angular-oauth2-oidc PKCE flow, with `oidc: false`)
 - Automatic token refresh (if refresh tokens are supported)

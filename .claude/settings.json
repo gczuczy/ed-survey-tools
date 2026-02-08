@@ -6,8 +6,10 @@
       "Bash(npm run test *)",
 			"Bash(gmake build)",
 			"Bash(gmake -C frontend/ build)",
+			"Bash(grep)",
 			"Edit(/**/*.go)",
-			"Edit(/frontend/**)"
+			"Edit(/frontend/**)",
+			"Edit(**/*.md)"
     ],
     "deny": [
     ]
