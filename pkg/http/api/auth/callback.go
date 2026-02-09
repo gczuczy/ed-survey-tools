@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 
 	"github.com/gczuczy/ed-survey-tools/pkg/http/wrappers"
+	"github.com/gczuczy/ed-survey-tools/pkg/http/sessions"
 )
 
 func callbackHandler(r *http.Request) wrappers.IResponse {
@@ -18,48 +19,50 @@ func callbackHandler(r *http.Request) wrappers.IResponse {
 	state := r.URL.Query().Get("state")
 
 	if len(code) == 0 {
-		return wrappers.HTTPError{
+		return wrappers.NewError(
 			fmt.Errorf("Missing authorization ode"),
-			http.StatusBadRequest,
-		}
+			http.StatusBadRequest)
 	}
 
 	token, err := oauth2config.Exchange(ctx, code)
 	if err != nil {
-		return wrappers.HTTPError{
+		return wrappers.NewError(
 			fmt.Errorf("Code exchange failed"),
-			http.StatusInternalServerError,
-		}
+			http.StatusInternalServerError)
 	}
 
 	client := oauth2config.Client(ctx, token)
 	resp, err := client.Get(config.UserInfoURL)
 	if err != nil {
-		return  wrappers.HTTPError{
+		return wrappers.NewError(
 			errors.Join(err, fmt.Errorf("Failed to fetch userinfo")),
-			http.StatusInternalServerError,
-		}
+			http.StatusInternalServerError)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return wrappers.HTTPError{
+		return wrappers.NewError(
 			errors.Join(err, fmt.Errorf("Failed to read userinfo")),
-			http.StatusInternalServerError,
-		}
+			http.StatusInternalServerError)
 	}
 
 	var userinfo map[string]any
 	if err := json.Unmarshal(body, &userinfo); err != nil {
-		return wrappers.HTTPError{
+		return wrappers.NewError(
 			errors.Join(err, fmt.Errorf("Failed to parse userinfo")),
-			http.StatusInternalServerError,
-		}
+			http.StatusInternalServerError)
 	}
 
 	// TODO: session
 	fmt.Printf("userinfo: %v\n", userinfo)
+	s, _ := sessions.Get(r)
+	if fdevcid, ok := userinfo["customer_id"]; ok {
+		s.Values["fdev_customerid"] = userinfo["customer_id"]
+	} else {
+		// testing IdP
+		s.Values["fdev_custemerid"] = 42069
+	}
 
 	v := url.Values{}
 	v.Add("code", code)
@@ -68,5 +71,8 @@ func callbackHandler(r *http.Request) wrappers.IResponse {
 		Path: "/",
 		RawQuery: v.Encode(),
 	}
-	return &wrappers.Redirect{&rurl, http.StatusFound}
+	ret := wrappers.NewRedirect(&rurl, http.StatusFound)
+	ret.Session(s)
+
+	return ret
 }

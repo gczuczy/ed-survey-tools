@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/knadh/koanf/v2"
 	"github.com/knadh/koanf/parsers/yaml"
@@ -12,6 +13,7 @@ type Config struct {
 	DB DBConfig `koanf:"db"`
 	HTTP HTTPConfig `koanf:"http"`
 	OAuth2 OAuth2Config `koanf:"oauth2"`
+	Sessions SessionsConfig `koanf:"sessions"`
 }
 
 type DBConfig struct {
@@ -38,6 +40,21 @@ type OAuth2Config struct {
 	ExtraScopes []string `koanf:"extrascopes"`
 }
 
+type SessionsConfig struct {
+	Key string `koanf:"key"`
+	Store string `koanf:"store"`
+	Redis *RedisSessionConfig `koanf:"redis"`
+}
+
+type RedisSessionConfig struct {
+	MaxIdle *int `koanf:"maxidle"`
+	IdleTimeout *time.Duration `koanf:"idletimeout"`
+	DB *int `koanf:"db"`
+	User *string `koanf:"user"`
+	Pass *string `koanf:"pass"`
+	Host *string `koanf:"host"`
+	Port *uint16 `koanf:"port"`
+}
 
 func ParseConfig(k *koanf.Koanf) (*Config, error) {
 	var (

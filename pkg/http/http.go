@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/gczuczy/ed-survey-tools/pkg/http/api"
+	"github.com/gczuczy/ed-survey-tools/pkg/http/sessions"
 	"github.com/gczuczy/ed-survey-tools/pkg/config"
 )
 
@@ -19,6 +20,10 @@ type HTTPService struct {
 }
 
 func New(cfg *config.Config) (*HTTPService, error) {
+
+	if err := sessions.Init(&cfg.Sessions); err != nil {
+		return nil, errors.Join(err, fmt.Errorf("Unable top init http sessions"))
+	}
 
 	spa, err := newSPAHandler()
 	if err != nil {
@@ -41,6 +46,10 @@ func New(cfg *config.Config) (*HTTPService, error) {
 	}
 
 	return &hs, nil
+}
+
+func Close() error {
+	return sessions.Close()
 }
 
 func (hs *HTTPService) Run() error {

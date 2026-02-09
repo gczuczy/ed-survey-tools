@@ -2,9 +2,10 @@ package wrappers
 
 import (
 	"fmt"
-	"net/url"
 	"net/http"
 	"encoding/json"
+
+	"github.com/gorilla/sessions"
 )
 
 type Error interface {
@@ -14,30 +15,33 @@ type Error interface {
 }
 
 type IResponse interface {
+	Session(s *sessions.Session)
+	SaveSessions(r *http.Request, w http.ResponseWriter)
 	HTTPWrite(w http.ResponseWriter, r *http.Request) error
 }
 
-type HTTPError struct {
-	Err error
-	Code int
+type Sessioner struct {
+	Sessions []*sessions.Session
 }
-func (e HTTPError) Error() string {
-	return e.Err.Error()
-}
-func (e HTTPError) Status() int {
-	return e.Code
-}
-func (e HTTPError) HTTPWrite(w http.ResponseWriter, r *http.Request) error {
-	msg := Response{
-		Status: "error",
-		Message: e.Err.Error(),
+func (sr *Sessioner) Session(s* sessions.Session) {
+	if sr.Sessions == nil {
+		sr.Sessions = make([]*sessions.Session, 0, 1)
 	}
-	return returnJson(msg, e.Code, w)
+	sr.Sessions = append(sr.Sessions, s)
 }
+func (sr *Sessioner) SaveSessions(r *http.Request, w http.ResponseWriter) {
+	if sr.Sessions != nil {
+		for _, s := range sr.Sessions {
+			sessions.Save(r, w, s)
+		}
+	}
+}
+
 
 type Handler func(r *http.Request) IResponse
 
 type Response struct {
+	Sessioner
 	Status string `json:"status"`
 	Code int `json:"-"`
 	Message string `json:"message,omitempty"`
@@ -55,20 +59,6 @@ func Success(r any) IResponse {
 	}
 }
 
-type Redirect struct {
-	Loc *url.URL
-	Code int
-}
-func (rd *Redirect) HTTPWrite(w http.ResponseWriter, r *http.Request) error {
-	code := rd.Code
-	if code != http.StatusMovedPermanently || code != http.StatusFound ||
-		code != http.StatusSeeOther {
-		code = http.StatusFound
-	}
-	http.Redirect(w, r, rd.Loc.String(), code)
-	return nil
-}
-
 func Wrap(h Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		resp := h(r)
@@ -82,6 +72,7 @@ func Wrap(h Handler) http.HandlerFunc {
 			err.HTTPWrite(w, r)
 			return
 		}
+
 
 		if err := resp.HTTPWrite(w, r); err != nil {
 			msg := Response{
