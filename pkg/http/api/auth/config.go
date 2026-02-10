@@ -2,8 +2,8 @@ package auth
 
 import (
 	"fmt"
-	"strings"
 	"net/http"
+	"strings"
 
 	"github.com/gczuczy/ed-survey-tools/pkg/http/wrappers"
 )
@@ -18,15 +18,7 @@ type Config struct {
 }
 
 func configHandler(r *http.Request) wrappers.IResponse {
-
-	var host string
-	if r.Host == "localhost" || r.Host == "127.0.0.1" ||
-		strings.HasPrefix(r.Host, "localhost:") ||
-		strings.HasPrefix(r.Host, "127.0.0.1:") {
-		host = fmt.Sprintf("http://%s", r.Host)
-	} else {
-		host = fmt.Sprintf("https://%s", r.Host)
-	}
+	host := hostURL(r)
 
 	return wrappers.Success(Config{
 		Issuer: config.Issuer,

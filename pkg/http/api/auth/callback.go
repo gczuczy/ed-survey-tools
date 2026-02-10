@@ -20,18 +20,22 @@ func callbackHandler(r *http.Request) wrappers.IResponse {
 
 	if len(code) == 0 {
 		return wrappers.NewError(
-			fmt.Errorf("Missing authorization ode"),
+			fmt.Errorf("Missing authorization code"),
 			http.StatusBadRequest)
 	}
 
-	token, err := oauth2config.Exchange(ctx, code)
+	cfg := *oauth2config
+	cfg.RedirectURL = fmt.Sprintf("%s/api/auth/callback", hostURL(r))
+
+	token, err := cfg.Exchange(ctx, code)
 	if err != nil {
+		fmt.Printf("Oauth2config: %s\n", cfg)
 		return wrappers.NewError(
-			fmt.Errorf("Code exchange failed"),
+			errors.Join(err, fmt.Errorf("Code exchange failed")),
 			http.StatusInternalServerError)
 	}
 
-	client := oauth2config.Client(ctx, token)
+	client := cfg.Client(ctx, token)
 	resp, err := client.Get(config.UserInfoURL)
 	if err != nil {
 		return wrappers.NewError(
@@ -58,10 +62,10 @@ func callbackHandler(r *http.Request) wrappers.IResponse {
 	fmt.Printf("userinfo: %v\n", userinfo)
 	s, _ := sessions.Get(r)
 	if fdevcid, ok := userinfo["customer_id"]; ok {
-		s.Values["fdev_customerid"] = userinfo["customer_id"]
+		s.Values["fdev_customerid"] = fdevcid
 	} else {
 		// testing IdP
-		s.Values["fdev_custemerid"] = 42069
+		s.Values["fdev_customerid"] = 42069
 	}
 
 	v := url.Values{}

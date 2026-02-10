@@ -16,12 +16,12 @@ type Error interface {
 
 type IResponse interface {
 	Session(s *sessions.Session)
-	SaveSessions(r *http.Request, w http.ResponseWriter)
+	SaveSessions(r *http.Request, w http.ResponseWriter) error
 	HTTPWrite(w http.ResponseWriter, r *http.Request) error
 }
 
 type Sessioner struct {
-	Sessions []*sessions.Session
+	Sessions []*sessions.Session `json:"-"`
 }
 func (sr *Sessioner) Session(s* sessions.Session) {
 	if sr.Sessions == nil {
@@ -29,12 +29,16 @@ func (sr *Sessioner) Session(s* sessions.Session) {
 	}
 	sr.Sessions = append(sr.Sessions, s)
 }
-func (sr *Sessioner) SaveSessions(r *http.Request, w http.ResponseWriter) {
+func (sr *Sessioner) SaveSessions(r *http.Request, w http.ResponseWriter) error {
+	var err error
 	if sr.Sessions != nil {
 		for _, s := range sr.Sessions {
-			sessions.Save(r, w, s)
+			if serr := s.Save(r, w); err != nil {
+				err = append(err, serr)
+			}
 		}
 	}
+	return err
 }
 
 
@@ -48,6 +52,7 @@ type Response struct {
 	Data interface{} `json:"data,omitempty"`
 }
 func (resp *Response) HTTPWrite(w http.ResponseWriter, r *http.Request) error {
+	resp.SaveSessions(r, w)
 	return returnJson(resp, resp.Code, w)
 }
 
