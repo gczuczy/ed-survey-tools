@@ -2,7 +2,6 @@ package auth
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/gczuczy/ed-survey-tools/pkg/http/wrappers"
@@ -17,8 +16,8 @@ type Config struct {
 	Scope string `json:"scope"`
 }
 
-func configHandler(r *http.Request) wrappers.IResponse {
-	host := hostURL(r)
+func configHandler(r *wrappers.Request) wrappers.IResponse {
+	host := hostURL(r.R)
 
 	return wrappers.Success(Config{
 		Issuer: config.Issuer,

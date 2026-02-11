@@ -12,11 +12,11 @@ import (
 	"github.com/gczuczy/ed-survey-tools/pkg/http/sessions"
 )
 
-func callbackHandler(r *http.Request) wrappers.IResponse {
-	ctx := r.Context()
+func callbackHandler(r *wrappers.Request) wrappers.IResponse {
+	ctx := r.R.Context()
 
-	code := r.URL.Query().Get("code")
-	state := r.URL.Query().Get("state")
+	code := r.R.URL.Query().Get("code")
+	state := r.R.URL.Query().Get("state")
 
 	if len(code) == 0 {
 		return wrappers.NewError(
@@ -25,7 +25,7 @@ func callbackHandler(r *http.Request) wrappers.IResponse {
 	}
 
 	cfg := *oauth2config
-	cfg.RedirectURL = fmt.Sprintf("%s/api/auth/callback", hostURL(r))
+	cfg.RedirectURL = fmt.Sprintf("%s/api/auth/callback", hostURL(r.R))
 
 	token, err := cfg.Exchange(ctx, code)
 	if err != nil {
@@ -60,7 +60,7 @@ func callbackHandler(r *http.Request) wrappers.IResponse {
 
 	// TODO: session
 	fmt.Printf("userinfo: %v\n", userinfo)
-	s, _ := sessions.Get(r)
+	s, _ := sessions.Get(r.R)
 	if fdevcid, ok := userinfo["customer_id"]; ok {
 		s.Values["fdev_customerid"] = fdevcid
 	} else {

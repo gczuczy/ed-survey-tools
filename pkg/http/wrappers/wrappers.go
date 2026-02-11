@@ -1,12 +1,18 @@
 package wrappers
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 	"encoding/json"
 
 	"github.com/gorilla/sessions"
 )
+
+type Request struct {
+	U *User
+	R *http.Request
+	S *sessions.Session
+}
 
 type Error interface {
 	IResponse
@@ -34,15 +40,14 @@ func (sr *Sessioner) SaveSessions(r *http.Request, w http.ResponseWriter) error 
 	if sr.Sessions != nil {
 		for _, s := range sr.Sessions {
 			if serr := s.Save(r, w); err != nil {
-				err = append(err, serr)
+				err = errors.Join(err, serr)
 			}
 		}
 	}
 	return err
 }
 
-
-type Handler func(r *http.Request) IResponse
+type Handler func(r *Request) IResponse
 
 type Response struct {
 	Sessioner
@@ -61,32 +66,6 @@ func Success(r any) IResponse {
 		Status: "success",
 		Code: http.StatusOK,
 		Data: r,
-	}
-}
-
-func Wrap(h Handler) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		resp := h(r)
-		// return error if there's any
-		if resp == nil {
-			err := Response{
-				Status: "error",
-				Code: http.StatusInternalServerError,
-				Message: "Handler did not return",
-			}
-			err.HTTPWrite(w, r)
-			return
-		}
-
-
-		if err := resp.HTTPWrite(w, r); err != nil {
-			msg := Response{
-				Status: "error",
-				Code: http.StatusInternalServerError,
-				Message: fmt.Sprintf("Unable to formulate response: %v", err),
-			}
-			msg.HTTPWrite(w, r)
-		}
 	}
 }
 
