@@ -5,9 +5,9 @@ DECLARE
 	campaignid int;
 	mid int;
 BEGIN
-   SELECT INTO cmdrid id FROM density.cmdrs WHERE name = cmdr;
+   SELECT INTO cmdrid id FROM common.cmdrs WHERE name = cmdr;
    IF NOT FOUND THEN
-      INSERT INTO density.cmdrs (name) VALUES (cmdr) RETURNING id INTO cmdrid;
+      INSERT INTO common.cmdrs (name) VALUES (cmdr) RETURNING id INTO cmdrid;
    END IF;
 
    SELECT INTO campaignid id FROM density.campaigns WHERE name = campaign;

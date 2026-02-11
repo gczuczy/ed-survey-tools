@@ -16,20 +16,12 @@ INSERT INTO density.campaigns (name) VALUES
 ('DW3 Logarithmic Density Scans')
 ;
 
-CREATE TABLE density.cmdrs (
-       id    int		  GENERATED ALWAYS AS IDENTITY,
-       name  varchar(64)	  NOT NULL UNIQUE,
-       PRIMARY KEY (id)
-);
-GRANT SELECT, INSERT, UPDATE ON density.cmdrs TO edservice;
-GRANT SELECT ON density.cmdrs TO edviewer;
-
 CREATE TABLE density.surveys (
        id    int		  GENERATED ALWAYS AS IDENTITY,
        campaignid int		  NOT NULL,
        cmdrid	 int		  NOT NULL,
        FOREIGN KEY (campaignid) REFERENCES density.campaigns (id),
-       FOREIGN KEY (cmdrid) REFERENCES density.cmdrs(id),
+       FOREIGN KEY (cmdrid) REFERENCES common.cmdrs(id),
        PRIMARY KEY (id)
 );
 GRANT SELECT, INSERT ON density.surveys TO edservice;
@@ -38,17 +30,15 @@ GRANT SELECT ON density.surveys TO edviewer;
 CREATE TABLE density.surveypoints (
        id    int		  GENERATED ALWAYS AS IDENTITY,
        surveyid int	  NOT NULL,
-       sysname	     varchar(64)  NOT NULL,
+			 sysid		bigint		NOT NULL,
        zsample	     int	  NOT NULL,
-       x	     real	  NOT NULL,
-       y	     real	  NOT NULL,
-       z	     real	  NOT NULL,
        syscount	     int	  NOT NULL,
        maxdistance   real	  NOT NULL,
-       FOREIGN KEY (surveyid) REFERENCES density.surveys(id),
        PRIMARY KEY (id),
+       FOREIGN KEY (surveyid) REFERENCES density.surveys(id),
+			 FOREIGN KEY (sysid) REFERENCES common.systems(id),
        UNIQUE (surveyid, zsample),
-       UNIQUE (surveyid, sysname),
+       UNIQUE (surveyid, sysid),
        CHECK (syscount >= 0 AND syscount <= 50),
        CHECK (maxdistance > 0 AND maxdistance <= 20)
 );
