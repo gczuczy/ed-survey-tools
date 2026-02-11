@@ -32,6 +32,8 @@ On errors, the `.status` field is set to `error`, no `.data` is returned, and th
 
 The backend both serves the frontend from the root(`/`), and provides an api from the `/api` path. The actual API call implementations can be found under the `pkg/http/api` package, each endpoint must be in a separate `.go` file.
 
+To build the backend always use `gmake build`.
+
 
 # frontend
 
