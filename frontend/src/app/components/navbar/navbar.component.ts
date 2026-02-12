@@ -79,7 +79,7 @@ import { AuthService }                    from '../../auth/auth.service';
             <!-- Settings dropdown (protected) ────────────────────────── -->
             <li class="nav-item" ngbDropdown placement="bottom-end">
               <button class="btn btn-outline-secondary btn-sm" ngbDropdownToggle>
-                ⚙ Settings
+                👤 CMDR {{ authService.user?.name }}
               </button>
               <div ngbDropdownMenu>
                 <a ngbDropdownItem routerLink="/settings">Settings</a>

@@ -1,6 +1,6 @@
 import { Injectable }                       from '@angular/core';
 import { OAuthService, AuthConfig }        from 'angular-oauth2-oidc';
-import { Observable, from, of }           from 'rxjs';
+import { Observable, of }                  from 'rxjs';
 import { map, switchMap, tap, catchError } from 'rxjs/operators';
 import { Router }                         from '@angular/router';
 import { ApiService }                     from '../services/api.service';
@@ -21,9 +21,21 @@ export interface OAuthBackendConfig {
   tokenUrl:            string;
 }
 
+/**
+ * Mirrors the backend `db.User` struct returned by `/api/auth/user`.
+ */
+export interface UserInfo {
+  id:         number;
+  name:       string;
+  customerid: number;
+  isowner:    boolean;
+  isadmin:    boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private configLoadFailed = false;
+  private cachedUser: UserInfo | null = null;
 
   constructor(
     private oauth  : OAuthService,
@@ -33,6 +45,10 @@ export class AuthService {
 
   /**
    * Called once by APP_INITIALIZER.
+   *
+   * Loads the OAuth configuration (needed for the login redirect),
+   * then queries `/api/auth/user` to determine whether the user
+   * already has a valid backend session.
    *
    * If the OAuth config fails to load, we mark the service as disabled
    * and allow the app to continue loading (public pages will work).
@@ -61,20 +77,15 @@ export class AuthService {
         this.oauth.configure(authConfig);
       }),
 
-      switchMap(() =>
-        from(this.oauth.tryLogin()).pipe(
-          catchError((err) => {
-            console.warn('[AuthService] Token login failed:', err);
-            this.configLoadFailed = true;
-            return of(false);
-          })
-        )
-      ),
+      // Clean up code/state URL params left by the backend callback redirect
+      tap(() => this.cleanupCallbackParams()),
+
+      // Determine login status from the backend session
+      switchMap(() => this.fetchUserInfo()),
 
       tap(() => {
-        // Only redirect if login actually succeeded
         const target = sessionStorage.getItem('_redirectUri');
-        if (target && this.oauth.hasValidAccessToken()) {
+        if (target && this.cachedUser) {
           sessionStorage.removeItem('_redirectUri');
           this.router.navigateByUrl(target);
         }
@@ -94,25 +105,11 @@ export class AuthService {
   // ── queries ───────────────────────────────────────────────────────────────
 
   get isLoggedIn(): boolean {
-    if (this.configLoadFailed) {
-      return false;
-    }
-    return this.oauth.hasValidAccessToken();
+    return this.cachedUser !== null;
   }
 
-  get userInfo(): Record<string, unknown> | null {
-    if (this.configLoadFailed) {
-      return null;
-    }
-    const claims = this.oauth.getIdentityClaims();
-    return claims ? claims as Record<string, unknown> : null;
-  }
-
-  get accessToken(): string | null {
-    if (this.configLoadFailed) {
-      return null;
-    }
-    return this.oauth.getAccessToken();
+  get user(): UserInfo | null {
+    return this.cachedUser;
   }
 
   get isConfigured(): boolean {
@@ -133,9 +130,34 @@ export class AuthService {
   }
 
   logout(): void {
-    if (this.configLoadFailed) {
-      return;
+    this.api.getConfig<void>('/api/auth/logout').pipe(
+      catchError(() => of(undefined))
+    ).subscribe(() => {
+      this.cachedUser = null;
+      this.router.navigateByUrl('/');
+    });
+  }
+
+  // ── private helpers ─────────────────────────────────────────────────────
+
+  private fetchUserInfo(): Observable<void> {
+    return this.api.getConfig<UserInfo>('/api/auth/user').pipe(
+      tap(user => { this.cachedUser = user; }),
+      map(() => undefined),
+      catchError(() => {
+        this.cachedUser = null;
+        return of(undefined);
+      })
+    );
+  }
+
+  private cleanupCallbackParams(): void {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('code') || url.searchParams.has('state')) {
+      url.searchParams.delete('code');
+      url.searchParams.delete('state');
+      const cleanUrl = url.pathname + (url.search || '') + (url.hash || '');
+      window.history.replaceState({}, '', cleanUrl);
     }
-    this.oauth.logOut();
   }
 }

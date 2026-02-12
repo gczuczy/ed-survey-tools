@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"net/http"
 	"encoding/json"
+	"hash/crc32"
 
 	"github.com/gczuczy/ed-survey-tools/pkg/http/wrappers"
 	"github.com/gczuczy/ed-survey-tools/pkg/http/sessions"
@@ -79,7 +80,7 @@ func callbackHandler(r *wrappers.Request) wrappers.IResponse {
 	} else {
 		// testing IdP
 		cmdrname = userinfo["sub"].(string)
-		customerid = 42069
+		customerid = int64(crc32.ChecksumIEEE([]byte(cmdrname)))
 	}
 
 	user, err := db.Pool.LoginCMDR(cmdrname, customerid)

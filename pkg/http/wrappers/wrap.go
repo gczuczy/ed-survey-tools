@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/gczuczy/ed-survey-tools/pkg/db"
 	"github.com/gczuczy/ed-survey-tools/pkg/http/sessions"
 )
 
@@ -31,6 +32,9 @@ func AuthWrap(h Handler) http.HandlerFunc {
 				http.StatusUnauthorized)
 		} else {
 			req.S = sess
+			if u, ok := sess.Values["user"].(*db.User); ok {
+				req.U = u
+			}
 			resp = h(&req)
 		}
 		formResponse(resp, w, r)

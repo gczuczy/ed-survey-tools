@@ -1,15 +1,21 @@
 package db
 
 import (
+	"encoding/gob"
+
 	"github.com/jackc/pgx/v5"
 )
 
+func init() {
+	gob.Register(&User{})
+}
+
 type User struct {
-	ID int `db:"id",json:"id"`
-	Name string `db:"name",json:"name"`
-	CustomerID int64 `db:"customerid",json:"customerid"`
-	IsOwner bool `db:"isowner",json:"isowner"`
-	IsAdmin bool `db:"isadmin",json:"isadmin"`
+	ID int `db:"id" json:"id"`
+	Name string `db:"name" json:"name"`
+	CustomerID int64 `db:"customerid" json:"customerid"`
+	IsOwner bool `db:"isowner" json:"isowner"`
+	IsAdmin bool `db:"isadmin" json:"isadmin"`
 }
 
 func (p *DBPool) LoginCMDR(name string, customerid int64) (*User, error) {

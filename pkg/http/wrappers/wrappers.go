@@ -41,7 +41,7 @@ func (sr *Sessioner) SaveSessions(r *http.Request, w http.ResponseWriter) error 
 	var err error
 	if sr.Sessions != nil {
 		for _, s := range sr.Sessions {
-			if serr := s.Save(r, w); err != nil {
+			if serr := s.Save(r, w); serr != nil {
 				err = errors.Join(err, serr)
 			}
 		}
