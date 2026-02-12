@@ -4,12 +4,14 @@ import (
 	"io"
 	"fmt"
 	"errors"
+	"strconv"
 	"net/url"
 	"net/http"
 	"encoding/json"
 
 	"github.com/gczuczy/ed-survey-tools/pkg/http/wrappers"
 	"github.com/gczuczy/ed-survey-tools/pkg/http/sessions"
+	"github.com/gczuczy/ed-survey-tools/pkg/db"
 )
 
 func callbackHandler(r *wrappers.Request) wrappers.IResponse {
@@ -61,12 +63,33 @@ func callbackHandler(r *wrappers.Request) wrappers.IResponse {
 	// TODO: session
 	fmt.Printf("userinfo: %v\n", userinfo)
 	s, _ := sessions.Get(r.R)
+	var (
+		customerid int64
+		cmdrname string
+	)
 	if fdevcid, ok := userinfo["customer_id"]; ok {
-		s.Values["fdev_customerid"] = fdevcid
+		// TODO: acquire CMDR name from CAPI
+		cmdrname = "CAPI-once-we-have-the-oauth2-apps-approved"
+		customerid, err = strconv.ParseInt(fdevcid.(string), 10, 64)
+		if err != nil {
+			return wrappers.NewError(
+				errors.Join(err, fmt.Errorf("Failed to parse FDev custoemr_id")),
+				http.StatusInternalServerError)
+		}
 	} else {
 		// testing IdP
-		s.Values["fdev_customerid"] = 42069
+		cmdrname = userinfo["sub"].(string)
+		customerid = 42069
 	}
+
+	user, err := db.Pool.LoginCMDR(cmdrname, customerid)
+	if err != nil {
+		return wrappers.NewError(
+			errors.Join(err, fmt.Errorf("Failed login")),
+			http.StatusInternalServerError)
+	}
+	fmt.Printf("User to %+v\n", user)
+	s.Values["user"] = user
 
 	v := url.Values{}
 	v.Add("code", code)

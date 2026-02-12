@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 
 	"github.com/gorilla/sessions"
+
+	"github.com/gczuczy/ed-survey-tools/pkg/db"
 )
 
 type Request struct {
-	U *User
+	U *db.User
 	R *http.Request
 	S *sessions.Session
 }

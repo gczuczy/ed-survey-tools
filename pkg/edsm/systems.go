@@ -7,7 +7,7 @@ import (
 
 type SystemData struct {
 	Name string `json:"name"`
-	ID int `json:"id"`
+	ID int64 `json:"id"`
 	Coords *Coordinates `json:"coords"`
 }
 

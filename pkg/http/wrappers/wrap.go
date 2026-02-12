@@ -8,10 +8,6 @@ import (
 	"github.com/gczuczy/ed-survey-tools/pkg/http/sessions"
 )
 
-type User struct {
-	ID int
-}
-
 func Wrap(h Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req := Request{

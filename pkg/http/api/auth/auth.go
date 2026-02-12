@@ -42,6 +42,7 @@ func Init(r *mux.Router, cfg *c.OAuth2Config) error {
  	r.HandleFunc("/config", wrappers.Wrap(configHandler))
  	r.HandleFunc("/callback", wrappers.Wrap(callbackHandler))
  	r.HandleFunc("/logout", wrappers.AuthWrap(logoutHandler))
+ 	r.HandleFunc("/user", wrappers.AuthWrap(userinfoHandler))
 
 	return nil
 }
