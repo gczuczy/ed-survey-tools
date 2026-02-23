@@ -12,6 +12,12 @@ import (
 	"github.com/gczuczy/ed-survey-tools/pkg/http/api"
 	"github.com/gczuczy/ed-survey-tools/pkg/http/sessions"
 	"github.com/gczuczy/ed-survey-tools/pkg/config"
+	"github.com/gczuczy/ed-survey-tools/pkg/http/wrappers"
+	"github.com/gczuczy/ed-survey-tools/pkg/log"
+)
+
+var (
+	l log.Logger
 )
 
 type HTTPService struct {
@@ -21,18 +27,24 @@ type HTTPService struct {
 
 func New(cfg *config.Config) (*HTTPService, error) {
 
+	l = log.GetLogger("http")
+	wrappers.SetLogger(l)
+
 	if err := sessions.Init(&cfg.Sessions); err != nil {
-		return nil, errors.Join(err, fmt.Errorf("Unable top init http sessions"))
+		l.Error().Err(err).Msg("Unable to init sessions")
+		return nil, errors.Join(err, fmt.Errorf("Unable to init http sessions"))
 	}
 
 	spa, err := newSPAHandler()
 	if err != nil {
+		l.Error().Err(err).Msg("Unable to init SPA tarball")
 		return nil, errors.Join(err, fmt.Errorf("Unable to init SPA tarball"))
 	}
 
 	router := mux.NewRouter()
 	apisr := router.PathPrefix("/api").Subrouter()
 	if err = api.Init(apisr, &cfg.OAuth2); err != nil {
+		l.Error().Err(err).Msg("API init error")
 		return nil, err
 	}
 	router.PathPrefix(`/`).Handler(spa)
@@ -45,6 +57,7 @@ func New(cfg *config.Config) (*HTTPService, error) {
 		},
 	}
 
+	l.Info().Msg("HTTP subsystem initialized")
 	return &hs, nil
 }
 
@@ -57,7 +70,7 @@ func (hs *HTTPService) Run() error {
 	go func() {
 		err := hs.srv.ListenAndServe()
 		if err != http.ErrServerClosed {
-			fmt.Fprintf(os.Stderr, "http.Serve(): %v\n", err)
+			l.Error().Err(err).Msg("http.Servce() error")
 			os.Exit(2)
 		}
 	}()

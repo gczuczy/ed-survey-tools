@@ -32,7 +32,7 @@ func callbackHandler(r *wrappers.Request) wrappers.IResponse {
 
 	token, err := cfg.Exchange(ctx, code)
 	if err != nil {
-		fmt.Printf("Oauth2config: %s\n", cfg)
+		r.L.Debug().Interface("oauth2config", cfg).Msg("Oauth2 config")
 		return wrappers.NewError(
 			errors.Join(err, fmt.Errorf("Code exchange failed")),
 			http.StatusInternalServerError)
@@ -61,8 +61,7 @@ func callbackHandler(r *wrappers.Request) wrappers.IResponse {
 			http.StatusInternalServerError)
 	}
 
-	// TODO: session
-	fmt.Printf("userinfo: %v\n", userinfo)
+	r.L.Info().Interface("userinfo", userinfo).Msg("Userinfo lookup")
 	s, _ := sessions.Get(r.R)
 	var (
 		customerid int64
@@ -89,7 +88,7 @@ func callbackHandler(r *wrappers.Request) wrappers.IResponse {
 			errors.Join(err, fmt.Errorf("Failed login")),
 			http.StatusInternalServerError)
 	}
-	fmt.Printf("User to %+v\n", user)
+	r.L.Info().Interface("user", user).Msg("Logged in")
 	s.Values["user"] = user
 
 	v := url.Values{}

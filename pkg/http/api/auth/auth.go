@@ -39,10 +39,10 @@ func Init(r *mux.Router, cfg *c.OAuth2Config) error {
 		Scopes: append([]string{"auth", "capi"}, config.ExtraScopes...),
 	}
 
- 	r.HandleFunc("/config", wrappers.Wrap(configHandler))
- 	r.HandleFunc("/callback", wrappers.Wrap(callbackHandler))
- 	r.HandleFunc("/logout", wrappers.AuthWrap(logoutHandler))
- 	r.HandleFunc("/user", wrappers.AuthWrap(userinfoHandler))
+ 	r.Handle("/config", wrappers.NewAPIHandler().Get(configHandler))
+ 	r.Handle("/callback", wrappers.NewAPIHandler().Get(callbackHandler))
+ 	r.Handle("/logout", wrappers.NewAPIHandler().AuthGet(logoutHandler))
+ 	r.Handle("/user", wrappers.NewAPIHandler().AuthGet(userinfoHandler))
 
 	return nil
 }

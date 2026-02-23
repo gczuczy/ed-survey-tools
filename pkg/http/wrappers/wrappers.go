@@ -8,12 +8,22 @@ import (
 	"github.com/gorilla/sessions"
 
 	"github.com/gczuczy/ed-survey-tools/pkg/db"
+	"github.com/gczuczy/ed-survey-tools/pkg/log"
 )
+
+var (
+	l log.Logger
+)
+
+func SetLogger(logger log.Logger) {
+	l = logger
+}
 
 type Request struct {
 	U *db.User
 	R *http.Request
 	S *sessions.Session
+	L log.Logger
 }
 
 type Error interface {
@@ -48,8 +58,6 @@ func (sr *Sessioner) SaveSessions(r *http.Request, w http.ResponseWriter) error 
 	}
 	return err
 }
-
-type Handler func(r *Request) IResponse
 
 type Response struct {
 	Sessioner
