@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/gczuczy/ed-survey-tools/pkg/config"
+	"github.com/gczuczy/ed-survey-tools/pkg/log"
 )
 
 var (
@@ -38,6 +39,8 @@ INSERT INTO density.surveypoints (surveyid, sysid, zsample, syscount, maxdistanc
 VALUES ($1::int, $2::bigint, $3::int, $4::int, $5::real)
 `,
 	}
+
+	logger log.Logger
 )
 
 type DBPool struct {
@@ -49,8 +52,11 @@ type DBPool struct {
 func Init(cfg *config.DBConfig) error {
 	var err error
 
+	logger = log.GetLogger("db")
+
 	dbcfg, err := pgxpool.ParseConfig("")
 	if err != nil {
+		logger.Error().Err(err).Msg("Unable to parse config")
 		return err
 	}
 	dbcfg.MaxConnLifetime = 8 * time.Hour
@@ -71,22 +77,27 @@ func Init(cfg *config.DBConfig) error {
 	}
 
 	if dbp.pool, err = pgxpool.NewWithConfig(dbp.ctx, dbcfg); err != nil {
+		logger.Error().Err(err).Msg("Unable to initialize pool")
 		return err
 	}
 
 	conn, err := dbp.pool.Acquire(dbp.ctx)
 	if err != nil {
+		logger.Error().Err(err).Msg("Unable to acquire connection from pool")
 		return err
 	}
 	defer conn.Release()
 
 	Pool = &dbp
+	logger.Info().Msg("Database subsystem started")
 	return nil
 }
 
 func afterConn(ctx context.Context, dbc *pgx.Conn) error {
 	for name, query := range prepared {
 		if _, err := dbc.Prepare(ctx, name, query); err != nil {
+			logger.Error().Err(err).Str("qname", name).Str("query", query).
+				Msg("Error while preparing query")
 			return errors.Join(err, fmt.Errorf("Error while preparing %s", name))
 		}
 	}

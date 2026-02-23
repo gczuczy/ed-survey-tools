@@ -14,6 +14,7 @@ type Config struct {
 	HTTP HTTPConfig `koanf:"http"`
 	OAuth2 OAuth2Config `koanf:"oauth2"`
 	Sessions SessionsConfig `koanf:"sessions"`
+	Logging LoggingConfig `koanf:"logging"`
 }
 
 type DBConfig struct {
@@ -56,6 +57,10 @@ type RedisSessionConfig struct {
 	Port *uint16 `koanf:"port"`
 }
 
+type LoggingConfig struct {
+	Level string `koanf:"level"`
+}
+
 func ParseConfig(k *koanf.Koanf) (*Config, error) {
 	var (
 		err error
@@ -76,6 +81,9 @@ func ParseConfig(k *koanf.Koanf) (*Config, error) {
 		},
 		OAuth2: OAuth2Config{
 			Issuer: "https://auth.frontierstore.net",
+		},
+		Logging: LoggingConfig{
+			Level: "info",
 		},
 	}
 	if err = k.Unmarshal("", &cfg); err != nil {

@@ -22,17 +22,22 @@ func (p *DBPool) LoginCMDR(name string, customerid int64) (*User, error) {
 	var rows pgx.Rows
 	conn, err := p.pool.Acquire(p.ctx)
 	if err != nil {
+		logger.Error().Err(err).Caller().Msg("Unable to acquire connection from pool")
 		return nil, err
 	}
 	defer conn.Release()
 
 	if rows, err = conn.Query(p.ctx, "logincmdr", name, customerid);  err != nil {
+		logger.Error().Err(err).Caller().Str("query", "logincmdr").
+			Msg("Error while executing query")
 		return nil, err
 	}
 	defer rows.Close()
 
 	user, err := pgx.CollectRows(rows, pgx.RowToStructByName[User])
 	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Error while reading results")
 		return nil, err
 	}
 

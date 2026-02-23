@@ -13,6 +13,7 @@ import (
 	"github.com/gczuczy/ed-survey-tools/pkg/config"
 	"github.com/gczuczy/ed-survey-tools/pkg/http"
 	"github.com/gczuczy/ed-survey-tools/pkg/db"
+	"github.com/gczuczy/ed-survey-tools/pkg/log"
 )
 
 func parseArgs(k *koanf.Koanf) error {
@@ -47,6 +48,11 @@ func Run() {
 	}
 
 	if cfg, err = config.ParseConfig(k); err != nil {
+		fmt.Fprintf(os.Stderr, "err: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err = log.Init(&cfg.Logging); err != nil {
 		fmt.Fprintf(os.Stderr, "err: %v\n", err)
 		os.Exit(1)
 	}
