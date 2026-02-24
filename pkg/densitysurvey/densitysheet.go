@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"google.golang.org/api/sheets/v4"
-	"github.com/gczuczy/dw-stellar-density-analyzer/pkg/google"
+	"github.com/gczuczy/ed-survey-tools/pkg/google"
 )
 
 const (

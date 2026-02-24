@@ -1,0 +1,105 @@
+package auth
+
+import (
+	"io"
+	"fmt"
+	"errors"
+	"strconv"
+	"net/url"
+	"net/http"
+	"encoding/json"
+	"hash/crc32"
+
+	"github.com/gczuczy/ed-survey-tools/pkg/http/wrappers"
+	"github.com/gczuczy/ed-survey-tools/pkg/http/sessions"
+	"github.com/gczuczy/ed-survey-tools/pkg/db"
+)
+
+func callbackHandler(r *wrappers.Request) wrappers.IResponse {
+	ctx := r.R.Context()
+
+	code := r.R.URL.Query().Get("code")
+	state := r.R.URL.Query().Get("state")
+
+	if len(code) == 0 {
+		return wrappers.NewError(
+			fmt.Errorf("Missing authorization code"),
+			http.StatusBadRequest)
+	}
+
+	cfg := *oauth2config
+	cfg.RedirectURL = fmt.Sprintf("%s/api/auth/callback", hostURL(r.R))
+
+	token, err := cfg.Exchange(ctx, code)
+	if err != nil {
+		r.L.Debug().Interface("oauth2config", cfg).Msg("Oauth2 config")
+		return wrappers.NewError(
+			errors.Join(err, fmt.Errorf("Code exchange failed")),
+			http.StatusInternalServerError)
+	}
+
+	client := cfg.Client(ctx, token)
+	resp, err := client.Get(config.UserInfoURL)
+	if err != nil {
+		return wrappers.NewError(
+			errors.Join(err, fmt.Errorf("Failed to fetch userinfo")),
+			http.StatusInternalServerError)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return wrappers.NewError(
+			errors.Join(err, fmt.Errorf("Failed to read userinfo")),
+			http.StatusInternalServerError)
+	}
+
+	var userinfo map[string]any
+	if err := json.Unmarshal(body, &userinfo); err != nil {
+		return wrappers.NewError(
+			errors.Join(err, fmt.Errorf("Failed to parse userinfo")),
+			http.StatusInternalServerError)
+	}
+
+	r.L.Info().Interface("userinfo", userinfo).Msg("Userinfo lookup")
+	s, _ := sessions.Get(r.R)
+	var (
+		customerid int64
+		cmdrname string
+	)
+	if fdevcid, ok := userinfo["customer_id"]; ok {
+		// TODO: acquire CMDR name from CAPI
+		cmdrname = "CAPI-once-we-have-the-oauth2-apps-approved"
+		customerid, err = strconv.ParseInt(fdevcid.(string), 10, 64)
+		if err != nil {
+			return wrappers.NewError(
+				errors.Join(err, fmt.Errorf("Failed to parse FDev custoemr_id")),
+				http.StatusInternalServerError)
+		}
+	} else {
+		// testing IdP
+		cmdrname = userinfo["sub"].(string)
+		customerid = int64(crc32.ChecksumIEEE([]byte(cmdrname)))
+	}
+
+	user, err := db.Pool.LoginCMDR(cmdrname, customerid)
+	if err != nil {
+		return wrappers.NewError(
+			errors.Join(err, fmt.Errorf("Failed login")),
+			http.StatusInternalServerError)
+	}
+	r.L.Info().Interface("user", user).Msg("Logged in")
+	s.Values["user"] = user
+
+	v := url.Values{}
+	v.Add("code", code)
+	v.Add("state", state)
+	rurl := url.URL{
+		Path: "/",
+		RawQuery: v.Encode(),
+	}
+	ret := wrappers.NewRedirect(&rurl, http.StatusFound)
+	ret.Session(s)
+
+	return ret
+}

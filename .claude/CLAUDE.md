@@ -1,0 +1,49 @@
+# Basic description
+
+This project has a golang-based backend in its root directory, and its angular-based frontend can be found in the `frontend` directory.
+
+# Common notes
+
+The whole project can be built using the root `GNUmakefile`'s `build` target. This packs the frontend as well and embeds it into the binary. And since it's gnumake prefer using `gmake` instead of `make`.
+
+Programming patterns need to be respected, code shouldn't be duplicated, but reused. Avoid code duplication and aim for patterns.
+
+Do not do any modifications to the git tree without an explicit prompt for it.
+
+Always plan first, examine your offered solution, look for errors, fix them and iterate until you do not find errors. Then build the project, handle the build errors and start over until all errors are eliminated. Never return with a failing build.
+
+
+
+# API
+
+The api has a generic structure:
+
+```json
+{"status": "status-string",
+"message": "textual-message",
+"data": {}}
+```
+
+On successful requests only the `.status` and `.data` are filled. The `.data` might be omitted if its empty. Success is also reflected from the HTTP status code, and the `.status` field is set to `success`.
+
+On errors, the `.status` field is set to `error`, no `.data` is returned, and there is an extended error message in the `.message` field which should be shown to the user. The HTTP status code is also reflecting the error.
+
+# backend
+
+The backend both serves the frontend from the root(`/`), and provides an api from the `/api` path. The actual API call implementations can be found under the `pkg/http/api` package, each endpoint must be in a separate `.go` file.
+
+To build the backend always use `gmake build`.
+
+
+# frontend
+
+To build just the frontend use the `frontend/GNUmakefile`'s `build` target. Simply use the command `gmake -C frontend/ build` to build this.
+
+The project is angular20 based.
+
+All components must not have any embedded CSS or HTML, all must be in separate files.
+
+There is a API Service class, which is mainly responsible for the API communication. This class must implement highlevel functions and must not expose direct HTTP calls.
+
+The frontend needs to mimic the communicated data types on the API. That is, for the API responses each structure returned under the `.data` field (found in the backend code under `pkg/http/api/`) has to have its own typescript/js structure.
+

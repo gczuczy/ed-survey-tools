@@ -1,4 +1,4 @@
-# dw-stellar-density-analyzer
+# ed-survey-tools
 
 ## Getting started with CLI
 

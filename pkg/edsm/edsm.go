@@ -31,7 +31,7 @@ func (e *EDSM) newRequest(method string, endpoint string) (req *http.Request, er
 	req.URL = base.ResolveReference(rel)
 
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Usage-Agent", "dw-stellar-density-analyzer")
+	req.Header.Set("Usage-Agent", "ed-survey-tools")
 
 	return
 }

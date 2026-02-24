@@ -1,13 +1,19 @@
-module github.com/gczuczy/dw-stellar-density-analyzer
+module github.com/gczuczy/ed-survey-tools
 
 go 1.25.6
 
 require (
+	github.com/boj/redistore/v2 v2.0.1
+	github.com/gomodule/redigo v1.9.3
+	github.com/gorilla/mux v1.8.1
+	github.com/gorilla/sessions v1.4.0
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/knadh/koanf/parsers/yaml v1.1.0
 	github.com/knadh/koanf/providers/file v1.2.1
 	github.com/knadh/koanf/providers/posflag v1.0.1
 	github.com/knadh/koanf/v2 v2.3.0
+	github.com/quay/claircore v1.5.48
+	github.com/rs/zerolog v1.32.0
 	github.com/spf13/pflag v1.0.10
 	golang.org/x/oauth2 v0.34.0
 	google.golang.org/api v0.260.0
@@ -26,10 +32,13 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.9 // indirect
 	github.com/googleapis/gax-go/v2 v2.16.0 // indirect
+	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/knadh/koanf/maps v0.1.2 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect

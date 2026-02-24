@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"github.com/knadh/koanf/v2"
 
-	"github.com/gczuczy/dw-stellar-density-analyzer/pkg/google"
-	"github.com/gczuczy/dw-stellar-density-analyzer/pkg/config"
-	"github.com/gczuczy/dw-stellar-density-analyzer/pkg/db"
-	ds "github.com/gczuczy/dw-stellar-density-analyzer/pkg/densitysurvey"
+	"github.com/gczuczy/ed-survey-tools/pkg/google"
+	"github.com/gczuczy/ed-survey-tools/pkg/config"
+	"github.com/gczuczy/ed-survey-tools/pkg/db"
+	ds "github.com/gczuczy/ed-survey-tools/pkg/densitysurvey"
 )
 
 func Run() {

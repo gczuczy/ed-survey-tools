@@ -1,7 +1,7 @@
 package densitysurvey
 
 import (
-	"github.com/gczuczy/dw-stellar-density-analyzer/pkg/edsm"
+	"github.com/gczuczy/ed-survey-tools/pkg/edsm"
 )
 
 var (
@@ -20,6 +20,7 @@ type SurveyPoint struct {
 	X float32
 	Y float32
 	Z float32
+	EDSMID int64
 	SystemName string
 	ZSample int
 	Count int
@@ -46,6 +47,7 @@ func (m *Survey) LookupNames() error {
 	for i, dp := range m.SurveyPoints {
 		for _, sys := range lookupres {
 			if sys.Name == dp.SystemName {
+				m.SurveyPoints[i].EDSMID = sys.ID
 				m.SurveyPoints[i].X = sys.Coords.X
 				m.SurveyPoints[i].Y = sys.Coords.Z
 				m.SurveyPoints[i].Z = sys.Coords.Y

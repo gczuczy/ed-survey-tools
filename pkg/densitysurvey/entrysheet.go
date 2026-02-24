@@ -6,7 +6,7 @@ import (
 	"strings"
 	"net/url"
 	"regexp"
-	"github.com/gczuczy/dw-stellar-density-analyzer/pkg/google"
+	"github.com/gczuczy/ed-survey-tools/pkg/google"
 )
 
 type EntrySheet struct {
