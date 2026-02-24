@@ -26,12 +26,12 @@ FROM vsds.v_surveypoints sp
 GROUP BY sp.surveyid
 )
 SELECT cmdr.name AS cmdrname,
-       c.name AS campaignname,
+       c.name AS projectname,
        s.*,
        sp.*
 FROM vsds.surveys s
      JOIN stats sp ON s.id = sp.surveyid
-     JOIN vsds.campaigns c ON s.campaignid = c.id
+     JOIN vsds.projects c ON s.projectid = c.id
      JOIN common.cmdrs cmdr ON s.cmdrid = cmdr.id
 ;
 GRANT SELECT ON vsds.v_surveys TO edservice;
