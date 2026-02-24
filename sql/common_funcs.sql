@@ -19,4 +19,4 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql VOLATILE STRICT PARALLEL UNSAFE SECURITY INVOKER;
 
-GRANT EXECUTE ON FUNCTION density.addsheetsurvey(cmdr text, campaign text) TO edservice;
+GRANT EXECUTE ON FUNCTION vsds.addsheetsurvey(cmdr text, campaign text) TO edservice;

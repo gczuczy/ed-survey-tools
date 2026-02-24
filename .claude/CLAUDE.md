@@ -12,8 +12,6 @@ Do not do any modifications to the git tree without an explicit prompt for it.
 
 Always plan first, examine your offered solution, look for errors, fix them and iterate until you do not find errors. Then build the project, handle the build errors and start over until all errors are eliminated. Never return with a failing build.
 
-
-
 # API
 
 The api has a generic structure:
@@ -34,6 +32,22 @@ The backend both serves the frontend from the root(`/`), and provides an api fro
 
 To build the backend always use `gmake build`.
 
+# Database
+
+The database files are found under the `sql` directory, the implementation is PostgreSQL. The database is split between functional schemas, and files here are named as such using the `$schema_$part.sql` naming, where:
+
+ - `$schema`: the name of the schema
+ - `$part` is one of `struct`, `funcs`, `views`. These represent database structure, functions and views respectively.
+
+The database is using 3 basic roles:
+
+ - `edadmin`: responsible for the database creation, admin permissions
+ - `edservices`: Only DQL and DML permissions selectively where needed
+ - `edviewer`: NOLOGIN role reserved for human database viewers, selective read-only permissiosn only
+
+The database is aimed to be 3NF, with the practicality exception. Most table have views to return application-specific joined datasets. For insertion, functions are prefered which are returning a view-record of the freshly inserted datum.
+
+The service's database code is found under `pkg/db`. For simple operations it is simple queries, however complex DML operations are always in transactions.
 
 # frontend
 

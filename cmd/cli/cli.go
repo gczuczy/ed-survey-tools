@@ -8,7 +8,7 @@ import (
 	"github.com/gczuczy/ed-survey-tools/pkg/google"
 	"github.com/gczuczy/ed-survey-tools/pkg/config"
 	"github.com/gczuczy/ed-survey-tools/pkg/db"
-	ds "github.com/gczuczy/ed-survey-tools/pkg/densitysurvey"
+	"github.com/gczuczy/ed-survey-tools/pkg/vsds"
 )
 
 func Run() {
@@ -39,7 +39,7 @@ func Run() {
 		return
 	}
 
-	entry, err := ds.NewEntrySheet(k.String(`sheetid`), ss)
+	entry, err := vsds.NewEntrySheet(k.String(`sheetid`), ss)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return
@@ -53,7 +53,7 @@ func Run() {
 
 	for _, sheetid := range ids {
 		fmt.Printf("SheetID: %s\n", sheetid)
-		dss, err := ds.NewDensitySpreadsheet(sheetid, ss)
+		dss, err := vsds.NewSpreadsheet(sheetid, ss)
 		if err != nil {
 			fmt.Printf("Error in sheet %s: %v\n", sheetid, err)
 			continue

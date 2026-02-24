@@ -1,4 +1,4 @@
-package densitysurvey
+package vsds
 
 import (
 	"fmt"
@@ -15,11 +15,11 @@ const (
 	MaxSamples = 256
 )
 
-type DensitySpreadsheet struct {
+type Spreadsheet struct {
 	spreadsheet *google.GSpreadsheet
 }
 
-func NewDensitySpreadsheet(sheetid string, ss *google.GSpreadsheetsService) (*DensitySpreadsheet, error) {
+func NewSpreadsheet(sheetid string, ss *google.GSpreadsheetsService) (*Spreadsheet, error) {
 	var (
 		s *google.GSpreadsheet
 		err error
@@ -33,12 +33,12 @@ func NewDensitySpreadsheet(sheetid string, ss *google.GSpreadsheetsService) (*De
 		return nil, errors.Join(err, fmt.Errorf("Unable to load sheet %s", sheetid))
 	}
 
-	return &DensitySpreadsheet{
+	return &Spreadsheet{
 		spreadsheet: s,
 	}, nil
 }
 
-func (ds *DensitySpreadsheet) GetSurveys() ([]Survey, error) {
+func (ds *Spreadsheet) GetSurveys() ([]Survey, error) {
 	var reterr error = nil
 	ret := []Survey{}
 
@@ -54,7 +54,7 @@ func (ds *DensitySpreadsheet) GetSurveys() ([]Survey, error) {
 	return ret, reterr
 }
 
-func (ds *DensitySpreadsheet) parseSheet(name string) (Survey, error) {
+func (ds *Spreadsheet) parseSheet(name string) (Survey, error) {
 	m := Survey{
 		Name: name,
 		SurveyPoints: make([]SurveyPoint, 0, 32),

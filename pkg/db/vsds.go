@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/jackc/pgx/v5"
-	ds "github.com/gczuczy/ed-survey-tools/pkg/densitysurvey"
+	"github.com/gczuczy/ed-survey-tools/pkg/vsds"
 )
 
 type System struct {
@@ -16,7 +16,7 @@ type System struct {
 	Z float32 `db:"z"`
 }
 
-func (p *DBPool) AddSurvey(m *ds.Survey) (err error) {
+func (p *DBPool) AddSurvey(m *vsds.Survey) (err error) {
 	conn, err := p.pool.Acquire(p.ctx)
 	if err != nil {
 		logger.Error().Err(err).Caller().Msg("Unable to acquire connection from pool")

@@ -1,4 +1,4 @@
-package densitysurvey
+package vsds
 
 import (
 	"github.com/gczuczy/ed-survey-tools/pkg/edsm"

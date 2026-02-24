@@ -1,4 +1,4 @@
-package densitysurvey
+package vsds
 
 import (
 )

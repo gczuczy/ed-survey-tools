@@ -25,7 +25,7 @@ SELECT * FROM common.logincmdr($1::text, $2::bigint)
 
 		// add a sheet survey
 		"addsheetsurvey": `
-SELECT density.addsheetsurvey($1::text, $2::text)
+SELECT vsds.addsheetsurvey($1::text, $2::text)
 `,
 		"setsystem": `
 INSERT INTO common.systems (edsmid, name, x, y, z)
@@ -35,7 +35,7 @@ RETURNING *
 `,
 		// surveyid, sysname, x,y,z, syscount, maxdistance
 		"addsurveypoint": `
-INSERT INTO density.surveypoints (surveyid, sysid, zsample, syscount, maxdistance)
+INSERT INTO vsds.surveypoints (surveyid, sysid, zsample, syscount, maxdistance)
 VALUES ($1::int, $2::bigint, $3::int, $4::int, $5::real)
 `,
 	}
