@@ -5,9 +5,11 @@ GRANT USAGE ON SCHEMA vsds TO edadmin, edservice, edviewer;
 
 CREATE TABLE vsds.folders (
        id		 							int GENERATED ALWAYS AS IDENTITY,
+			 name								varchar(256) NOT NULL,
 			 folderid						varchar(128) NOT NULL,
 			 PRIMARY KEY (id),
-			 UNIQUE (folderid)
+			 UNIQUE (folderid),
+			 UNIQUE (name)
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON vsds.folders TO edservice;
 GRANT SELECT ON vsds.folders TO edviewer;
