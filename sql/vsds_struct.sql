@@ -89,25 +89,23 @@ CREATE TABLE vsds.surveypoints (
 GRANT SELECT, INSERT ON vsds.surveypoints TO edservice;
 GRANT SELECT ON vsds.surveypoints TO edviewer;
 
-CREATE TABLE vsds.folderprocessing_status (
-			 id		 int NOT NULL,
-			 name	 varchar(32) NOT NULL,
-			 finished boolean NOT NULL DEFAULT false,
-			 PRIMARY KEY (id)
-);
-GRANT SELECT ON vsds.spreadsheets TO edservice;
-INSERT INTO vsds.folderprocessing_status (id, name, finished) VALUES
-(0, 'queued', false),
-(1, 'processing', false),
-(2, 'done', true)
-;
-
-CREATE TABLE vsds.folderprocessing (
+CREATE TABLE vsds.folder_processing (
        id		 						int GENERATED ALWAYS AS IDENTITY,
 			 folderid					int NOT NULL,
-			 statusid					int NOT NULL DEFAULT 0,
+			 receivedat				timestamp		 NOT NULL DEFAULT	now(),
+			 startedat				timestamp,
+			 finishedat				timestamp,
 			 PRIMARY KEY (id),
-			 FOREIGN KEY (folderid) REFERENCES vsds.folders (id) ON DELETE CASCADE,
-			 FOREIGN KEY (statusid) REFERENCES vsds.folderprocessing_status (id)
+			 FOREIGN KEY (folderid) REFERENCES vsds.folders (id) ON DELETE CASCADE
 );
-GRANT SELECT, INSERT, UPDATE, DELETE ON vsds.spreadsheets TO edservice;
+GRANT SELECT, INSERT, UPDATE, DELETE ON vsds.folder_processing TO edservice;
+
+CREATE TABLE vsds.spreadsheet_processing (
+			 id		 						bigint GENERATED ALWAYS AS IDENTITY,
+			 sheetid					int NOT NULL,
+			 success					boolean,
+			 message					text,
+			 PRIMARY KEY (id),
+			 FOREIGN KEY (sheetid) REFERENCES vsds.spreadsheets (id) ON DELETE CASCADE
+);
+GRANT SELECT, INSERT, UPDATE, DELETE ON vsds.spreadsheet_processing TO edservice;
