@@ -3,6 +3,24 @@ DROP SCHEMA IF EXISTS vsds CASCADE;
 CREATE SCHEMA vsds;
 GRANT USAGE ON SCHEMA vsds TO edadmin, edservice, edviewer;
 
+CREATE TABLE vsds.folders (
+       id		 							int GENERATED ALWAYS AS IDENTITY,
+			 folderid						varchar(128) NOT NULL,
+			 PRIMARY KEY (id),
+			 UNIQUE (folderid)
+);
+GRANT SELECT, INSERT, UPDATE, DELETE ON vsds.folders TO edservice;
+GRANT SELECT ON vsds.folders TO edviewer;
+
+CREATE TABLE vsds.spreadsheets (
+       id		 						int GENERATED ALWAYS AS IDENTITY,
+			 folderid					int NOT NULL,
+			 PRIMARY KEY (id),
+			 FOREIGN KEY (folderid) REFERENCES vsds.folders (id) ON DELETE CASCADE
+);
+GRANT SELECT, INSERT, UPDATE, DELETE ON vsds.spreadsheets TO edservice;
+GRANT SELECT ON vsds.spreadsheets TO edviewer;
+
 CREATE TABLE vsds.projects (
        id int GENERATED ALWAYS AS IDENTITY,
        name varchar(64) NOT NULL,
@@ -41,11 +59,13 @@ INSERT INTO vsds.project_zsamples (projectid, zsample) VALUES
 ;
 
 CREATE TABLE vsds.surveys (
-       id    int		  GENERATED ALWAYS AS IDENTITY,
-       projectid int		  NOT NULL,
-       cmdrid	 int		  NOT NULL,
+       id 	 							int				GENERATED ALWAYS AS IDENTITY,
+       projectid					int				NOT NULL,
+       cmdrid							int				NOT NULL,
+			 sheetid 						int				NOT NULL,
        FOREIGN KEY (projectid) REFERENCES vsds.projects (id),
        FOREIGN KEY (cmdrid) REFERENCES common.cmdrs(id),
+			 FOREIGN KEY (sheetid) REFERENCES vsds.spreadsheets(id) ON DELETE CASCADE,
        PRIMARY KEY (id)
 );
 GRANT SELECT, INSERT ON vsds.surveys TO edservice;
@@ -59,7 +79,7 @@ CREATE TABLE vsds.surveypoints (
        syscount	     int	  NOT NULL,
        maxdistance   real	  NOT NULL,
        PRIMARY KEY (id),
-       FOREIGN KEY (surveyid) REFERENCES vsds.surveys(id),
+       FOREIGN KEY (surveyid) REFERENCES vsds.surveys(id) ON DELETE CASCADE,
 			 FOREIGN KEY (sysid) REFERENCES common.systems(id),
        UNIQUE (surveyid, zsample),
        UNIQUE (surveyid, sysid),
@@ -68,3 +88,26 @@ CREATE TABLE vsds.surveypoints (
 );
 GRANT SELECT, INSERT ON vsds.surveypoints TO edservice;
 GRANT SELECT ON vsds.surveypoints TO edviewer;
+
+CREATE TABLE vsds.folderprocessing_status (
+			 id		 int NOT NULL,
+			 name	 varchar(32) NOT NULL,
+			 finished boolean NOT NULL DEFAULT false,
+			 PRIMARY KEY (id)
+);
+GRANT SELECT ON vsds.spreadsheets TO edservice;
+INSERT INTO vsds.folderprocessing_status (id, name, finished) VALUES
+(0, 'queued', false),
+(1, 'processing', false),
+(2, 'done', true)
+;
+
+CREATE TABLE vsds.folderprocessing (
+       id		 						int GENERATED ALWAYS AS IDENTITY,
+			 folderid					int NOT NULL,
+			 statusid					int NOT NULL DEFAULT 0,
+			 PRIMARY KEY (id),
+			 FOREIGN KEY (folderid) REFERENCES vsds.folders (id) ON DELETE CASCADE,
+			 FOREIGN KEY (statusid) REFERENCES vsds.folderprocessing_status (id)
+);
+GRANT SELECT, INSERT, UPDATE, DELETE ON vsds.spreadsheets TO edservice;

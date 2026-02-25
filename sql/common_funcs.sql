@@ -1,20 +1,22 @@
 
-CREATE OR REPLACE FUNCTION common.logincmdr(cmdr text, cid bigint) RETURNS common.cmdrs AS $$
+CREATE OR REPLACE FUNCTION common.logincmdr(cmdr text, cid bigint) RETURNS common.v_cmdrs AS $$
 DECLARE
+	cmdrid int;
 	ret record;
 BEGIN
-   SELECT INTO ret * FROM common.cmdrs WHERE customerid = cid;
+   SELECT INTO ret * FROM common.v_cmdrs WHERE customerid = cid;
    IF FOUND THEN
 	 		RETURN ret;
    END IF;
 
-	 SELECT INTO ret * FROM common.cmdrs WHERE name = cmdr;
+	 SELECT INTO ret * FROM common.v_cmdrs WHERE name = cmdr;
    IF FOUND THEN
 	 		RETURN ret;
    END IF;
 
 	 INSERT INTO common.cmdrs (name, customerid) VALUES (cmdr, cid)
-	 RETURNING * INTO ret;
+	 RETURNING id INTO cmdrid;
+	 SELECT INTO ret * FROM common.v_cmdrs WHERE id = cmdrid;
 	 RETURN ret;
 END;
 $$ LANGUAGE plpgsql VOLATILE STRICT PARALLEL UNSAFE SECURITY INVOKER;
