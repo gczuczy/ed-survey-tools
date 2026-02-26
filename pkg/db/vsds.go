@@ -51,6 +51,37 @@ func (p *DBPool) ListProjects() (projects []VSDSProject, err error) {
 	return projects, nil
 }
 
+func (p *DBPool) AddProject(name string) (project VSDSProject, err error) {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().Msg("Unable to acquire connection from pool")
+		return
+	}
+	defer conn.Release()
+
+	rows, err := conn.Query(p.ctx, "addproject", name)
+	if err != nil {
+		logger.Error().Err(err).Caller().Str("query", "addproject").
+			Msg("Error while executing query")
+		return
+	}
+	defer rows.Close()
+
+	projects, err := pgx.CollectRows(rows, pgx.RowToStructByName[VSDSProject])
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Error while reading results")
+		return
+	}
+
+	if len(projects) == 0 {
+		err = fmt.Errorf("No project returned after insert")
+		return
+	}
+
+	return projects[0], nil
+}
+
 func (p *DBPool) AddSurvey(m *vsds.Survey) (err error) {
 	conn, err := p.pool.Acquire(p.ctx)
 	if err != nil {

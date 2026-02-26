@@ -43,6 +43,13 @@ VALUES ($1::int, $2::bigint, $3::int, $4::int, $5::real)
 		"listprojects": `
 SELECT id,name,zsamples FROM vsds.v_projects ORDER BY name
 `,
+
+		// VSDS: add project
+		"addproject": `
+INSERT INTO vsds.projects (name)
+VALUES ($1::text)
+RETURNING id, name, NULL::int[] AS zsamples
+`,
 	}
 
 

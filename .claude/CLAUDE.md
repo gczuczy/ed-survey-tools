@@ -26,6 +26,12 @@ On successful requests only the `.status` and `.data` are filled. The `.data` mi
 
 On errors, the `.status` field is set to `error`, no `.data` is returned, and there is an extended error message in the `.message` field which should be shown to the user. The HTTP status code is also reflecting the error.
 
+For all the requests which have a body the content type is `application/json`.
+
+All API endpoints which are adding a new resource return the fresly added resource'sdata, except when explicitly noted otherwise.
+
+All API endpoint implementations must be using the wrappers under `pkg/http/wrappers`.
+
 # backend
 
 The backend both serves the frontend from the root(`/`), and provides an api from the `/api` path. The actual API call implementations can be found under the `pkg/http/api` package, each endpoint must be in a separate `.go` file.
