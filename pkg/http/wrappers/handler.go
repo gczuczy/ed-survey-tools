@@ -46,6 +46,74 @@ func (h *APIHandler) AuthGet(f HandlerFunc, afs ...AuthFunc) *APIHandler {
 	return h
 }
 
+func (h *APIHandler) Post(f HandlerFunc) *APIHandler {
+	h.Methods["POST"] = Method{
+		Handler: f,
+		Auth: false,
+	}
+	return h
+}
+
+func (h *APIHandler) AuthPost(f HandlerFunc, afs ...AuthFunc) *APIHandler {
+	h.Methods["POST"] = Method{
+		Handler: f,
+		Auth: true,
+		AuthFuncs: afs,
+	}
+	return h
+}
+
+func (h *APIHandler) Put(f HandlerFunc) *APIHandler {
+	h.Methods["PUT"] = Method{
+		Handler: f,
+		Auth: false,
+	}
+	return h
+}
+
+func (h *APIHandler) AuthPut(f HandlerFunc, afs ...AuthFunc) *APIHandler {
+	h.Methods["PUT"] = Method{
+		Handler: f,
+		Auth: true,
+		AuthFuncs: afs,
+	}
+	return h
+}
+
+func (h *APIHandler) Patch(f HandlerFunc) *APIHandler {
+	h.Methods["PATCH"] = Method{
+		Handler: f,
+		Auth: false,
+	}
+	return h
+}
+
+func (h *APIHandler) AuthPatch(f HandlerFunc, afs ...AuthFunc) *APIHandler {
+	h.Methods["PATCH"] = Method{
+		Handler: f,
+		Auth: true,
+		AuthFuncs: afs,
+	}
+	return h
+}
+
+func (h *APIHandler) Delete(f HandlerFunc) *APIHandler {
+	h.Methods["DELETE"] = Method{
+		Handler: f,
+		Auth: false,
+	}
+	return h
+}
+
+func (h *APIHandler) AuthDelete(f HandlerFunc, afs ...AuthFunc) *APIHandler {
+	h.Methods["DELETE"] = Method{
+		Handler: f,
+		Auth: true,
+		AuthFuncs: afs,
+	}
+	return h
+}
+
 func (h *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m, found := h.Methods[r.Method]
 	if !found {
