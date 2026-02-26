@@ -16,6 +16,41 @@ type System struct {
 	Z float32 `db:"z"`
 }
 
+type VSDSProject struct {
+	ID int `db:"id"`
+	Name string `db:"name"`
+	ZSamples []int `db:"zsamples"`
+}
+
+func (p *DBPool) ListProjects() (projects []VSDSProject, err error) {
+	var (
+		rows pgx.Rows
+	)
+
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().Msg("Unable to acquire connection from pool")
+		return
+	}
+	defer conn.Release()
+
+	if rows, err = conn.Query(p.ctx, "listprojects");  err != nil {
+		logger.Error().Err(err).Caller().Str("query", "listprojects").
+			Msg("Error while executing query")
+		return
+	}
+	defer rows.Close()
+
+	projects, err = pgx.CollectRows(rows, pgx.RowToStructByName[VSDSProject])
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Error while reading results")
+		return
+	}
+
+	return projects, nil
+}
+
 func (p *DBPool) AddSurvey(m *vsds.Survey) (err error) {
 	conn, err := p.pool.Acquire(p.ctx)
 	if err != nil {

@@ -38,7 +38,13 @@ RETURNING *
 INSERT INTO vsds.surveypoints (surveyid, sysid, zsample, syscount, maxdistance)
 VALUES ($1::int, $2::bigint, $3::int, $4::int, $5::real)
 `,
+
+		// VSDS: list projects
+		"listprojects": `
+SELECT id,name,zsamples FROM vsds.v_projects ORDER BY name
+`,
 	}
+
 
 	logger log.Logger
 )

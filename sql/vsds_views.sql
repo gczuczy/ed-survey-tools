@@ -36,3 +36,18 @@ FROM vsds.surveys s
 ;
 GRANT SELECT ON vsds.v_surveys TO edservice;
 GRANT SELECT ON vsds.v_surveys TO edviewer;
+
+CREATE OR REPLACE VIEW vsds.v_projects AS
+WITH zsamples AS (
+SELECT projectid,
+			 array_agg(zsample ORDER BY zsample ASC) AS zsamples
+FROM vsds.project_zsamples
+GROUP BY projectid
+)
+SELECT p.id, p.name,
+			 zs.zsamples
+FROM vsds.projects p
+		 LEFT JOIN zsamples zs ON p.id = zs.projectid
+;
+GRANT SELECT ON vsds.v_projects TO edservice;
+GRANT SELECT ON vsds.v_projects TO edviewer;
