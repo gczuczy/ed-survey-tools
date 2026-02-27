@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/gorilla/mux"
+
 	"github.com/gczuczy/ed-survey-tools/pkg/db"
 	"github.com/gczuczy/ed-survey-tools/pkg/http/sessions"
 )
@@ -126,6 +128,7 @@ func (h *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	req := Request{
 		R: r,
 		L: l.With().Str("URL", r.URL.String()).Str("method", r.Method).Logger(),
+		Vars: mux.Vars(r),
 	}
 
 	if m.Auth {
