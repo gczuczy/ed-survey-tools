@@ -32,6 +32,12 @@ All API endpoints which are adding a new resource return the fresly added resour
 
 All API endpoint implementations must be using the wrappers under `pkg/http/wrappers`.
 
+The API code in the backend must be suitable for later adding a swagger to it. Response objects must be globally defined with reasonable naming, reflecting their purpose.
+
+Registered URLs with patterns/variables in it are automatically decoded by the handler, and set in the internal `Request` object. This must be used to extract their parts. These parameters must always be responsibly handled, with proper error handling.
+
+For an example when the parameter in the route is an integer by its regexp pattern, it must be checked as an integer. Care must be taken if it can be negative or not.
+
 # backend
 
 The backend both serves the frontend from the root(`/`), and provides an api from the `/api` path. The actual API call implementations can be found under the `pkg/http/api` package, each endpoint must be in a separate `.go` file.
@@ -54,6 +60,8 @@ The database is using 3 basic roles:
 The database is aimed to be 3NF, with the practicality exception. Most table have views to return application-specific joined datasets. For insertion, functions are prefered which are returning a view-record of the freshly inserted datum.
 
 The service's database code is found under `pkg/db`. For simple operations it is simple queries, however complex DML operations are always in transactions.
+
+Database calls more than a single query must be encapsulated in a transaction.
 
 # frontend
 

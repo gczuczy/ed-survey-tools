@@ -52,3 +52,32 @@ func addProject(r *wrappers.Request) wrappers.IResponse {
 
 	return wrappers.Success(project)
 }
+
+/*
+   Returns a project by its ID. The ID is the database ID and passed
+   in the endpoint route.
+ */
+func listProjects(r *wrappers.Request) wrappers.IResponse {
+}
+
+/*
+   Sets all the zsamples associated with a project. Input is a JSON list of
+   zsample values. Project ID is in the route. This will be the complete set of
+   zsamples, overriding the previous defaults.
+ */
+func setZSamples(r *wrappers.Request) wrappers.IResponse {
+}
+
+/*
+   Adds a single zsample to the project. ProjectID and the ZSample are in
+   the routing parameters.
+ */
+func addZSample(r *wrappers.Request) wrappers.IResponse {
+}
+
+/*
+   Deletes the called zsample on the project. ProjectID and ZSample are
+   in the routing parameters.
+ */
+func deleteZSample(r *wrappers.Request) wrappers.IResponse {
+}
