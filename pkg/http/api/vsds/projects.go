@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"errors"
 	"net/http"
+	"strconv"
 	"encoding/json"
 
 	"github.com/gczuczy/ed-survey-tools/pkg/http/wrappers"
@@ -57,7 +58,27 @@ func addProject(r *wrappers.Request) wrappers.IResponse {
    Returns a project by its ID. The ID is the database ID and passed
    in the endpoint route.
  */
-func listProjects(r *wrappers.Request) wrappers.IResponse {
+func getProject(r *wrappers.Request) wrappers.IResponse {
+	idStr, ok := r.Vars["id"]
+	if !ok {
+		return wrappers.NewError(fmt.Errorf("Missing project ID"), http.StatusBadRequest)
+	}
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		return wrappers.NewError(fmt.Errorf("Invalid project ID"), http.StatusBadRequest)
+	}
+
+	project, err := db.Pool.GetProject(id)
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			return wrappers.NewError(fmt.Errorf("Project not found"), http.StatusNotFound)
+		}
+		r.L.Error().Err(err).Msg("Error while querying project")
+		return wrappers.NewError(
+			errors.Join(err, fmt.Errorf("Error while querying project")),
+			http.StatusInternalServerError)
+	}
+	return wrappers.Success(project)
 }
 
 /*
@@ -66,6 +87,33 @@ func listProjects(r *wrappers.Request) wrappers.IResponse {
    zsamples, overriding the previous defaults.
  */
 func setZSamples(r *wrappers.Request) wrappers.IResponse {
+	idStr, ok := r.Vars["id"]
+	if !ok {
+		return wrappers.NewError(fmt.Errorf("Missing project ID"), http.StatusBadRequest)
+	}
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		return wrappers.NewError(fmt.Errorf("Invalid project ID"), http.StatusBadRequest)
+	}
+
+	var zsamples []int
+	if err := json.NewDecoder(r.R.Body).Decode(&zsamples); err != nil {
+		return wrappers.NewError(
+			fmt.Errorf("Invalid request body: %v", err),
+			http.StatusBadRequest)
+	}
+
+	project, err := db.Pool.SetZSamples(id, zsamples)
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			return wrappers.NewError(fmt.Errorf("Project not found"), http.StatusNotFound)
+		}
+		r.L.Error().Err(err).Msg("Error while setting zsamples")
+		return wrappers.NewError(
+			errors.Join(err, fmt.Errorf("Error while setting zsamples")),
+			http.StatusInternalServerError)
+	}
+	return wrappers.Success(project)
 }
 
 /*
@@ -73,6 +121,38 @@ func setZSamples(r *wrappers.Request) wrappers.IResponse {
    the routing parameters.
  */
 func addZSample(r *wrappers.Request) wrappers.IResponse {
+	idStr, ok := r.Vars["id"]
+	if !ok {
+		return wrappers.NewError(fmt.Errorf("Missing project ID"), http.StatusBadRequest)
+	}
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		return wrappers.NewError(fmt.Errorf("Invalid project ID"), http.StatusBadRequest)
+	}
+
+	zsampleStr, ok := r.Vars["zsample"]
+	if !ok {
+		return wrappers.NewError(fmt.Errorf("Missing zsample"), http.StatusBadRequest)
+	}
+	zsample, err := strconv.Atoi(zsampleStr)
+	if err != nil {
+		return wrappers.NewError(fmt.Errorf("Invalid zsample value"), http.StatusBadRequest)
+	}
+
+	project, err := db.Pool.AddZSample(id, zsample)
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			return wrappers.NewError(fmt.Errorf("Project not found"), http.StatusNotFound)
+		}
+		if errors.Is(err, db.ErrDuplicate) {
+			return wrappers.NewError(fmt.Errorf("ZSample already exists on this project"), http.StatusConflict)
+		}
+		r.L.Error().Err(err).Msg("Error while adding zsample")
+		return wrappers.NewError(
+			errors.Join(err, fmt.Errorf("Error while adding zsample")),
+			http.StatusInternalServerError)
+	}
+	return wrappers.Success(project)
 }
 
 /*
@@ -80,4 +160,33 @@ func addZSample(r *wrappers.Request) wrappers.IResponse {
    in the routing parameters.
  */
 func deleteZSample(r *wrappers.Request) wrappers.IResponse {
+	idStr, ok := r.Vars["id"]
+	if !ok {
+		return wrappers.NewError(fmt.Errorf("Missing project ID"), http.StatusBadRequest)
+	}
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		return wrappers.NewError(fmt.Errorf("Invalid project ID"), http.StatusBadRequest)
+	}
+
+	zsampleStr, ok := r.Vars["zsample"]
+	if !ok {
+		return wrappers.NewError(fmt.Errorf("Missing zsample"), http.StatusBadRequest)
+	}
+	zsample, err := strconv.Atoi(zsampleStr)
+	if err != nil {
+		return wrappers.NewError(fmt.Errorf("Invalid zsample value"), http.StatusBadRequest)
+	}
+
+	project, err := db.Pool.DeleteZSample(id, zsample)
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			return wrappers.NewError(fmt.Errorf("Project or zsample not found"), http.StatusNotFound)
+		}
+		r.L.Error().Err(err).Msg("Error while deleting zsample")
+		return wrappers.NewError(
+			errors.Join(err, fmt.Errorf("Error while deleting zsample")),
+			http.StatusInternalServerError)
+	}
+	return wrappers.Success(project)
 }

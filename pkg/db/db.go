@@ -17,6 +17,9 @@ import (
 var (
 	Pool *DBPool=nil
 
+	ErrNotFound = fmt.Errorf("not found")
+	ErrDuplicate = fmt.Errorf("already exists")
+
 	prepared = map[string]string{
 		// logincmdr
 		"logincmdr": `
@@ -49,6 +52,26 @@ SELECT id,name,zsamples FROM vsds.v_projects ORDER BY name
 INSERT INTO vsds.projects (name)
 VALUES ($1::text)
 RETURNING id, name, NULL::int[] AS zsamples
+`,
+
+		// VSDS: get project by ID
+		"getproject": `
+SELECT id, name, zsamples FROM vsds.v_projects WHERE id = $1::int
+`,
+
+		// VSDS: delete all zsamples for a project
+		"deleteprojectzsamples": `
+DELETE FROM vsds.project_zsamples WHERE projectid = $1::int
+`,
+
+		// VSDS: insert a single zsample for a project
+		"insertprojectzsample": `
+INSERT INTO vsds.project_zsamples (projectid, zsample) VALUES ($1::int, $2::int)
+`,
+
+		// VSDS: delete a single zsample from a project
+		"deleteprojectzsample": `
+DELETE FROM vsds.project_zsamples WHERE projectid = $1::int AND zsample = $2::int
 `,
 	}
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/gczuczy/ed-survey-tools/pkg/vsds"
 )
 
@@ -80,6 +81,256 @@ func (p *DBPool) AddProject(name string) (project VSDSProject, err error) {
 	}
 
 	return projects[0], nil
+}
+
+func (p *DBPool) GetProject(id int) (project VSDSProject, err error) {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().Msg("Unable to acquire connection from pool")
+		return
+	}
+	defer conn.Release()
+
+	rows, err := conn.Query(p.ctx, "getproject", id)
+	if err != nil {
+		logger.Error().Err(err).Caller().Str("query", "getproject").
+			Msg("Error while executing query")
+		return
+	}
+	defer rows.Close()
+
+	projects, err := pgx.CollectRows(rows, pgx.RowToStructByName[VSDSProject])
+	if err != nil {
+		logger.Error().Err(err).Caller().Msg("Error while reading results")
+		return
+	}
+
+	if len(projects) == 0 {
+		err = ErrNotFound
+		return
+	}
+
+	return projects[0], nil
+}
+
+func (p *DBPool) SetZSamples(projectID int, zsamples []int) (project VSDSProject, err error) {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().Msg("Unable to acquire connection from pool")
+		return
+	}
+	defer conn.Release()
+
+	tx, err := conn.Begin(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().Msg("Error while opening txn")
+		return
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback(p.ctx)
+			return
+		}
+		if cerr := tx.Commit(p.ctx); cerr != nil {
+			tx.Rollback(p.ctx)
+			err = cerr
+		}
+	}()
+
+	var rows pgx.Rows
+	if rows, err = tx.Query(p.ctx, "getproject", projectID); err != nil {
+		logger.Error().Err(err).Caller().Str("query", "getproject").
+			Msg("Error while executing query")
+		return
+	}
+	existing, cerr := pgx.CollectRows(rows, pgx.RowToStructByName[VSDSProject])
+	if cerr != nil {
+		err = cerr
+		logger.Error().Err(err).Caller().Msg("Error while reading results")
+		return
+	}
+	if len(existing) == 0 {
+		err = ErrNotFound
+		return
+	}
+
+	if _, err = tx.Exec(p.ctx, "deleteprojectzsamples", projectID); err != nil {
+		logger.Error().Err(err).Caller().Str("query", "deleteprojectzsamples").
+			Msg("Error while executing query")
+		return
+	}
+
+	for _, zsample := range zsamples {
+		if _, err = tx.Exec(p.ctx, "insertprojectzsample", projectID, zsample); err != nil {
+			logger.Error().Err(err).Caller().Str("query", "insertprojectzsample").
+				Int("zsample", zsample).Msg("Error while executing query")
+			return
+		}
+	}
+
+	if rows, err = tx.Query(p.ctx, "getproject", projectID); err != nil {
+		logger.Error().Err(err).Caller().Str("query", "getproject").
+			Msg("Error while executing query")
+		return
+	}
+	updated, cerr := pgx.CollectRows(rows, pgx.RowToStructByName[VSDSProject])
+	if cerr != nil {
+		err = cerr
+		logger.Error().Err(err).Caller().Msg("Error while reading results")
+		return
+	}
+	if len(updated) == 0 {
+		err = ErrNotFound
+		return
+	}
+
+	project = updated[0]
+	return
+}
+
+func (p *DBPool) AddZSample(projectID, zsample int) (project VSDSProject, err error) {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().Msg("Unable to acquire connection from pool")
+		return
+	}
+	defer conn.Release()
+
+	tx, err := conn.Begin(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().Msg("Error while opening txn")
+		return
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback(p.ctx)
+			return
+		}
+		if cerr := tx.Commit(p.ctx); cerr != nil {
+			tx.Rollback(p.ctx)
+			err = cerr
+		}
+	}()
+
+	var rows pgx.Rows
+	if rows, err = tx.Query(p.ctx, "getproject", projectID); err != nil {
+		logger.Error().Err(err).Caller().Str("query", "getproject").
+			Msg("Error while executing query")
+		return
+	}
+	existing, cerr := pgx.CollectRows(rows, pgx.RowToStructByName[VSDSProject])
+	if cerr != nil {
+		err = cerr
+		logger.Error().Err(err).Caller().Msg("Error while reading results")
+		return
+	}
+	if len(existing) == 0 {
+		err = ErrNotFound
+		return
+	}
+
+	if _, err = tx.Exec(p.ctx, "insertprojectzsample", projectID, zsample); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			err = ErrDuplicate
+		} else {
+			logger.Error().Err(err).Caller().Str("query", "insertprojectzsample").
+				Msg("Error while executing query")
+		}
+		return
+	}
+
+	if rows, err = tx.Query(p.ctx, "getproject", projectID); err != nil {
+		logger.Error().Err(err).Caller().Str("query", "getproject").
+			Msg("Error while executing query")
+		return
+	}
+	updated, cerr := pgx.CollectRows(rows, pgx.RowToStructByName[VSDSProject])
+	if cerr != nil {
+		err = cerr
+		logger.Error().Err(err).Caller().Msg("Error while reading results")
+		return
+	}
+	if len(updated) == 0 {
+		err = ErrNotFound
+		return
+	}
+
+	project = updated[0]
+	return
+}
+
+func (p *DBPool) DeleteZSample(projectID, zsample int) (project VSDSProject, err error) {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().Msg("Unable to acquire connection from pool")
+		return
+	}
+	defer conn.Release()
+
+	tx, err := conn.Begin(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().Msg("Error while opening txn")
+		return
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback(p.ctx)
+			return
+		}
+		if cerr := tx.Commit(p.ctx); cerr != nil {
+			tx.Rollback(p.ctx)
+			err = cerr
+		}
+	}()
+
+	var rows pgx.Rows
+	if rows, err = tx.Query(p.ctx, "getproject", projectID); err != nil {
+		logger.Error().Err(err).Caller().Str("query", "getproject").
+			Msg("Error while executing query")
+		return
+	}
+	existing, cerr := pgx.CollectRows(rows, pgx.RowToStructByName[VSDSProject])
+	if cerr != nil {
+		err = cerr
+		logger.Error().Err(err).Caller().Msg("Error while reading results")
+		return
+	}
+	if len(existing) == 0 {
+		err = ErrNotFound
+		return
+	}
+
+	tag, execErr := tx.Exec(p.ctx, "deleteprojectzsample", projectID, zsample)
+	if execErr != nil {
+		err = execErr
+		logger.Error().Err(err).Caller().Str("query", "deleteprojectzsample").
+			Msg("Error while executing query")
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		err = ErrNotFound
+		return
+	}
+
+	if rows, err = tx.Query(p.ctx, "getproject", projectID); err != nil {
+		logger.Error().Err(err).Caller().Str("query", "getproject").
+			Msg("Error while executing query")
+		return
+	}
+	updated, cerr := pgx.CollectRows(rows, pgx.RowToStructByName[VSDSProject])
+	if cerr != nil {
+		err = cerr
+		logger.Error().Err(err).Caller().Msg("Error while reading results")
+		return
+	}
+	if len(updated) == 0 {
+		err = ErrNotFound
+		return
+	}
+
+	project = updated[0]
+	return
 }
 
 func (p *DBPool) AddSurvey(m *vsds.Survey) (err error) {

@@ -11,7 +11,9 @@
 			"Edit(/**/*.go)",
 			"Edit(/frontend/**)",
 			"Edit(**/*.md)",
-			"Edit(sql/**/*.sql)"
+			"Edit(sql/**/*.sql)",
+			"Edit(memory/**.md)",
+			"Edit(fronted/memory/**.md)"
     ],
     "deny": [
     ]

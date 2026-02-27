@@ -75,3 +75,9 @@ There is a API Service class, which is mainly responsible for the API communicat
 
 The frontend needs to mimic the communicated data types on the API. That is, for the API responses each structure returned under the `.data` field (found in the backend code under `pkg/http/api/`) has to have its own typescript/js structure.
 
+
+# AI Memory
+
+Backend AI self-notes are located at `memory/`, parse these. Maintain these for later efficiency.
+
+Frontend AI self-notes are located at `frontend/memory/`, parse these. Maintain tehse for alter efficienty.
