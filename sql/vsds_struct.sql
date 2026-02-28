@@ -6,9 +6,9 @@ GRANT USAGE ON SCHEMA vsds TO edadmin, edservice, edviewer;
 CREATE TABLE vsds.folders (
        id		 							int GENERATED ALWAYS AS IDENTITY,
 			 name								varchar(256) NOT NULL,
-			 folderid						varchar(128) NOT NULL,
+			 gcpid						varchar(128) NOT NULL,
 			 PRIMARY KEY (id),
-			 UNIQUE (folderid),
+			 UNIQUE (gcpid),
 			 UNIQUE (name)
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON vsds.folders TO edservice;
@@ -17,6 +17,7 @@ GRANT SELECT ON vsds.folders TO edviewer;
 CREATE TABLE vsds.spreadsheets (
        id		 						int GENERATED ALWAYS AS IDENTITY,
 			 folderid					int NOT NULL,
+			 contenttype			varchar(64) NOT NULL,
 			 PRIMARY KEY (id),
 			 FOREIGN KEY (folderid) REFERENCES vsds.folders (id) ON DELETE CASCADE
 );
@@ -104,10 +105,12 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON vsds.folder_processing TO edservice;
 
 CREATE TABLE vsds.spreadsheet_processing (
 			 id		 						bigint GENERATED ALWAYS AS IDENTITY,
+			 procid						int NOT NULL,
 			 sheetid					int NOT NULL,
 			 success					boolean,
 			 message					text,
 			 PRIMARY KEY (id),
+			 FOREIGN KEY (procid) REFERENCES vsds.folder_processing(id) ON DELETE CASCADE,
 			 FOREIGN KEY (sheetid) REFERENCES vsds.spreadsheets (id) ON DELETE CASCADE
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON vsds.spreadsheet_processing TO edservice;

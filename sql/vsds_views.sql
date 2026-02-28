@@ -51,3 +51,31 @@ FROM vsds.projects p
 ;
 GRANT SELECT ON vsds.v_projects TO edservice;
 GRANT SELECT ON vsds.v_projects TO edviewer;
+
+CREATE OR REPLACE VIEW vsds.v_folders AS
+WITH lastproc AS (
+SELECT fp.*
+FROM vsds.folders f
+		 CROSS JOIN LATERAL (
+     			 SELECT id, folderid, receivedat, startedat, finishedat
+					 FROM vsds.folder_processing
+					 WHERE folderid = f.id
+					 ORDER BY receivedat DESC
+					 LIMIT 1) fp
+), procstatus AS (
+SELECT ss.folderid, ssp.procid,
+			 count(*) FILTER (WHERE ssp.success IS NULL)   AS inprogress,
+			 count(*) FILTER (WHERE ssp.success = true)    AS finished,
+			 count(*) FILTER (WHERE ssp.success = false)   AS failed
+FROM vsds.spreadsheet_processing ssp
+		 JOIN vsds.spreadsheets ss ON ssp.sheetid = ss.id
+GROUP BY ss.folderid, ssp.procid
+)
+SELECT f.id AS folderid, f.name, f.gcpid,
+			 lp.receivedat, lp.startedat, lp.finishedat,
+			 ps.inprogress, ps.finished, ps.failed
+FROM vsds.folders f
+		 LEFT JOIN lastproc lp ON f.id = lp.folderid
+		 LEFT JOIN procstatus ps ON lp.id = ps.procid AND lp.folderid = f.id
+;
+GRANT SELECT ON vsds.v_folders TO edservice;
