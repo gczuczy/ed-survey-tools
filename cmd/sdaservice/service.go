@@ -10,6 +10,7 @@ import (
 	"github.com/knadh/koanf/providers/posflag"
 	flag "github.com/spf13/pflag"
 
+	"github.com/gczuczy/ed-survey-tools/pkg/gcp"
 	"github.com/gczuczy/ed-survey-tools/pkg/config"
 	"github.com/gczuczy/ed-survey-tools/pkg/http"
 	"github.com/gczuczy/ed-survey-tools/pkg/db"
@@ -54,6 +55,12 @@ func Run() {
 
 	if err = log.Init(&cfg.Logging); err != nil {
 		fmt.Fprintf(os.Stderr, "err: %v\n", err)
+		os.Exit(1)
+	}
+
+	creds := k.String(`sa-creds`)
+	if err = gcp.Init(creds); err != nil {
+		fmt.Printf("GCP init error: %s", creds)
 		os.Exit(1)
 	}
 

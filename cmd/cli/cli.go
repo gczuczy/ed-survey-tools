@@ -33,7 +33,12 @@ func Run() {
 	}
 
 	creds := k.String(`sa-creds`)
-	ss, err := gcp.NewSheets(creds)
+	if err = gcp.Init(creds); err != nil {
+		fmt.Printf("GCP init error: %s", creds)
+		return
+	}
+
+	ss, err := gcp.NewSheets()
 	if err != nil {
 		fmt.Printf("Credentials error: %s", creds)
 		return

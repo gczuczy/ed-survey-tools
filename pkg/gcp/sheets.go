@@ -21,16 +21,15 @@ type GSpreadsheet struct {
 	ID string
 }
 
-func NewSheets(credfile string) (*GSpreadsheetsService, error) {
+func NewSheets() (*GSpreadsheetsService, error) {
 	var err error
 	ctx := context.Background()
 
 	gs := &GSpreadsheetsService{}
 
-	creds := option.WithCredentialsFile(credfile)
 	scopes := option.WithScopes(sheets.SpreadsheetsScope)
 
-	if gs.SheetsService, err = sheets.NewService(ctx, creds, scopes); err != nil {
+	if gs.SheetsService, err = sheets.NewService(ctx, authOption, scopes); err != nil {
 		return nil, err
 	}
 
