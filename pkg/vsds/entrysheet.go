@@ -6,14 +6,14 @@ import (
 	"strings"
 	"net/url"
 	"regexp"
-	"github.com/gczuczy/ed-survey-tools/pkg/google"
+	"github.com/gczuczy/ed-survey-tools/pkg/gcp"
 )
 
 type EntrySheet struct {
-	spreadsheet *google.GSpreadsheet
+	spreadsheet *gcp.GSpreadsheet
 }
 
-func NewEntrySheet(sheetid string, ss *google.GSpreadsheetsService) (*EntrySheet, error) {
+func NewEntrySheet(sheetid string, ss *gcp.GSpreadsheetsService) (*EntrySheet, error) {
 	s, err := ss.Sheet(sheetid)
 	if err != nil {
 		fmt.Printf("NewEntrySheet err: %v\n", err)
@@ -79,7 +79,7 @@ func extractSpreadsheetID(input string) (string, error) {
     }
 
     // Check if URL is a Google Spreadsheet URL
-    if u.Host != "docs.google.com" && u.Host != "drive.google.com" {
+    if u.Host != "docs.gcp.com" && u.Host != "drive.gcp.com" {
         return "", errors.New("input is not a Google Spreadsheet URL or ID")
     }
 

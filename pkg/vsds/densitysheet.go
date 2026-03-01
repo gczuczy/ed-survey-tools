@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"google.golang.org/api/sheets/v4"
-	"github.com/gczuczy/ed-survey-tools/pkg/google"
+	"github.com/gczuczy/ed-survey-tools/pkg/gcp"
 )
 
 const (
@@ -16,19 +16,19 @@ const (
 )
 
 type Spreadsheet struct {
-	spreadsheet *google.GSpreadsheet
+	spreadsheet *gcp.GSpreadsheet
 }
 
-func NewSpreadsheet(sheetid string, ss *google.GSpreadsheetsService) (*Spreadsheet, error) {
+func NewSpreadsheet(sheetid string, ss *gcp.GSpreadsheetsService) (*Spreadsheet, error) {
 	var (
-		s *google.GSpreadsheet
+		s *gcp.GSpreadsheet
 		err error
 	)
-	f := func() (*google.GSpreadsheet, error) {
+	f := func() (*gcp.GSpreadsheet, error) {
 		return ss.Sheet(sheetid)
 	}
 
-	s, err = google.RateLimit(f, 30 * time.Second)
+	s, err = gcp.RateLimit(f, 30 * time.Second)
 	if err != nil {
 		return nil, errors.Join(err, fmt.Errorf("Unable to load sheet %s", sheetid))
 	}

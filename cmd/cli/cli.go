@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/knadh/koanf/v2"
 
-	"github.com/gczuczy/ed-survey-tools/pkg/google"
+	"github.com/gczuczy/ed-survey-tools/pkg/gcp"
 	"github.com/gczuczy/ed-survey-tools/pkg/config"
 	"github.com/gczuczy/ed-survey-tools/pkg/db"
 	"github.com/gczuczy/ed-survey-tools/pkg/vsds"
@@ -33,7 +33,7 @@ func Run() {
 	}
 
 	creds := k.String(`sa-creds`)
-	ss, err := google.NewSheets(creds)
+	ss, err := gcp.NewSheets(creds)
 	if err != nil {
 		fmt.Printf("Credentials error: %s", creds)
 		return
