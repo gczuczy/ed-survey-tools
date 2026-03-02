@@ -1,4 +1,4 @@
-package sdaservice
+package edst
 
 import (
 	"os"
