@@ -73,6 +73,28 @@ INSERT INTO vsds.project_zsamples (projectid, zsample) VALUES ($1::int, $2::int)
 		"deleteprojectzsample": `
 DELETE FROM vsds.project_zsamples WHERE projectid = $1::int AND zsample = $2::int
 `,
+
+		// VSDS: list folders from view
+		"listfolders": `
+SELECT folderid, name, gcpid, receivedat, startedat, finishedat, inprogress, finished, failed
+FROM vsds.v_folders ORDER BY name
+`,
+
+		// VSDS: get folder by ID from view
+		"getfolder": `
+SELECT folderid, name, gcpid, receivedat, startedat, finishedat, inprogress, finished, failed
+FROM vsds.v_folders WHERE folderid = $1::int
+`,
+
+		// VSDS: insert a folder, returns the new ID
+		"addfolder": `
+INSERT INTO vsds.folders (gcpid, name) VALUES ($1::text, $2::text) RETURNING id
+`,
+
+		// VSDS: delete a folder by ID
+		"deletefolder": `
+DELETE FROM vsds.folders WHERE id = $1::int
+`,
 	}
 
 

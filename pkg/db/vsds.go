@@ -3,11 +3,24 @@ package db
 import (
 	"fmt"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/gczuczy/ed-survey-tools/pkg/vsds"
 )
+
+type VSDSFolder struct {
+	FolderID   int        `db:"folderid" json:"id"`
+	Name       string     `db:"name" json:"name"`
+	GCPID      string     `db:"gcpid" json:"gcpid"`
+	ReceivedAt *time.Time `db:"receivedat" json:"received_at,omitempty"`
+	StartedAt  *time.Time `db:"startedat" json:"started_at,omitempty"`
+	FinishedAt *time.Time `db:"finishedat" json:"finished_at,omitempty"`
+	InProgress *int64     `db:"inprogress" json:"in_progress,omitempty"`
+	Finished   *int64     `db:"finished" json:"finished,omitempty"`
+	Failed     *int64     `db:"failed" json:"failed,omitempty"`
+}
 
 type System struct {
 	ID int64 `db:"id"`
@@ -331,6 +344,116 @@ func (p *DBPool) DeleteZSample(projectID, zsample int) (project VSDSProject, err
 
 	project = updated[0]
 	return
+}
+
+func (p *DBPool) ListFolders() (folders []VSDSFolder, err error) {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().Msg("Unable to acquire connection from pool")
+		return
+	}
+	defer conn.Release()
+
+	rows, err := conn.Query(p.ctx, "listfolders")
+	if err != nil {
+		logger.Error().Err(err).Caller().Str("query", "listfolders").
+			Msg("Error while executing query")
+		return
+	}
+	defer rows.Close()
+
+	folders, err = pgx.CollectRows(rows, pgx.RowToStructByName[VSDSFolder])
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Error while reading results")
+		return
+	}
+
+	return folders, nil
+}
+
+func (p *DBPool) AddFolder(gcpid, name string) (folder VSDSFolder, err error) {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().Msg("Unable to acquire connection from pool")
+		return
+	}
+	defer conn.Release()
+
+	tx, err := conn.Begin(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().Msg("Error while opening txn")
+		return
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback(p.ctx)
+			return
+		}
+		if cerr := tx.Commit(p.ctx); cerr != nil {
+			tx.Rollback(p.ctx)
+			err = cerr
+		}
+	}()
+
+	var id int
+	if err = tx.QueryRow(p.ctx, "addfolder", gcpid, name).Scan(&id); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			err = ErrDuplicate
+		} else {
+			logger.Error().Err(err).Caller().Str("query", "addfolder").
+				Msg("Error while executing query")
+		}
+		return
+	}
+
+	rows, err := tx.Query(p.ctx, "getfolder", id)
+	if err != nil {
+		logger.Error().Err(err).Caller().Str("query", "getfolder").
+			Msg("Error while executing query")
+		return
+	}
+	defer rows.Close()
+
+	folders, cerr := pgx.CollectRows(rows, pgx.RowToStructByName[VSDSFolder])
+	if cerr != nil {
+		err = cerr
+		logger.Error().Err(err).Caller().
+			Msg("Error while reading results")
+		return
+	}
+
+	if len(folders) == 0 {
+		err = fmt.Errorf("No folder returned after insert")
+		return
+	}
+
+	folder = folders[0]
+	return
+}
+
+func (p *DBPool) DeleteFolder(id int) (err error) {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().Msg("Unable to acquire connection from pool")
+		return
+	}
+	defer conn.Release()
+
+	tag, err := conn.Exec(p.ctx, "deletefolder", id)
+	if err != nil {
+		logger.Error().Err(err).Caller().Str("query", "deletefolder").
+			Msg("Error while executing query")
+		return
+	}
+
+	if tag.RowsAffected() == 0 {
+		err = ErrNotFound
+		return
+	}
+
+	return nil
 }
 
 func (p *DBPool) AddSurvey(m *vsds.Survey) (err error) {

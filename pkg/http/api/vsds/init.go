@@ -7,6 +7,13 @@ import (
 )
 
 func Init(r *mux.Router) error {
+	r.Handle("/folders",
+		w.NewAPIHandler().AuthGet(listFolders, w.IsAdmin).AuthPost(addFolder, w.IsAdmin),
+	)
+	r.Handle("/folders/{id:[0-9]+}",
+		w.NewAPIHandler().AuthDelete(deleteFolder, w.IsAdmin),
+	)
+
 	r.Handle("/projects",
 		w.NewAPIHandler().Get(listProjects).AuthPut(addProject, w.IsAdmin),
 	)
