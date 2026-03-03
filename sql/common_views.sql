@@ -4,3 +4,5 @@ SELECT c.id, c.name, c.customerid,
 			 (c.isowner OR c.isadmin) AS isadmin
 FROM common.cmdrs c
 ;
+GRANT SELECT ON common.v_cmdrs TO edservice;
+GRANT SELECT ON common.v_cmdrs TO edviewer;

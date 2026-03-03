@@ -1,18 +1,20 @@
-import { Component } from '@angular/core';
+import { Component }  from '@angular/core';
+import { CardModule } from 'primeng/card';
 
 @Component({
   selector:   'app-sidemenu-beta',
   standalone: true,
+  imports:    [CardModule],
   template: `
-    <div class="card p-4 mt-2">
-      <h3 class="card-title">Beta</h3>
-      <p class="card-text text-secondary">
+    <p-card header="Beta" styleClass="content-card">
+      <p class="text-muted">
         This is the second placeholder entry in the side-menu section.
       </p>
-      <p class="card-text">
-        <em>Replace this content with your Beta feature.</em>
-      </p>
-    </div>
-  `
+      <p><em>Replace this content with your Beta feature.</em></p>
+    </p-card>
+  `,
+  styles: [`
+    .content-card { margin-top: 0.5rem; }
+  `]
 })
 export class SidemenuBetaComponent {}

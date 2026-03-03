@@ -1,7 +1,22 @@
 .sidemenu-layout {
+  display: flex;
   margin-top: 56px; /* Height of fixed navbar */
 }
 
-.sidebar-content {
-  padding-top: 1.5rem !important;
+.sidebar-inner {
+  padding: 1.5rem 0.75rem 1rem;
+}
+
+.sidebar-title {
+  padding: 0 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidemenu-content {
+  flex: 1;
 }

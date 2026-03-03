@@ -1,47 +1,58 @@
-import { Component }  from '@angular/core';
-import { AuthService } from '../../auth/auth.service';
+import { Component }    from '@angular/core';
+import { AuthService }  from '../../auth/auth.service';
 import { ThemeService } from '../../auth/theme.service';
+import { CardModule }   from 'primeng/card';
+import { TagModule }    from 'primeng/tag';
+import { DividerModule } from 'primeng/divider';
 
 @Component({
   selector:   'app-settings',
   standalone: true,
+  imports:    [CardModule, TagModule, DividerModule],
   template: `
-    <div class="row justify-content-center mt-4">
-      <div class="col-md-8">
-        <div class="card p-4">
-          <h2 class="card-title">Settings</h2>
-          <span class="badge bg-warning text-dark mb-3" style="width:fit-content">🔒 Login-protected</span>
+    <div class="content-center">
+      <p-card header="Settings">
+        <p-tag value="Login-protected" icon="pi pi-lock" severity="warn" />
 
-          <!-- ── Theme indicator ─────────────────────────────────── -->
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Current theme</label>
-            <p class="text-secondary">
-              <span class="badge" [class]="themeBadgeClass">{{ themeService.currentTheme }}</span>
-              <small class="ms-2">(auto-detected from OS preference)</small>
-            </p>
-          </div>
-
-          <!-- ── Placeholder settings slots ──────────────────────── -->
-          <hr>
-          <h5>General</h5>
-          <p class="text-secondary"><em>Placeholder – add your settings here.</em></p>
-
-          <h5 class="mt-3">Notifications</h5>
-          <p class="text-secondary"><em>Placeholder – notification preferences.</em></p>
+        <!-- Theme indicator -->
+        <div style="margin-top: 1rem">
+          <label class="label-bold">Current theme</label>
+          <p class="text-muted">
+            <p-tag [value]="themeService.currentTheme" [severity]="themeSeverity" />
+            <small style="margin-left: 0.5rem">(auto-detected from OS preference)</small>
+          </p>
         </div>
-      </div>
+
+        <p-divider />
+
+        <h4>General</h4>
+        <p class="text-muted"><em>Placeholder – add your settings here.</em></p>
+
+        <h4 style="margin-top: 1rem">Notifications</h4>
+        <p class="text-muted"><em>Placeholder – notification preferences.</em></p>
+      </p-card>
     </div>
-  `
+  `,
+  styles: [`
+    .content-center {
+      max-width: 800px;
+      margin: 1rem auto 0;
+    }
+
+    .label-bold {
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+  `]
 })
 export class SettingsComponent {
   constructor(
     public authService: AuthService,
-    public themeService: ThemeService
+    public themeService: ThemeService,
   ) {}
 
-  get themeBadgeClass(): string {
-    return this.themeService.currentTheme === 'dark'
-      ? 'bg-secondary text-white'
-      : 'bg-light text-dark border';
+  get themeSeverity(): 'secondary' | 'info' {
+    return this.themeService.currentTheme === 'dark' ? 'secondary' : 'info';
   }
 }

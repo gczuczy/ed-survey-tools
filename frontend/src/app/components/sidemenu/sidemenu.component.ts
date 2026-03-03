@@ -1,12 +1,12 @@
-import { Component }            from '@angular/core';
-import { CommonModule }         from '@angular/common';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Component }                                    from '@angular/core';
+import { RouterLink, RouterLinkActive, RouterOutlet }   from '@angular/router';
+import { TagModule }                                    from 'primeng/tag';
 
 @Component({
-  selector:   'app-sidemenu',
-  standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet],
+  selector:    'app-sidemenu',
+  standalone:  true,
+  imports:     [RouterLink, RouterLinkActive, RouterOutlet, TagModule],
   templateUrl: './sidemenu.component.html',
-  styleUrl: './sidemenu.component.scss'
+  styleUrl:    './sidemenu.component.scss'
 })
 export class SidemenuComponent {}
