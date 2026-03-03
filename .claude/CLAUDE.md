@@ -77,6 +77,15 @@ There is a API Service class, which is mainly responsible for the API communicat
 
 The frontend needs to mimic the communicated data types on the API. That is, for the API responses each structure returned under the `.data` field (found in the backend code under `pkg/http/api/`) has to have its own typescript/js structure.
 
+Regarding permissions, there are 3 categories on the UI, correlating how API endpoints work:
+
+ - Public: these are available and visibile always.
+ - Authenticated: These require authentication to access, and not visible to unauthenticated users
+ - Protected(permission): These are protected with a permission flag (like `isAdmin`, from the userinfo), requiring that permission to be set on the viewing user, and not visible without it.
+
+The elements on the navbar represent sections on the UI. Many of these can have complex submenus/components (subsections). When such a section has multiple subsections, they need to be accessable both as a dropdown on the navbar at the element's side, and as carousels when clicking on the section itself. These carousels need to be placed reactively, to span to the viewport's width, then continue vertically downwards.
+
+All sections must have breadcrumbs. When a navigation item is routed by some internal ID, the breadcrumb must display its respective textual name. The breadcrumbs need to be right below the top navbar directly - and not subject to the side menu
 
 # AI Memory
 
