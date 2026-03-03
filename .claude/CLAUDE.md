@@ -83,9 +83,13 @@ Regarding permissions, there are 3 categories on the UI, correlating how API end
  - Authenticated: These require authentication to access, and not visible to unauthenticated users
  - Protected(permission): These are protected with a permission flag (like `isAdmin`, from the userinfo), requiring that permission to be set on the viewing user, and not visible without it.
 
-The elements on the navbar represent sections on the UI. Many of these can have complex submenus/components (subsections). When such a section has multiple subsections, they need to be accessable both as a dropdown on the navbar at the element's side, and as carousels when clicking on the section itself. These carousels need to be placed reactively, to span to the viewport's width, then continue vertically downwards.
+## Navbar and sections
 
-All sections must have breadcrumbs. When a navigation item is routed by some internal ID, the breadcrumb must display its respective textual name. The breadcrumbs need to be right below the top navbar directly - and not subject to the side menu
+The UI top navbar represents sections (except when noted otherwise). These sections are complex parts of the user interface, they all have subsections. When clicking on the section name, the section's landing page must be loaded (detailed later). Next to each navbar item a dropdown must be present, opening the section's subsections.
+
+The dashboard dispalys the available subsections using a reactive carousel. clicking on each brings that subsection up.
+
+Once a subsection is selected, there is a breadcrumb on the top, right bellow the navbar, aligned to the left. When an item in the route is numberically routed, the respective textual name of that route must be displayed.
 
 # AI Memory
 
