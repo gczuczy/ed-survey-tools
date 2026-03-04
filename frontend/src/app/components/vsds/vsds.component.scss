@@ -1,0 +1,37 @@
+.vsds-shell {
+  margin-top: 56px; /* Height of fixed navbar */
+  display: flex;
+  flex-direction: column;
+}
+
+.breadcrumb-bar {
+  border-bottom: 1px solid var(--p-content-border-color);
+
+  /* Override p-breadcrumb's default 1rem padding from the Aura theme */
+  ::ng-deep .p-breadcrumb {
+    padding: 0.5rem 1.5rem;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+.vsds-layout {
+  display: flex;
+  flex: 1;
+}
+
+.sidebar-inner {
+  padding: 1.5rem 0.75rem 1rem;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.vsds-content {
+  flex: 1;
+  padding: 1.5rem;
+}

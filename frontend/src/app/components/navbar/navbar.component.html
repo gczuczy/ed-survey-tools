@@ -4,6 +4,15 @@
     <a class="brand" routerLink="/">ED Survey Tools</a>
 
     <nav class="nav-links">
+      <!-- VSDS (public, leftmost) -->
+      <span class="nav-section">
+        <a class="nav-link section-name" routerLink="/vsds" [class.active]="isVsdsActive">VSDS</a>
+        <span class="section-chevron" [class.active]="isVsdsActive" (click)="vsdsMenu.toggle($event)">
+          <i class="pi pi-chevron-down" style="font-size: 0.7rem"></i>
+        </span>
+      </span>
+      <p-menu #vsdsMenu [model]="vsdsMenuItems" [popup]="true" />
+
       <!-- Barfoo (public) -->
       <a class="nav-link" routerLink="/barfoo" routerLinkActive="active">
         Barfoo

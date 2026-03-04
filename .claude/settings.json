@@ -14,6 +14,7 @@
 			"Bash(gmake -C frontend/ build *)",
 			"Bash(grep *)",
 			"Bash(xargs)",
+			"Read(frontend/node_modules/**)",
 			"Edit(/**/*.go)",
 			"Edit(/frontend/**)",
 			"Edit(**/*.md)",

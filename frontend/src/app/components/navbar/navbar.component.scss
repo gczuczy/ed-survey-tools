@@ -59,3 +59,33 @@
   color: var(--p-orange-500);
   cursor: help;
 }
+
+/* Section nav item: name link + dropdown chevron side by side */
+.nav-section {
+  display: flex;
+  align-items: center;
+}
+
+.section-name {
+  padding-right: 0.3rem;
+}
+
+.section-chevron {
+  padding: 0.5rem 0.5rem 0.5rem 0.2rem;
+  cursor: pointer;
+  color: var(--p-text-color);
+  border-radius: var(--p-border-radius);
+  transition: background-color 0.2s, color 0.2s;
+  font-size: 0.9rem;
+  line-height: 1;
+
+  &:hover,
+  &.active {
+    color: var(--p-primary-color);
+    background-color: var(--p-highlight-background);
+  }
+
+  &.active {
+    font-weight: 600;
+  }
+}

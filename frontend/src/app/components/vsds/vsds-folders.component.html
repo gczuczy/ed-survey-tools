@@ -1,0 +1,69 @@
+<div class="vsds-folders">
+  <!-- Add Folder -->
+  <p-card header="Add Folder">
+    <div class="add-folder-form">
+      <input pInputText
+             [(ngModel)]="newFolderUrl"
+             placeholder="Google Drive Folder URL"
+             class="url-input"
+             (keyup.enter)="addFolder()" />
+      <p-button label="Add"
+                icon="pi pi-plus"
+                (onClick)="addFolder()"
+                [loading]="addLoading"
+                [disabled]="!newFolderUrl.trim()" />
+    </div>
+    @if (addError) {
+      <p-message severity="error" [text]="addError" styleClass="form-message" />
+    }
+    @if (addSuccess) {
+      <p-message severity="success" [text]="addSuccess" styleClass="form-message" />
+    }
+  </p-card>
+
+  <!-- Folder List -->
+  <p-card header="Folders">
+    @if (loadError) {
+      <p-message severity="error" [text]="loadError" styleClass="form-message" />
+    }
+    @if (deleteError) {
+      <p-message severity="error" [text]="deleteError" styleClass="form-message" />
+    }
+    <p-table [value]="folders" [loading]="loading">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Received</th>
+          <th>In Progress</th>
+          <th>Finished</th>
+          <th>Failed</th>
+          <th></th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-folder>
+        <tr>
+          <td>{{ folder.id }}</td>
+          <td>{{ folder.name }}</td>
+          <td>{{ folder.received_at ? (folder.received_at | date:'short') : '—' }}</td>
+          <td>{{ folder.in_progress ?? '—' }}</td>
+          <td>{{ folder.finished ?? '—' }}</td>
+          <td>{{ folder.failed ?? '—' }}</td>
+          <td class="actions-cell">
+            <p-button icon="pi pi-trash"
+                      severity="danger"
+                      [text]="true"
+                      [rounded]="true"
+                      (onClick)="deleteFolder(folder)"
+                      [loading]="deletingId === folder.id" />
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="7" class="empty-message">No folders found.</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
+</div>

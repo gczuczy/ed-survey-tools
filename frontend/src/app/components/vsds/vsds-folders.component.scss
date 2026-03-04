@@ -1,0 +1,31 @@
+.vsds-folders {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.add-folder-form {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.url-input {
+  flex: 1;
+}
+
+.form-message {
+  margin-top: 0.75rem;
+  display: block;
+}
+
+.actions-cell {
+  text-align: right;
+  width: 4rem;
+}
+
+.empty-message {
+  text-align: center;
+  color: var(--p-text-muted-color);
+  padding: 1.5rem;
+}

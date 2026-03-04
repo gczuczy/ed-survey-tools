@@ -14,6 +14,8 @@ Always plan first, examine your offered solution, look for errors, fix them and 
 
 When renaming packages, instead of creating a new dir, copying over, etc, use `mv` to rename the directory.
 
+After coming up with a plan re-read this file, and cross-check the validity of the proposed solution. Aggressively try to find mismatches and misalignments and fix them.
+
 # API
 
 The api has a generic structure:

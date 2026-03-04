@@ -1,0 +1,19 @@
+<div class="vsds-dashboard">
+  @if (subsections.length > 0) {
+    <p-carousel [value]="subsections" [numVisible]="3" [numScroll]="1" [circular]="false">
+      <ng-template pTemplate="item" let-card>
+        <div class="subsection-card" (click)="navigate(card.route)">
+          <p-card>
+            <div class="card-content">
+              <i [class]="card.icon + ' card-icon'"></i>
+              <h4 class="card-label">{{ card.label }}</h4>
+              <p class="card-description">{{ card.description }}</p>
+            </div>
+          </p-card>
+        </div>
+      </ng-template>
+    </p-carousel>
+  } @else {
+    <p class="no-subsections text-muted">No sections available.</p>
+  }
+</div>

@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './auth/auth.guard';
+import { authGuard }  from './auth/auth.guard';
+import { adminGuard } from './auth/admin.guard';
 
 import { HomeComponent }     from './components/home/home.component';
 import { BarfooComponent }   from './components/barfoo/barfoo.component';
@@ -14,6 +15,10 @@ import { PublicSidemenuComponent }        from './components/public-sidemenu/pub
 import { PublicSidemenuOption1Component } from './components/public-sidemenu/public-sidemenu-option1.component';
 import { PublicSidemenuOption2Component } from './components/public-sidemenu/public-sidemenu-option2.component';
 
+import { VsdsComponent }          from './components/vsds/vsds.component';
+import { VsdsDashboardComponent } from './components/vsds/vsds-dashboard.component';
+import { VsdsFoldersComponent }   from './components/vsds/vsds-folders.component';
+
 export const routes: Routes = [
   // ── Public routes ─────────────────────────────────────────────────────────
   { path: '',       component: HomeComponent },
@@ -27,6 +32,16 @@ export const routes: Routes = [
       { path: '',        redirectTo: 'option1', pathMatch: 'full' },
       { path: 'option1', component: PublicSidemenuOption1Component },
       { path: 'option2', component: PublicSidemenuOption2Component },
+    ]
+  },
+
+  // ── VSDS section (public section, subsections permission-gated) ───────────
+  {
+    path: 'vsds',
+    component: VsdsComponent,
+    children: [
+      { path: '',        component: VsdsDashboardComponent },
+      { path: 'folders', component: VsdsFoldersComponent, canActivate: [adminGuard] },
     ]
   },
 
