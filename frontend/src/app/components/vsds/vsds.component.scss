@@ -1,20 +1,7 @@
 .vsds-shell {
-  margin-top: 56px; /* Height of fixed navbar */
+  margin-top: var(--navbar-height, 56px);
   display: flex;
   flex-direction: column;
-}
-
-.breadcrumb-bar {
-  border-bottom: 1px solid var(--p-content-border-color);
-
-  /* Override p-breadcrumb's default 1rem padding from the Aura theme */
-  ::ng-deep .p-breadcrumb {
-    padding: 0.5rem 1.5rem;
-    background: transparent;
-    border: none;
-    border-radius: 0;
-    box-shadow: none;
-  }
 }
 
 .vsds-layout {

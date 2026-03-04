@@ -9,8 +9,8 @@ html, body {
 
 // ─── Global helpers ─────────────────────────────────────────────────────────
 .page-wrapper {
-  min-height: calc(100vh - 56px);
-  padding-top: calc(56px + 1.5rem);
+  min-height: calc(100vh - var(--navbar-height, 56px));
+  padding-top: calc(var(--navbar-height, 56px) + 1.5rem);
   max-width: 1200px;
   margin: 0 auto;
   padding-left: 1rem;
@@ -20,7 +20,7 @@ html, body {
 // ─── Sidebar ────────────────────────────────────────────────────────────────
 .sidebar {
   width: 240px;
-  min-height: calc(100vh - 56px);
+  min-height: calc(100vh - var(--navbar-height, 56px));
   background-color: var(--p-content-background);
   border-right: 1px solid var(--p-content-border-color);
   transition: background-color 0.3s ease, border-color 0.3s ease;

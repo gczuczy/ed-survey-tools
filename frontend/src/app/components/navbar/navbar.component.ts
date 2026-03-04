@@ -1,10 +1,12 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive }  from '@angular/router';
-import { AuthService }                from '../../auth/auth.service';
-import { ToolbarModule }              from 'primeng/toolbar';
-import { ButtonModule }               from 'primeng/button';
-import { MenuModule, Menu }           from 'primeng/menu';
-import { MenuItem }                   from 'primeng/api';
+import { Component, OnInit, OnDestroy, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import { Router, RouterLink, RouterLinkActive, NavigationEnd }  from '@angular/router';
+import { filter, Subscription }               from 'rxjs';
+import { AuthService }                        from '../../auth/auth.service';
+import { ToolbarModule }                      from 'primeng/toolbar';
+import { ButtonModule }                       from 'primeng/button';
+import { MenuModule, Menu }                   from 'primeng/menu';
+import { BreadcrumbModule }                   from 'primeng/breadcrumb';
+import { MenuItem }                           from 'primeng/api';
 
 @Component({
   selector:    'app-navbar',
@@ -15,11 +17,12 @@ import { MenuItem }                   from 'primeng/api';
     ToolbarModule,
     ButtonModule,
     MenuModule,
+    BreadcrumbModule,
   ],
   templateUrl: './navbar.component.html',
   styleUrl:    './navbar.component.scss',
 })
-export class NavbarComponent implements OnInit {
+export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
   isSidemenuActive   = false;
   isPublicMenuActive = false;
   isVsdsActive       = false;
@@ -27,13 +30,21 @@ export class NavbarComponent implements OnInit {
   sideMenuItems: MenuItem[] = [];
   userMenuItems: MenuItem[] = [];
 
+  breadcrumbItems: MenuItem[] = [];
+  homeCrumb: MenuItem = { icon: 'pi pi-home', routerLink: '/' };
+  hasBreadcrumb = false;
+
   @ViewChild('sideMenu') sideMenu!: Menu;
   @ViewChild('vsdsMenu') vsdsMenu!: Menu;
   @ViewChild('userMenu') userMenu!: Menu;
 
+  private navSub?: Subscription;
+  private resizeObserver?: ResizeObserver;
+
   constructor(
-    public authService: AuthService,
-    private router: Router,
+    public  authService: AuthService,
+    private router:      Router,
+    private el:          ElementRef,
   ) {}
 
   ngOnInit(): void {
@@ -55,6 +66,44 @@ export class NavbarComponent implements OnInit {
       { separator: true },
       { label: 'Logout', icon: 'pi pi-sign-out', command: () => this.logout() },
     ];
+
+    this.updateBreadcrumbs();
+    this.navSub = this.router.events.pipe(
+      filter(e => e instanceof NavigationEnd)
+    ).subscribe(() => this.updateBreadcrumbs());
+  }
+
+  ngAfterViewInit(): void {
+    this.resizeObserver = new ResizeObserver(() => this.syncNavbarHeight());
+    this.resizeObserver.observe(this.el.nativeElement);
+    this.syncNavbarHeight();
+  }
+
+  ngOnDestroy(): void {
+    this.navSub?.unsubscribe();
+    this.resizeObserver?.disconnect();
+  }
+
+  private syncNavbarHeight(): void {
+    document.documentElement.style.setProperty(
+      '--navbar-height',
+      `${this.el.nativeElement.offsetHeight}px`,
+    );
+  }
+
+  private updateBreadcrumbs(): void {
+    const url = this.router.url;
+    const crumbs: MenuItem[] = [];
+
+    if (url.startsWith('/vsds/')) {
+      crumbs.push({ label: 'VSDS', routerLink: '/vsds' });
+      if (url.includes('/vsds/folders')) {
+        crumbs.push({ label: 'Folders' });
+      }
+    }
+
+    this.breadcrumbItems = crumbs;
+    this.hasBreadcrumb = crumbs.length > 0;
   }
 
   get vsdsMenuItems(): MenuItem[] {

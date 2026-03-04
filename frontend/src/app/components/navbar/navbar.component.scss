@@ -1,19 +1,32 @@
 :host {
   display: block;
-}
-
-::ng-deep .navbar-toolbar.p-toolbar {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 1000;
+}
+
+::ng-deep .navbar-toolbar.p-toolbar {
   border-radius: 0;
   border-left: none;
   border-right: none;
   border-top: none;
   padding: 0.5rem 1rem;
   gap: 0;
+}
+
+.breadcrumb-bar {
+  background-color: var(--p-surface-ground);
+  border-bottom: 1px solid var(--p-content-border-color);
+
+  ::ng-deep .p-breadcrumb {
+    padding: 0.5rem 1.5rem;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
 }
 
 .brand {

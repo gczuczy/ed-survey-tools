@@ -29,7 +29,7 @@
 
 ## VSDS Section (vsds-basics branch)
 - Path: `/vsds` (public section)
-- Shell: `components/vsds/vsds.component.ts` - sidebar + breadcrumb
+- Shell: `components/vsds/vsds.component.ts` - sidebar + router-outlet only (no breadcrumb)
 - Dashboard: `components/vsds/vsds-dashboard.component.ts` - carousel landing page
 - **Folders subsection** (`/vsds/folders`, protected: isAdmin):
   - `components/vsds/vsds-folders.component.ts`
@@ -38,7 +38,7 @@
   - Delete folder: DELETE /api/vsds/folders/{id}
   - Future: each folder row will expand to show document processing details
     - **TBD**: either collapsible row expansion in p-table OR route to /vsds/folders/{id}
-    - When implemented, needs breadcrumb update in vsds.component.ts
+    - When implemented, needs breadcrumb update in navbar.component.ts (not vsds.component.ts)
 
 ## PrimeNG 20 Import Pattern
 - Use `*Module` imports (e.g., `TableModule`, `CardModule`, `ButtonModule`)
@@ -49,12 +49,15 @@
 
 ## Breadcrumbs
 - Shown only when a subsection is selected (NOT on dashboard/landing page)
-- Placement: full-width bar ABOVE sidebar+content layout, directly below navbar
-- Left-aligned by default — must NOT be inside the sidebar-offset content area
-- Updates on NavigationEnd events via `hasSubsection` flag in shell component
-- `p-breadcrumb` from `primeng/breadcrumb`
-- home item: `{ icon: 'pi pi-home', routerLink: '/' }`
-- Shell structure: `.vsds-shell` (margin-top:56px, flex-col) > `.breadcrumb-bar` + `.vsds-layout` (flex-row)
+- Placement: **inside navbar.component**, rendered right below the `<p-toolbar>` (per CLAUDE.md)
+- Navbar host is `position: fixed` (wraps toolbar + breadcrumb bar); breadcrumb inherits the fixed context
+- Logic in `navbar.component.ts`: subscribes to NavigationEnd, builds `breadcrumbItems` based on route
+- `hasBreadcrumb` flag controls `@if` in navbar.component.html
+- `p-breadcrumb` from `primeng/breadcrumb`; home item: `{ icon: 'pi pi-home', routerLink: '/' }`
+- `ResizeObserver` on navbar host sets `--navbar-height` CSS var on `:root` for accurate page offset
+- Pages/sections use `var(--navbar-height, 56px)` for margin-top (not hardcoded `56px`)
+- When adding breadcrumbs for new sections, extend `updateBreadcrumbs()` in navbar.component.ts
+- Section shell components (e.g. vsds.component) no longer contain breadcrumb logic
 
 ## Navbar Nav Section Pattern
 - Section name (`<a class="nav-link section-name">`) + chevron (`<span class="section-chevron">`)

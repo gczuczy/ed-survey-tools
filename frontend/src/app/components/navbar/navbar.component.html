@@ -59,3 +59,9 @@
     }
   </ng-template>
 </p-toolbar>
+
+@if (hasBreadcrumb) {
+  <div class="breadcrumb-bar">
+    <p-breadcrumb [model]="breadcrumbItems" [home]="homeCrumb" />
+  </div>
+}

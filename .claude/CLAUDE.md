@@ -91,7 +91,7 @@ The UI top navbar represents sections (except when noted otherwise). These secti
 
 The dashboard dispalys the available subsections using a reactive carousel. clicking on each brings that subsection up.
 
-Once a subsection is selected, there is a breadcrumb on the top, right bellow the navbar, aligned to the left. When an item in the route is numberically routed, the respective textual name of that route must be displayed.
+There must be a breadcrumb bar as part of the navbar, right below the navitems.
 
 # AI Memory
 
