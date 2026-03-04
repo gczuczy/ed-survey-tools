@@ -2,62 +2,77 @@ import { Routes } from '@angular/router';
 import { authGuard }  from './auth/auth.guard';
 import { adminGuard } from './auth/admin.guard';
 
-import { HomeComponent }     from './components/home/home.component';
-import { BarfooComponent }   from './components/barfoo/barfoo.component';
-import { FoobarComponent }   from './components/foobar/foobar.component';
-import { SettingsComponent } from './components/settings/settings.component';
-
-import { SidemenuComponent }      from './components/sidemenu/sidemenu.component';
-import { SidemenuAlphaComponent } from './components/sidemenu/sidemenu-alpha.component';
-import { SidemenuBetaComponent }  from './components/sidemenu/sidemenu-beta.component';
-
-import { PublicSidemenuComponent }        from './components/public-sidemenu/public-sidemenu.component';
-import { PublicSidemenuOption1Component } from './components/public-sidemenu/public-sidemenu-option1.component';
-import { PublicSidemenuOption2Component } from './components/public-sidemenu/public-sidemenu-option2.component';
-
-import { VsdsComponent }          from './components/vsds/vsds.component';
-import { VsdsDashboardComponent } from './components/vsds/vsds-dashboard.component';
-import { VsdsFoldersComponent }   from './components/vsds/vsds-folders.component';
+import { HomeComponent } from './components/home/home.component';
 
 export const routes: Routes = [
   // ── Public routes ─────────────────────────────────────────────────────────
   { path: '',       component: HomeComponent },
-  { path: 'barfoo', component: BarfooComponent },
+  {
+    path: 'barfoo',
+    loadComponent: () => import('./components/barfoo/barfoo.component').then(m => m.BarfooComponent),
+  },
 
   // ── Public side menu (no auth required) ───────────────────────────────────
   {
     path: 'public-menu',
-    component: PublicSidemenuComponent,
+    loadComponent: () => import('./components/public-sidemenu/public-sidemenu.component').then(m => m.PublicSidemenuComponent),
     children: [
-      { path: '',        redirectTo: 'option1', pathMatch: 'full' },
-      { path: 'option1', component: PublicSidemenuOption1Component },
-      { path: 'option2', component: PublicSidemenuOption2Component },
+      { path: '', redirectTo: 'option1', pathMatch: 'full' },
+      {
+        path: 'option1',
+        loadComponent: () => import('./components/public-sidemenu/public-sidemenu-option1.component').then(m => m.PublicSidemenuOption1Component),
+      },
+      {
+        path: 'option2',
+        loadComponent: () => import('./components/public-sidemenu/public-sidemenu-option2.component').then(m => m.PublicSidemenuOption2Component),
+      },
     ]
   },
 
   // ── VSDS section (public section, subsections permission-gated) ───────────
   {
     path: 'vsds',
-    component: VsdsComponent,
+    loadComponent: () => import('./components/vsds/vsds.component').then(m => m.VsdsComponent),
     children: [
-      { path: '',        component: VsdsDashboardComponent },
-      { path: 'folders', component: VsdsFoldersComponent, canActivate: [adminGuard] },
+      {
+        path: '',
+        loadComponent: () => import('./components/vsds/vsds-dashboard.component').then(m => m.VsdsDashboardComponent),
+      },
+      {
+        path: 'folders',
+        loadComponent: () => import('./components/vsds/vsds-folders.component').then(m => m.VsdsFoldersComponent),
+        canActivate: [adminGuard],
+      },
     ]
   },
 
   // ── Protected routes ──────────────────────────────────────────────────────
-  { path: 'foobar',   component: FoobarComponent,   canActivate: [authGuard] },
-  { path: 'settings', component: SettingsComponent, canActivate: [authGuard] },
+  {
+    path: 'foobar',
+    loadComponent: () => import('./components/foobar/foobar.component').then(m => m.FoobarComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'settings',
+    loadComponent: () => import('./components/settings/settings.component').then(m => m.SettingsComponent),
+    canActivate: [authGuard],
+  },
 
   // ── Protected side menu ───────────────────────────────────────────────────
   {
     path: 'sidemenu',
-    component: SidemenuComponent,
+    loadComponent: () => import('./components/sidemenu/sidemenu.component').then(m => m.SidemenuComponent),
     canActivate: [authGuard],
     children: [
-      { path: '',      redirectTo: 'alpha', pathMatch: 'full' },
-      { path: 'alpha', component: SidemenuAlphaComponent },
-      { path: 'beta',  component: SidemenuBetaComponent },
+      { path: '', redirectTo: 'alpha', pathMatch: 'full' },
+      {
+        path: 'alpha',
+        loadComponent: () => import('./components/sidemenu/sidemenu-alpha.component').then(m => m.SidemenuAlphaComponent),
+      },
+      {
+        path: 'beta',
+        loadComponent: () => import('./components/sidemenu/sidemenu-beta.component').then(m => m.SidemenuBetaComponent),
+      },
     ]
   },
 

@@ -18,7 +18,7 @@
       <p-message severity="error" [text]="addError" styleClass="form-message" />
     }
     @if (addSuccess) {
-      <p-message severity="success" [text]="addSuccess" styleClass="form-message" />
+      <p-message severity="success" [text]="addSuccess" styleClass="form-message" [closable]="true" (onClose)="addSuccess = null" />
     }
   </p-card>
 

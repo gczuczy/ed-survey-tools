@@ -85,6 +85,8 @@ Regarding permissions, there are 3 categories on the UI, correlating how API end
  - Authenticated: These require authentication to access, and not visible to unauthenticated users
  - Protected(permission): These are protected with a permission flag (like `isAdmin`, from the userinfo), requiring that permission to be set on the viewing user, and not visible without it.
 
+Sections are to be lazy-loaded whenever possible.
+
 ## Navbar and sections
 
 The UI top navbar represents sections (except when noted otherwise). These sections are complex parts of the user interface, they all have subsections. When clicking on the section name, the section's landing page must be loaded (detailed later). Next to each navbar item a dropdown must be present, opening the section's subsections.
