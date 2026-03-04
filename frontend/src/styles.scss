@@ -42,6 +42,34 @@ html, body {
   }
 }
 
+// ─── Footer ─────────────────────────────────────────────────────────────────
+.app-footer {
+  text-align: center;
+  padding: 1rem;
+  font-size: 0.8rem;
+  color: var(--p-text-muted-color);
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--p-text-muted-color);
+    text-decoration: none;
+
+    &:hover {
+      color: var(--p-primary-color);
+      text-decoration: underline;
+    }
+  }
+
+  .github-icon {
+    width: 1em;
+    height: 1em;
+    fill: currentColor;
+    flex-shrink: 0;
+  }
+}
+
 // ─── Utility text colors ────────────────────────────────────────────────────
 .text-muted {
   color: var(--p-text-muted-color);
