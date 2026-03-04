@@ -17,6 +17,15 @@ export interface VSDSFolder {
   failed?:      number;
 }
 
+/**
+ * Mirrors the backend db.VSDSProject struct returned by /api/vsds/projects.
+ */
+export interface VSDSProject {
+  id:       number;
+  name:     string;
+  zsamples: number[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class VsdsService {
 
@@ -32,5 +41,29 @@ export class VsdsService {
 
   deleteFolder(id: number): Observable<ApiResponse<null>> {
     return this.api.delete<ApiResponse<null>>(`/api/vsds/folders/${id}`);
+  }
+
+  listProjects(): Observable<ApiResponse<VSDSProject[]>> {
+    return this.api.get<ApiResponse<VSDSProject[]>>('/api/vsds/projects');
+  }
+
+  addProject(name: string): Observable<ApiResponse<VSDSProject>> {
+    return this.api.put<ApiResponse<VSDSProject>>('/api/vsds/projects', { name });
+  }
+
+  getProject(id: number): Observable<ApiResponse<VSDSProject>> {
+    return this.api.get<ApiResponse<VSDSProject>>(`/api/vsds/projects/${id}`);
+  }
+
+  setZSamples(id: number, zsamples: number[]): Observable<ApiResponse<VSDSProject>> {
+    return this.api.post<ApiResponse<VSDSProject>>(`/api/vsds/projects/${id}/zsamples`, zsamples);
+  }
+
+  addZSample(id: number, zsample: number): Observable<ApiResponse<VSDSProject>> {
+    return this.api.put<ApiResponse<VSDSProject>>(`/api/vsds/projects/${id}/zsamples/${zsample}`, null);
+  }
+
+  deleteZSample(id: number, zsample: number): Observable<ApiResponse<VSDSProject>> {
+    return this.api.delete<ApiResponse<VSDSProject>>(`/api/vsds/projects/${id}/zsamples/${zsample}`);
   }
 }

@@ -97,7 +97,9 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (url.startsWith('/vsds/')) {
       crumbs.push({ label: 'VSDS', routerLink: '/vsds' });
-      if (url.includes('/vsds/folders')) {
+      if (url.includes('/vsds/projects')) {
+        crumbs.push({ label: 'Projects' });
+      } else if (url.includes('/vsds/folders')) {
         crumbs.push({ label: 'Folders' });
       }
     }
@@ -108,6 +110,7 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
 
   get vsdsMenuItems(): MenuItem[] {
     const items: MenuItem[] = [];
+    items.push({ label: 'Projects', icon: 'pi pi-briefcase', command: () => this.router.navigate(['/vsds/projects']) });
     if (this.authService.user?.isadmin) {
       items.push({ label: 'Folders', icon: 'pi pi-folder', command: () => this.router.navigate(['/vsds/folders']) });
     }

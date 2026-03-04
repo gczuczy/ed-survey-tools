@@ -31,9 +31,9 @@ type System struct {
 }
 
 type VSDSProject struct {
-	ID int `db:"id"`
-	Name string `db:"name"`
-	ZSamples []int `db:"zsamples"`
+	ID       int    `db:"id"       json:"id"`
+	Name     string `db:"name"     json:"name"`
+	ZSamples []int  `db:"zsamples" json:"zsamples"`
 }
 
 func (p *DBPool) ListProjects() (projects []VSDSProject, err error) {

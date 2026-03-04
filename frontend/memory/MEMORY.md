@@ -31,6 +31,14 @@
 - Path: `/vsds` (public section)
 - Shell: `components/vsds/vsds.component.ts` - sidebar + router-outlet only (no breadcrumb)
 - Dashboard: `components/vsds/vsds-dashboard.component.ts` - carousel landing page
+- **Projects subsection** (`/vsds/projects`, public):
+  - `components/vsds/vsds-projects.component.ts`
+  - Split viewport: left = project list (p-listbox), right = zsamples panel
+  - Admin left: add project form (PUT /api/vsds/projects, min 5 chars)
+  - Right: zsamples shown as chips with X delete button (admin only)
+  - Admin right: add single zsample (PUT .../zsamples/{zsample}), bulk replace via textarea (POST .../zsamples with []int)
+  - All zsample mutations return updated VSDSProject; `updateProject()` syncs list + selection
+  - `VSDSProject` interface: `{ id: number; name: string; zsamples: number[] }`
 - **Folders subsection** (`/vsds/folders`, protected: isAdmin):
   - `components/vsds/vsds-folders.component.ts`
   - Lists folders via GET /api/vsds/folders

@@ -1,0 +1,137 @@
+<div class="projects-layout">
+
+  <!-- Left: Project list -->
+  <div class="projects-left">
+
+    <!-- Admin: add project form -->
+    @if (isAdmin) {
+      <div class="add-project-panel panel">
+        <div class="panel-header">Add Project</div>
+        <div class="panel-body">
+          <div class="add-project-form">
+            <input pInputText
+                   [(ngModel)]="newProjectName"
+                   placeholder="New project name"
+                   class="project-name-input"
+                   (keyup.enter)="addProject()" />
+            <p-button icon="pi pi-plus"
+                      (onClick)="addProject()"
+                      [loading]="addProjectLoad"
+                      [disabled]="newProjectName.trim().length < 5"
+                      [rounded]="true" />
+          </div>
+          @if (addProjectError) {
+            <p-message severity="error" [text]="addProjectError" styleClass="form-message" />
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Project list -->
+    <div class="project-list-panel panel">
+      <div class="panel-header">Projects</div>
+      <div class="panel-body">
+        @if (loadError) {
+          <p-message severity="error" [text]="loadError" styleClass="form-message" />
+        }
+        @if (loadingProjects) {
+          <div class="loading-text text-muted">Loading...</div>
+        } @else {
+          <ul class="project-list">
+            @for (project of projects; track project.id) {
+              <li class="project-item"
+                  [class.active]="selectedProject?.id === project.id"
+                  (click)="selectProject(project)">
+                {{ project.name }}
+              </li>
+            }
+            @if (projects.length === 0) {
+              <li class="project-empty text-muted">No projects found.</li>
+            }
+          </ul>
+        }
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right: ZSamples panel -->
+  <div class="projects-right">
+
+    @if (!selectedProject) {
+      <div class="no-selection text-muted">
+        <i class="pi pi-arrow-left"></i>
+        Select a project to view its ZSamples.
+      </div>
+    } @else {
+      <p-card [header]="'ZSamples — ' + selectedProject.name">
+
+        @if (delZSampleError) {
+          <p-message severity="error" [text]="delZSampleError" styleClass="form-message" />
+        }
+
+        <div class="zsamples-chips">
+          @for (zsample of selectedProject.zsamples; track zsample) {
+            <div class="zsample-tag">
+              <span class="zsample-value">{{ zsample }}</span>
+              @if (isAdmin) {
+                <p-button icon="pi pi-times"
+                          [text]="true"
+                          [rounded]="true"
+                          severity="danger"
+                          size="small"
+                          (onClick)="deleteZSample(zsample)"
+                          [loading]="deletingZSample === zsample" />
+              }
+            </div>
+          }
+          @if (selectedProject.zsamples.length === 0) {
+            <span class="text-muted">No ZSamples assigned.</span>
+          }
+        </div>
+
+        @if (isAdmin) {
+          <div class="admin-zsample-controls">
+
+            <p class="control-label">Add Single</p>
+            <div class="add-zsample-form">
+              <p-inputnumber [(ngModel)]="newZSample"
+                             placeholder="ZSample value"
+                             [useGrouping]="false"
+                             styleClass="zsample-input" />
+              <p-button icon="pi pi-plus"
+                        label="Add"
+                        (onClick)="addZSample()"
+                        [loading]="addZSampleLoad"
+                        [disabled]="newZSample === null" />
+            </div>
+            @if (addZSampleError) {
+              <p-message severity="error" [text]="addZSampleError" styleClass="form-message" />
+            }
+
+            <p class="control-label">Bulk Replace</p>
+            <div class="bulk-form">
+              <textarea pTextarea
+                        [(ngModel)]="bulkZSamples"
+                        rows="4"
+                        placeholder="Enter comma or newline-separated ZSample values..."></textarea>
+              <p-button icon="pi pi-sync"
+                        label="Replace All"
+                        severity="warning"
+                        (onClick)="setBulkZSamples()"
+                        [loading]="bulkLoad"
+                        [disabled]="!bulkZSamples.trim()" />
+            </div>
+            @if (bulkError) {
+              <p-message severity="error" [text]="bulkError" styleClass="form-message" />
+            }
+
+          </div>
+        }
+
+      </p-card>
+    }
+
+  </div>
+
+</div>

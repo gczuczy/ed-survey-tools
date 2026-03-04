@@ -29,6 +29,13 @@ export class VsdsDashboardComponent implements OnInit {
   ngOnInit(): void {
     const cards: SubsectionCard[] = [];
 
+    cards.push({
+      label:       'Projects',
+      description: 'View and manage survey projects and their ZSample assignments.',
+      icon:        'pi pi-briefcase',
+      route:       '/vsds/projects',
+    });
+
     if (this.authService.user?.isadmin) {
       cards.push({
         label:       'Folders',
