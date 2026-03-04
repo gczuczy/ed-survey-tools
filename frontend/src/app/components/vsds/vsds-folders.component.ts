@@ -1,18 +1,21 @@
-import { Component, OnInit }       from '@angular/core';
-import { FormsModule }             from '@angular/forms';
-import { DatePipe }                from '@angular/common';
-import { HttpErrorResponse }       from '@angular/common/http';
-import { VsdsService, VSDSFolder } from '../../services/vsds.service';
-import { ButtonModule }            from 'primeng/button';
-import { CardModule }              from 'primeng/card';
-import { InputTextModule }         from 'primeng/inputtext';
-import { MessageModule }           from 'primeng/message';
-import { TableModule }             from 'primeng/table';
+import { Component, OnInit }           from '@angular/core';
+import { FormsModule }                 from '@angular/forms';
+import { DatePipe }                    from '@angular/common';
+import { HttpErrorResponse }           from '@angular/common/http';
+import { VsdsService, VSDSFolder }     from '../../services/vsds.service';
+import { ButtonModule }                from 'primeng/button';
+import { CardModule }                  from 'primeng/card';
+import { InputTextModule }             from 'primeng/inputtext';
+import { MessageModule }               from 'primeng/message';
+import { TableModule }                 from 'primeng/table';
+import { ConfirmDialogModule }         from 'primeng/confirmdialog';
+import { ConfirmationService }         from 'primeng/api';
 
 @Component({
   selector:    'app-vsds-folders',
   standalone:  true,
-  imports:     [FormsModule, DatePipe, ButtonModule, CardModule, InputTextModule, MessageModule, TableModule],
+  imports:     [FormsModule, DatePipe, ButtonModule, CardModule, InputTextModule, MessageModule, TableModule, ConfirmDialogModule],
+  providers:   [ConfirmationService],
   templateUrl: './vsds-folders.component.html',
   styleUrl:    './vsds-folders.component.scss',
 })
@@ -29,7 +32,7 @@ export class VsdsFoldersComponent implements OnInit {
   deletingId:  number | null = null;
   deleteError: string | null = null;
 
-  constructor(private vsdsService: VsdsService) {}
+  constructor(private vsdsService: VsdsService, private confirmationService: ConfirmationService) {}
 
   ngOnInit(): void {
     this.loadFolders();
@@ -73,17 +76,24 @@ export class VsdsFoldersComponent implements OnInit {
   }
 
   deleteFolder(folder: VSDSFolder): void {
-    this.deletingId  = folder.id;
-    this.deleteError = null;
+    this.confirmationService.confirm({
+      message: `Are you sure you want to delete folder "${folder.name}"?`,
+      header:  'Confirm Deletion',
+      icon:    'pi pi-exclamation-triangle',
+      accept:  () => {
+        this.deletingId  = folder.id;
+        this.deleteError = null;
 
-    this.vsdsService.deleteFolder(folder.id).subscribe({
-      next: () => {
-        this.folders    = this.folders.filter(f => f.id !== folder.id);
-        this.deletingId = null;
-      },
-      error: (err: HttpErrorResponse) => {
-        this.deleteError = err.error?.message ?? `Failed to delete folder "${folder.name}"`;
-        this.deletingId  = null;
+        this.vsdsService.deleteFolder(folder.id).subscribe({
+          next: () => {
+            this.folders    = this.folders.filter(f => f.id !== folder.id);
+            this.deletingId = null;
+          },
+          error: (err: HttpErrorResponse) => {
+            this.deleteError = err.error?.message ?? `Failed to delete folder "${folder.name}"`;
+            this.deletingId  = null;
+          },
+        });
       },
     });
   }
