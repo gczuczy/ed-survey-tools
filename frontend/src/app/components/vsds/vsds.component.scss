@@ -1,24 +1,3 @@
 .vsds-shell {
   margin-top: var(--navbar-height, 56px);
-  display: flex;
-  flex-direction: column;
-}
-
-.vsds-layout {
-  display: flex;
-  flex: 1;
-}
-
-.sidebar-inner {
-  padding: 1.5rem 0.75rem 1rem;
-}
-
-.sidebar-nav {
-  display: flex;
-  flex-direction: column;
-}
-
-.vsds-content {
-  flex: 1;
-  padding: 1.5rem;
 }

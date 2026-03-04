@@ -1,14 +1,11 @@
-import { Component }                                  from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { AuthService }                                from '../../auth/auth.service';
+import { Component }   from '@angular/core';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector:    'app-vsds',
   standalone:  true,
-  imports:     [RouterLink, RouterLinkActive, RouterOutlet],
+  imports:     [RouterOutlet],
   templateUrl: './vsds.component.html',
   styleUrl:    './vsds.component.scss',
 })
-export class VsdsComponent {
-  constructor(public authService: AuthService) {}
-}
+export class VsdsComponent {}
