@@ -87,6 +87,8 @@ Regarding permissions, there are 3 categories on the UI, correlating how API end
 
 Sections are to be lazy-loaded whenever possible.
 
+All timestamps must be in ISO8601 format. It should be in human-readable form, so `s/T/ /`, and seconds precision.
+
 ## Navbar and sections
 
 The UI top navbar represents sections (except when noted otherwise). These sections are complex parts of the user interface, they all have subsections. When clicking on the section name, the section's landing page must be loaded (detailed later). Next to each navbar item a dropdown must be present, opening the section's subsections.

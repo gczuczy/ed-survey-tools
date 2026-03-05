@@ -30,6 +30,9 @@
     @if (deleteError) {
       <p-message severity="error" [text]="deleteError" styleClass="form-message" />
     }
+    @if (processError) {
+      <p-message severity="error" [text]="processError" styleClass="form-message" />
+    }
     <p-table [value]="folders" [loading]="loading">
       <ng-template pTemplate="header">
         <tr>
@@ -46,11 +49,31 @@
         <tr>
           <td>{{ folder.id }}</td>
           <td>{{ folder.name }}</td>
-          <td>{{ folder.received_at ? (folder.received_at | date:'short') : '—' }}</td>
+          <td>{{ folder.received_at ? (folder.received_at | date:'yyyy-MM-dd HH:mm:ss':'UTC') : '—' }}</td>
           <td>{{ folder.in_progress ?? '—' }}</td>
           <td>{{ folder.finished ?? '—' }}</td>
           <td>{{ folder.failed ?? '—' }}</td>
           <td class="actions-cell">
+            @if (canProcess(folder)) {
+              <p-button icon="pi pi-play"
+                        severity="success"
+                        [text]="true"
+                        [rounded]="true"
+                        (onClick)="processFolder(folder)"
+                        [loading]="processingId === folder.id" />
+            } @else if (!folder.started_at) {
+              <p-button icon="pi pi-clock"
+                        severity="warning"
+                        [text]="true"
+                        [rounded]="true"
+                        pTooltip="Queued" />
+            } @else {
+              <p-button icon="pi pi-spin pi-spinner"
+                        severity="info"
+                        [text]="true"
+                        [rounded]="true"
+                        pTooltip="Processing" />
+            }
             <p-button icon="pi pi-trash"
                       severity="danger"
                       [text]="true"

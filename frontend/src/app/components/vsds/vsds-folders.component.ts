@@ -9,12 +9,13 @@ import { InputTextModule }             from 'primeng/inputtext';
 import { MessageModule }               from 'primeng/message';
 import { TableModule }                 from 'primeng/table';
 import { ConfirmDialogModule }         from 'primeng/confirmdialog';
+import { TooltipModule }              from 'primeng/tooltip';
 import { ConfirmationService }         from 'primeng/api';
 
 @Component({
   selector:    'app-vsds-folders',
   standalone:  true,
-  imports:     [FormsModule, DatePipe, ButtonModule, CardModule, InputTextModule, MessageModule, TableModule, ConfirmDialogModule],
+  imports:     [FormsModule, DatePipe, ButtonModule, CardModule, InputTextModule, MessageModule, TableModule, ConfirmDialogModule, TooltipModule],
   providers:   [ConfirmationService],
   templateUrl: './vsds-folders.component.html',
   styleUrl:    './vsds-folders.component.scss',
@@ -31,6 +32,9 @@ export class VsdsFoldersComponent implements OnInit {
 
   deletingId:  number | null = null;
   deleteError: string | null = null;
+
+  processingId:  number | null = null;
+  processError:  string | null = null;
 
   constructor(private vsdsService: VsdsService, private confirmationService: ConfirmationService) {}
 
@@ -71,6 +75,27 @@ export class VsdsFoldersComponent implements OnInit {
       error: (err: HttpErrorResponse) => {
         this.addError   = err.error?.message ?? 'Failed to add folder';
         this.addLoading = false;
+      },
+    });
+  }
+
+  canProcess(folder: VSDSFolder): boolean {
+    return !folder.received_at || folder.finished_at != null;
+  }
+
+  processFolder(folder: VSDSFolder): void {
+    if (!this.canProcess(folder)) return;
+    this.processingId = folder.id;
+    this.processError = null;
+
+    this.vsdsService.processFolder(folder.id).subscribe({
+      next: () => {
+        this.processingId = null;
+        this.loadFolders();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.processError = err.error?.message ?? `Failed to queue processing for "${folder.name}"`;
+        this.processingId = null;
       },
     });
   }

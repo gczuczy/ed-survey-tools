@@ -433,6 +433,71 @@ func (p *DBPool) AddFolder(gcpid, name string) (folder VSDSFolder, err error) {
 	return
 }
 
+func (p *DBPool) QueueFolderProcessing(folderID int) (err error) {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().Msg("Unable to acquire connection from pool")
+		return
+	}
+	defer conn.Release()
+
+	tx, err := conn.BeginTx(p.ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
+	if err != nil {
+		logger.Error().Err(err).Caller().Msg("Error while opening txn")
+		return
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback(p.ctx)
+			return
+		}
+		if cerr := tx.Commit(p.ctx); cerr != nil {
+			tx.Rollback(p.ctx)
+			err = cerr
+		}
+	}()
+
+	// Verify folder exists
+	var rows pgx.Rows
+	if rows, err = tx.Query(p.ctx, "getfolder", folderID); err != nil {
+		logger.Error().Err(err).Caller().Str("query", "getfolder").
+			Msg("Error while executing query")
+		return
+	}
+	folders, cerr := pgx.CollectRows(rows, pgx.RowToStructByName[VSDSFolder])
+	if cerr != nil {
+		err = cerr
+		logger.Error().Err(err).Caller().Msg("Error while reading results")
+		return
+	}
+	if len(folders) == 0 {
+		err = ErrNotFound
+		return
+	}
+
+	// Check for active or pending processing within the transaction
+	var hasActive bool
+	if err = tx.QueryRow(p.ctx, "checkfolderprocessing", folderID).Scan(&hasActive); err != nil {
+		logger.Error().Err(err).Caller().Str("query", "checkfolderprocessing").
+			Msg("Error while executing query")
+		return
+	}
+	if hasActive {
+		err = ErrAlreadyQueued
+		return
+	}
+
+	// Queue the processing request
+	var newID int
+	if err = tx.QueryRow(p.ctx, "insertfolderprocessing", folderID).Scan(&newID); err != nil {
+		logger.Error().Err(err).Caller().Str("query", "insertfolderprocessing").
+			Msg("Error while executing query")
+		return
+	}
+
+	return nil
+}
+
 func (p *DBPool) DeleteFolder(id int) (err error) {
 	conn, err := p.pool.Acquire(p.ctx)
 	if err != nil {

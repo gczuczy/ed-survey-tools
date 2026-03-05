@@ -13,6 +13,9 @@ func Init(r *mux.Router) error {
 	r.Handle("/folders/{id:[0-9]+}",
 		w.NewAPIHandler().AuthDelete(deleteFolder, w.IsAdmin),
 	)
+	r.Handle("/folders/{id:[0-9]+}/process",
+		w.NewAPIHandler().AuthPost(processFolder, w.IsAdmin),
+	)
 
 	r.Handle("/projects",
 		w.NewAPIHandler().Get(listProjects).AuthPut(addProject, w.IsAdmin),

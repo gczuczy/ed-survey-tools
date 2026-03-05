@@ -66,6 +66,32 @@ func addFolder(r *wrappers.Request) wrappers.IResponse {
 	return wrappers.Success(folder)
 }
 
+func processFolder(r *wrappers.Request) wrappers.IResponse {
+	idStr, ok := r.Vars["id"]
+	if !ok {
+		return wrappers.NewError(fmt.Errorf("Missing folder ID"), http.StatusBadRequest)
+	}
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		return wrappers.NewError(fmt.Errorf("Invalid folder ID"), http.StatusBadRequest)
+	}
+
+	if err := db.Pool.QueueFolderProcessing(id); err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			return wrappers.NewError(fmt.Errorf("Folder not found"), http.StatusNotFound)
+		}
+		if errors.Is(err, db.ErrAlreadyQueued) {
+			return wrappers.NewError(fmt.Errorf("Processing already queued or in progress"), http.StatusConflict)
+		}
+		r.L.Error().Err(err).Msg("Error while queuing folder processing")
+		return wrappers.NewError(
+			errors.Join(err, fmt.Errorf("Error while queuing folder processing")),
+			http.StatusInternalServerError)
+	}
+
+	return wrappers.Success(nil)
+}
+
 func deleteFolder(r *wrappers.Request) wrappers.IResponse {
 	idStr, ok := r.Vars["id"]
 	if !ok {

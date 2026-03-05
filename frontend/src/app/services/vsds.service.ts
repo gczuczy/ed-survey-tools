@@ -43,6 +43,10 @@ export class VsdsService {
     return this.api.delete<ApiResponse<null>>(`/api/vsds/folders/${id}`);
   }
 
+  processFolder(id: number): Observable<ApiResponse<null>> {
+    return this.api.post<ApiResponse<null>>(`/api/vsds/folders/${id}/process`, null);
+  }
+
   listProjects(): Observable<ApiResponse<VSDSProject[]>> {
     return this.api.get<ApiResponse<VSDSProject[]>>('/api/vsds/projects');
   }

@@ -17,6 +17,7 @@
 - `GET /api/vsds/folders` - list folders (AuthGet, IsAdmin)
 - `POST /api/vsds/folders` - add folder by URL (AuthPost, IsAdmin)
 - `DELETE /api/vsds/folders/{id}` - delete folder (AuthDelete, IsAdmin)
+- `POST /api/vsds/folders/{id}/process` - queue folder processing (AuthPost, IsAdmin); returns 409 if already queued/in-progress
 - `GET /api/vsds/projects`, `PUT /api/vsds/projects` etc.
 
 ## Database

@@ -17,8 +17,9 @@ import (
 var (
 	Pool *DBPool=nil
 
-	ErrNotFound = fmt.Errorf("not found")
-	ErrDuplicate = fmt.Errorf("already exists")
+	ErrNotFound     = fmt.Errorf("not found")
+	ErrDuplicate    = fmt.Errorf("already exists")
+	ErrAlreadyQueued = fmt.Errorf("processing already queued or in progress")
 
 	prepared = map[string]string{
 		// logincmdr
@@ -94,6 +95,16 @@ INSERT INTO vsds.folders (gcpid, name) VALUES ($1::text, $2::text) RETURNING id
 		// VSDS: delete a folder by ID
 		"deletefolder": `
 DELETE FROM vsds.folders WHERE id = $1::int
+`,
+
+		// VSDS: check if a folder has active or pending processing
+		"checkfolderprocessing": `
+SELECT EXISTS(SELECT 1 FROM vsds.folder_processing WHERE folderid = $1::int AND finishedat IS NULL) AS has_active
+`,
+
+		// VSDS: insert a folder processing request, returns new ID
+		"insertfolderprocessing": `
+INSERT INTO vsds.folder_processing (folderid) VALUES ($1::int) RETURNING id
 `,
 	}
 

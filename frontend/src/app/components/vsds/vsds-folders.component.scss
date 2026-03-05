@@ -20,8 +20,12 @@
 }
 
 .actions-cell {
-  text-align: right;
-  width: 4rem;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  white-space: nowrap;
+  width: 7rem;
 }
 
 .empty-message {

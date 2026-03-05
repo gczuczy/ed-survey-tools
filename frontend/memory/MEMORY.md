@@ -44,6 +44,10 @@
   - Lists folders via GET /api/vsds/folders
   - Add folder: POST /api/vsds/folders with `{url: string}` (Google Drive URL)
   - Delete folder: DELETE /api/vsds/folders/{id}
+  - Process folder: POST /api/vsds/folders/{id}/process (empty body)
+    - Process button: `pi pi-play`, success severity, disabled if `!canProcess(folder)`
+    - `canProcess`: enabled if `!received_at` OR `finished_at != null`
+    - On success: reloads folder list; on error: shows `processError` message
   - Future: each folder row will expand to show document processing details
     - **TBD**: either collapsible row expansion in p-table OR route to /vsds/folders/{id}
     - When implemented, needs breadcrumb update in navbar.component.ts (not vsds.component.ts)
