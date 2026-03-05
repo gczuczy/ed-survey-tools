@@ -11,6 +11,11 @@ import (
 	"google.golang.org/api/option"
 )
 
+type FolderItem struct {
+	ID       string
+	MimeType string
+}
+
 const driveFolderMimeType = "application/vnd.google-apps.folder"
 
 func ValidateFolder(folderURL string) (string, string, error) {
@@ -48,4 +53,34 @@ func ValidateFolder(folderURL string) (string, string, error) {
 	}
 
 	return folderID, file.Name, nil
+}
+
+func ListFolder(folderID string) ([]FolderItem, error) {
+	ctx := context.Background()
+	scopes := option.WithScopes(drive.DriveMetadataReadonlyScope)
+	svc, err := drive.NewService(ctx, authOption, scopes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create drive service: %w", err)
+	}
+
+	query := fmt.Sprintf("'%s' in parents and trashed = false and mimeType != '%s'",
+		folderID, driveFolderMimeType)
+
+	var items []FolderItem
+	err = svc.Files.List().
+		Q(query).
+		Fields("nextPageToken, files(id, mimeType)").
+		SupportsAllDrives(true).
+		IncludeItemsFromAllDrives(true).
+		Pages(ctx, func(page *drive.FileList) error {
+			for _, f := range page.Files {
+				items = append(items, FolderItem{ID: f.Id, MimeType: f.MimeType})
+			}
+			return nil
+		})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list folder %s: %w", folderID, err)
+	}
+
+	return items, nil
 }
