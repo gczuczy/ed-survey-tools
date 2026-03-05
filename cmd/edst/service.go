@@ -15,6 +15,7 @@ import (
 	"github.com/gczuczy/ed-survey-tools/pkg/http"
 	"github.com/gczuczy/ed-survey-tools/pkg/db"
 	"github.com/gczuczy/ed-survey-tools/pkg/log"
+	"github.com/gczuczy/ed-survey-tools/pkg/vsds"
 )
 
 func parseArgs(k *koanf.Koanf) error {
@@ -81,11 +82,15 @@ func Run() {
 		os.Exit(1)
 	}
 
+	proc := vsds.NewProcessor(&cfg.VSDS)
+	proc.Start()
+
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
 	sig := <-sigChan
 	fmt.Printf("Received %s, bailing out\n", sig)
+	proc.Stop()
 	if err = hs.Shutdown(); err != nil {
 		fmt.Fprintf(os.Stderr, "err: %v\n", err)
 		os.Exit(1)

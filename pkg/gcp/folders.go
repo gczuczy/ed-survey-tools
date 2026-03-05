@@ -12,8 +12,11 @@ import (
 )
 
 type FolderItem struct {
-	ID       string
-	MimeType string
+	ID           string
+	Name         string
+	MimeType     string
+	CreatedTime  string
+	ModifiedTime string
 }
 
 const driveFolderMimeType = "application/vnd.google-apps.folder"
@@ -69,12 +72,18 @@ func ListFolder(folderID string) ([]FolderItem, error) {
 	var items []FolderItem
 	err = svc.Files.List().
 		Q(query).
-		Fields("nextPageToken, files(id, mimeType)").
+		Fields("nextPageToken, files(id, name, mimeType, createdTime, modifiedTime)").
 		SupportsAllDrives(true).
 		IncludeItemsFromAllDrives(true).
 		Pages(ctx, func(page *drive.FileList) error {
 			for _, f := range page.Files {
-				items = append(items, FolderItem{ID: f.Id, MimeType: f.MimeType})
+				items = append(items, FolderItem{
+					ID:           f.Id,
+					Name:         f.Name,
+					MimeType:     f.MimeType,
+					CreatedTime:  f.CreatedTime,
+					ModifiedTime: f.ModifiedTime,
+				})
 			}
 			return nil
 		})

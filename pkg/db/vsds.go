@@ -7,7 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/gczuczy/ed-survey-tools/pkg/vsds"
+	vsdstypes "github.com/gczuczy/ed-survey-tools/pkg/vsds/types"
 )
 
 type VSDSFolder struct {
@@ -498,6 +498,57 @@ func (p *DBPool) QueueFolderProcessing(folderID int) (err error) {
 	return nil
 }
 
+func (p *DBPool) FetchPendingFolderProcessing() (job *vsdstypes.FolderProcessingJob, err error) {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().Msg("Unable to acquire connection from pool")
+		return
+	}
+	defer conn.Release()
+
+	tx, err := conn.BeginTx(p.ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
+	if err != nil {
+		logger.Error().Err(err).Caller().Msg("Error while opening txn")
+		return
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback(p.ctx)
+			return
+		}
+		if cerr := tx.Commit(p.ctx); cerr != nil {
+			tx.Rollback(p.ctx)
+			err = cerr
+		}
+	}()
+
+	var procID, folderID int
+	var gcpID string
+	err = tx.QueryRow(p.ctx, "fetchpendingfolderprocessing").Scan(&procID, &folderID, &gcpID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		err = nil
+		return nil, nil
+	}
+	if err != nil {
+		logger.Error().Err(err).Caller().Str("query", "fetchpendingfolderprocessing").
+			Msg("Error while executing query")
+		return
+	}
+
+	if _, err = tx.Exec(p.ctx, "startfolderprocessing", procID); err != nil {
+		logger.Error().Err(err).Caller().Str("query", "startfolderprocessing").
+			Msg("Error while executing query")
+		return
+	}
+
+	job = &vsdstypes.FolderProcessingJob{
+		ProcID:   procID,
+		FolderID: folderID,
+		GCPID:    gcpID,
+	}
+	return
+}
+
 func (p *DBPool) DeleteFolder(id int) (err error) {
 	conn, err := p.pool.Acquire(p.ctx)
 	if err != nil {
@@ -521,7 +572,7 @@ func (p *DBPool) DeleteFolder(id int) (err error) {
 	return nil
 }
 
-func (p *DBPool) AddSurvey(m *vsds.Survey) (err error) {
+func (p *DBPool) AddSurvey(m *vsdstypes.Survey) (err error) {
 	conn, err := p.pool.Acquire(p.ctx)
 	if err != nil {
 		logger.Error().Err(err).Caller().Msg("Unable to acquire connection from pool")

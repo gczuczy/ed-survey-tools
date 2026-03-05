@@ -106,6 +106,22 @@ SELECT EXISTS(SELECT 1 FROM vsds.folder_processing WHERE folderid = $1::int AND 
 		"insertfolderprocessing": `
 INSERT INTO vsds.folder_processing (folderid) VALUES ($1::int) RETURNING id
 `,
+
+		// VSDS: fetch the oldest unfinished folder processing job, locking it
+		"fetchpendingfolderprocessing": `
+SELECT fp.id AS procid, f.id AS folderid, f.gcpid
+FROM vsds.folder_processing fp
+JOIN vsds.folders f ON f.id = fp.folderid
+WHERE fp.finishedat IS NULL
+ORDER BY fp.receivedat ASC
+LIMIT 1
+FOR UPDATE OF fp SKIP LOCKED
+`,
+
+		// VSDS: mark a folder processing job as started
+		"startfolderprocessing": `
+UPDATE vsds.folder_processing SET startedat = NOW() WHERE id = $1::int
+`,
 	}
 
 

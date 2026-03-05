@@ -70,7 +70,7 @@ func Run() {
 			continue
 		}
 		for _, m := range ms {
-			if err = m.LookupNames(); err != nil {
+			if err = vsds.LookupNames(&m); err != nil {
 				fmt.Printf(" !! Lookupnames failed: %v\n", err)
 			}
 		}

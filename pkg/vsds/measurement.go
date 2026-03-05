@@ -2,6 +2,7 @@ package vsds
 
 import (
 	"github.com/gczuczy/ed-survey-tools/pkg/edsm"
+	vsdstypes "github.com/gczuczy/ed-survey-tools/pkg/vsds/types"
 )
 
 var (
@@ -9,25 +10,7 @@ var (
 	edsms *edsm.EDSM
 )
 
-type Survey struct {
-	CMDR string
-	Project string
-	Name string
-	SurveyPoints []SurveyPoint
-}
-
-type SurveyPoint struct {
-	X float32
-	Y float32
-	Z float32
-	EDSMID int64
-	SystemName string
-	ZSample int
-	Count int
-	MaxDistance float32
-}
-
-func (m *Survey) LookupNames() error {
+func LookupNames(m *vsdstypes.Survey) error {
 
 	if edsms == nil {
 		edsms = edsm.New()

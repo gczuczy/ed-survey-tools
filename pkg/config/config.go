@@ -15,6 +15,11 @@ type Config struct {
 	OAuth2 OAuth2Config `koanf:"oauth2"`
 	Sessions SessionsConfig `koanf:"sessions"`
 	Logging LoggingConfig `koanf:"logging"`
+	VSDS VSDSConfig `koanf:"vsds"`
+}
+
+type VSDSConfig struct {
+	ProcessorInterval time.Duration `koanf:"processorInterval"`
 }
 
 type DBConfig struct {
@@ -84,6 +89,9 @@ func ParseConfig(k *koanf.Koanf) (*Config, error) {
 		},
 		Logging: LoggingConfig{
 			Level: "info",
+		},
+		VSDS: VSDSConfig{
+			ProcessorInterval: time.Minute,
 		},
 	}
 	if err = k.Unmarshal("", &cfg); err != nil {

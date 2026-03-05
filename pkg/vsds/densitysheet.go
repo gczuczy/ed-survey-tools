@@ -9,6 +9,7 @@ import (
 
 	"google.golang.org/api/sheets/v4"
 	"github.com/gczuczy/ed-survey-tools/pkg/gcp"
+	vsdstypes "github.com/gczuczy/ed-survey-tools/pkg/vsds/types"
 )
 
 const (
@@ -38,9 +39,9 @@ func NewSpreadsheet(sheetid string, ss *gcp.GSpreadsheetsService) (*Spreadsheet,
 	}, nil
 }
 
-func (ds *Spreadsheet) GetSurveys() ([]Survey, error) {
+func (ds *Spreadsheet) GetSurveys() ([]vsdstypes.Survey, error) {
 	var reterr error = nil
-	ret := []Survey{}
+	ret := []vsdstypes.Survey{}
 
 	for _, sheet := range ds.spreadsheet.GetSheets() {
 		if m, err := ds.parseSheet(sheet.Properties.Title); err != nil {
@@ -54,10 +55,10 @@ func (ds *Spreadsheet) GetSurveys() ([]Survey, error) {
 	return ret, reterr
 }
 
-func (ds *Spreadsheet) parseSheet(name string) (Survey, error) {
-	m := Survey{
+func (ds *Spreadsheet) parseSheet(name string) (vsdstypes.Survey, error) {
+	m := vsdstypes.Survey{
 		Name: name,
-		SurveyPoints: make([]SurveyPoint, 0, 32),
+		SurveyPoints: make([]vsdstypes.SurveyPoint, 0, 32),
 	}
 
 	endcell := fmt.Sprintf("I%d", MaxSamples)
@@ -127,7 +128,7 @@ func (ds *Spreadsheet) parseSheet(name string) (Survey, error) {
 				i, variant.MaxDistanceColumn,
 				row[variant.MaxDistanceColumn], ds.spreadsheet.ID, name))
 		}
-		dp := SurveyPoint{
+		dp := vsdstypes.SurveyPoint{
 			SystemName: row[variant.SysNameColumn].(string),
 			ZSample: z,
 			Count: c,
