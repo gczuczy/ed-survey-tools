@@ -65,10 +65,10 @@ CREATE TABLE vsds.surveys (
        id 	 							int				GENERATED ALWAYS AS IDENTITY,
        projectid					int				NOT NULL,
        cmdrid							int				NOT NULL,
-			 sheetid 						int				NOT NULL,
+			 spreadsheetid			int				NOT NULL,
        FOREIGN KEY (projectid) REFERENCES vsds.projects (id),
        FOREIGN KEY (cmdrid) REFERENCES common.cmdrs(id),
-			 FOREIGN KEY (sheetid) REFERENCES vsds.spreadsheets(id) ON DELETE CASCADE,
+			 FOREIGN KEY (spreadsheetid) REFERENCES vsds.spreadsheets(id) ON DELETE CASCADE,
        PRIMARY KEY (id)
 );
 GRANT SELECT, INSERT ON vsds.surveys TO edservice;

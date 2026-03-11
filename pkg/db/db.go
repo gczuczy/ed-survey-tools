@@ -72,7 +72,8 @@ INSERT INTO vsds.project_zsamples (projectid, zsample) VALUES ($1::int, $2::int)
 
 		// VSDS: delete a single zsample from a project
 		"deleteprojectzsample": `
-DELETE FROM vsds.project_zsamples WHERE projectid = $1::int AND zsample = $2::int
+DELETE FROM vsds.project_zsamples
+WHERE projectid = $1::int AND zsample = $2::int
 `,
 
 		// VSDS: list folders from view
@@ -99,7 +100,8 @@ DELETE FROM vsds.folders WHERE id = $1::int
 
 		// VSDS: check if a folder has active or pending processing
 		"checkfolderprocessing": `
-SELECT EXISTS(SELECT 1 FROM vsds.folder_processing WHERE folderid = $1::int AND finishedat IS NULL) AS has_active
+SELECT EXISTS(SELECT 1 FROM vsds.folder_processing
+WHERE folderid = $1::int AND finishedat IS NULL) AS has_active
 `,
 
 		// VSDS: insert a folder processing request, returns new ID
@@ -121,6 +123,11 @@ FOR UPDATE OF fp SKIP LOCKED
 		// VSDS: mark a folder processing job as started
 		"startfolderprocessing": `
 UPDATE vsds.folder_processing SET startedat = NOW() WHERE id = $1::int
+`,
+
+		// VSDS: delete all spreadsheets of a folder (cascades to surveys/surveypoints)
+		"deletefolderspreadsheets": `
+DELETE FROM vsds.spreadsheets WHERE folderid = $1::int
 `,
 	}
 
@@ -191,5 +198,108 @@ func afterConn(ctx context.Context, dbc *pgx.Conn) error {
 
 func (p *DBPool) Close() error {
 	p.pool.Close()
+	return nil
+}
+
+// DBTransaction holds a long-running transaction with checkpoint support.
+// Each operation saves a savepoint on success; on failure it rolls back
+// to the last savepoint, keeping the transaction alive.
+type DBTransaction struct {
+	ctx           context.Context
+	conn          *pgxpool.Conn
+	tx            pgx.Tx
+	checkpoint    string
+	checkpointIdx int
+}
+
+// StartLongTxn acquires a dedicated connection, opens a RepeatableRead
+// transaction, and sets an initial checkpoint. The caller must call
+// Close() when done.
+func (p *DBPool) StartLongTxn() (*DBTransaction, error) {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Unable to acquire connection from pool")
+		return nil, err
+	}
+
+	tx, err := conn.BeginTx(p.ctx, pgx.TxOptions{
+		IsoLevel: pgx.RepeatableRead,
+	})
+	if err != nil {
+		conn.Release()
+		logger.Error().Err(err).Caller().
+			Msg("Error opening long transaction")
+		return nil, err
+	}
+
+	dbt := &DBTransaction{
+		ctx:  p.ctx,
+		conn: conn,
+		tx:   tx,
+	}
+
+	if err := dbt.saveCheckpoint(); err != nil {
+		tx.Rollback(p.ctx)
+		conn.Release()
+		return nil, err
+	}
+
+	return dbt, nil
+}
+
+// Close commits the transaction (io.Closer semantics).
+// On commit failure it rolls back to the last checkpoint and
+// commits that, preserving successfully checkpointed work.
+func (t *DBTransaction) Close() error {
+	defer t.conn.Release()
+
+	if err := t.tx.Commit(t.ctx); err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Commit failed, rolling back to last checkpoint")
+		if rerr := t.rollbackToCheckpoint(); rerr != nil {
+			t.tx.Rollback(t.ctx)
+			return rerr
+		}
+		if cerr := t.tx.Commit(t.ctx); cerr != nil {
+			t.tx.Rollback(t.ctx)
+			logger.Error().Err(cerr).Caller().
+				Msg("Commit after checkpoint rollback failed")
+			return cerr
+		}
+	}
+
+	return nil
+}
+
+// saveCheckpoint creates a new savepoint and records it as the
+// current checkpoint.
+func (t *DBTransaction) saveCheckpoint() error {
+	t.checkpointIdx++
+	name := fmt.Sprintf("sp_%d", t.checkpointIdx)
+	if _, err := t.tx.Exec(t.ctx, "SAVEPOINT "+name); err != nil {
+		logger.Error().Err(err).Caller().
+			Str("savepoint", name).
+			Msg("Error creating savepoint")
+		return err
+	}
+	t.checkpoint = name
+	return nil
+}
+
+// rollbackToCheckpoint rolls back to the last saved savepoint without
+// aborting the transaction, leaving it open for further operations.
+func (t *DBTransaction) rollbackToCheckpoint() error {
+	if t.checkpoint == "" {
+		return nil
+	}
+	if _, err := t.tx.Exec(
+		t.ctx, "ROLLBACK TO SAVEPOINT "+t.checkpoint,
+	); err != nil {
+		logger.Error().Err(err).Caller().
+			Str("savepoint", t.checkpoint).
+			Msg("Error rolling back to savepoint")
+		return err
+	}
 	return nil
 }

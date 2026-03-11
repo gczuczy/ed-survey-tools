@@ -572,6 +572,28 @@ func (p *DBPool) DeleteFolder(id int) (err error) {
 	return nil
 }
 
+// DeleteFolderSpreadsheets removes all spreadsheets belonging to the
+// given folder, cascading into surveys and surveypoints via the DB
+// foreign key constraints. Rolls back to the last checkpoint on error.
+func (t *DBTransaction) DeleteFolderSpreadsheets(folderID int) error {
+	_, err := t.tx.Exec(
+		t.ctx, "deletefolderspreadsheets", folderID,
+	)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "deletefolderspreadsheets").
+			Int("folderid", folderID).
+			Msg("Error while executing query")
+		if rerr := t.rollbackToCheckpoint(); rerr != nil {
+			logger.Error().Err(rerr).Caller().
+				Msg("Error rolling back to checkpoint")
+		}
+		return err
+	}
+
+	return t.saveCheckpoint()
+}
+
 func (p *DBPool) AddSurvey(m *vsdstypes.Survey) (err error) {
 	conn, err := p.pool.Acquire(p.ctx)
 	if err != nil {

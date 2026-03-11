@@ -48,6 +48,8 @@ The backend both serves the frontend from the root(`/`), and provides an api fro
 
 To build the backend always use `gmake build`.
 
+Source lines shouldn't exceed 82 characters. Style them accordingly, it should be pleasantly readable for a human.
+
 # Database
 
 The database files are found under the `sql` directory, the implementation is PostgreSQL. The database is split between functional schemas, and files here are named as such using the `$schema_$part.sql` naming, where:
