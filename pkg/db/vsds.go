@@ -572,10 +572,33 @@ func (p *DBPool) DeleteFolder(id int) (err error) {
 	return nil
 }
 
+func (p *DBPool) FinishFolderProcessing(procID int) (err error) {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Unable to acquire connection from pool")
+		return
+	}
+	defer conn.Release()
+
+	tag, err := conn.Exec(p.ctx, "finishfolderprocessing", procID)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "finishfolderprocessing").
+			Msg("Error while executing query")
+		return
+	}
+
+	if tag.RowsAffected() == 0 {
+		err = ErrNotFound
+	}
+	return
+}
+
 // DeleteFolderSpreadsheets removes all spreadsheets belonging to the
 // given folder, cascading into surveys and surveypoints via the DB
 // foreign key constraints. Rolls back to the last checkpoint on error.
-func (t *DBTransaction) DeleteFolderSpreadsheets(folderID int) error {
+func (t *Transaction) DeleteFolderSpreadsheets(folderID int) error {
 	_, err := t.tx.Exec(
 		t.ctx, "deletefolderspreadsheets", folderID,
 	)

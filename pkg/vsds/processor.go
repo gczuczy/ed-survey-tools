@@ -1,6 +1,7 @@
 package vsds
 
 import (
+	"sort"
 	"time"
 
 	"github.com/gczuczy/ed-survey-tools/pkg/config"
@@ -8,6 +9,13 @@ import (
 	"github.com/gczuczy/ed-survey-tools/pkg/gcp"
 	"github.com/gczuczy/ed-survey-tools/pkg/log"
 	vsdstypes "github.com/gczuczy/ed-survey-tools/pkg/vsds/types"
+)
+
+const (
+	typeGoogleSheet = "application/vnd.google-apps.spreadsheet"
+	typeXlsx = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+	typeCSV = "text/csv"
+	typeODS = "application/vnd.oasis.opendocument.spreadsheet"
 )
 
 type Processor struct {
@@ -75,11 +83,34 @@ func (p *Processor) run() {
 }
 
 func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
+	defer db.Pool.FinishFolderProcessing(job.ProcID)
 	p.logger.Info().
 		Int("procid", job.ProcID).
 		Int("folderid", job.FolderID).
 		Str("gcpid", job.GCPID).
 		Msg("Starting folder processing")
+
+	var (
+		txn *db.Transaction
+		err error
+		gss *gcp.GSpreadsheetsService
+	)
+
+	if gss, err = gcp.NewSheets(); err != nil {
+		p.logger.Error().Err(err).
+			Int("procid", job.ProcID).
+			Msg("Error getting GCP Spreadsheets service")
+		return
+	}
+	_ = gss
+
+	if txn, err = db.Pool.StartLongTxn(); err != nil {
+		p.logger.Error().Err(err).
+			Int("procid", job.ProcID).
+			Msg("Error starting long transaction")
+		return
+	}
+	defer txn.Close()
 
 	items, err := gcp.ListFolder(job.GCPID)
 	if err != nil {
@@ -94,6 +125,10 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 		Int("procid", job.ProcID).
 		Int("count", len(items)).
 		Msg("Folder contents fetched")
+
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].CreatedTime > items[j].CreatedTime
+	})
 
 	for _, item := range items {
 		p.logger.Info().

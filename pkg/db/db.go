@@ -125,6 +125,11 @@ FOR UPDATE OF fp SKIP LOCKED
 UPDATE vsds.folder_processing SET startedat = NOW() WHERE id = $1::int
 `,
 
+		// VSDS: mark a folder processing job as finished
+		"finishfolderprocessing": `
+UPDATE vsds.folder_processing SET finishedat = NOW() WHERE id = $1::int
+`,
+
 		// VSDS: delete all spreadsheets of a folder (cascades to surveys/surveypoints)
 		"deletefolderspreadsheets": `
 DELETE FROM vsds.spreadsheets WHERE folderid = $1::int
@@ -201,10 +206,10 @@ func (p *DBPool) Close() error {
 	return nil
 }
 
-// DBTransaction holds a long-running transaction with checkpoint support.
+// Transaction holds a long-running transaction with checkpoint support.
 // Each operation saves a savepoint on success; on failure it rolls back
 // to the last savepoint, keeping the transaction alive.
-type DBTransaction struct {
+type Transaction struct {
 	ctx           context.Context
 	conn          *pgxpool.Conn
 	tx            pgx.Tx
@@ -215,7 +220,7 @@ type DBTransaction struct {
 // StartLongTxn acquires a dedicated connection, opens a RepeatableRead
 // transaction, and sets an initial checkpoint. The caller must call
 // Close() when done.
-func (p *DBPool) StartLongTxn() (*DBTransaction, error) {
+func (p *DBPool) StartLongTxn() (*Transaction, error) {
 	conn, err := p.pool.Acquire(p.ctx)
 	if err != nil {
 		logger.Error().Err(err).Caller().
@@ -233,7 +238,7 @@ func (p *DBPool) StartLongTxn() (*DBTransaction, error) {
 		return nil, err
 	}
 
-	dbt := &DBTransaction{
+	dbt := &Transaction{
 		ctx:  p.ctx,
 		conn: conn,
 		tx:   tx,
@@ -251,7 +256,7 @@ func (p *DBPool) StartLongTxn() (*DBTransaction, error) {
 // Close commits the transaction (io.Closer semantics).
 // On commit failure it rolls back to the last checkpoint and
 // commits that, preserving successfully checkpointed work.
-func (t *DBTransaction) Close() error {
+func (t *Transaction) Close() error {
 	defer t.conn.Release()
 
 	if err := t.tx.Commit(t.ctx); err != nil {
@@ -274,7 +279,7 @@ func (t *DBTransaction) Close() error {
 
 // saveCheckpoint creates a new savepoint and records it as the
 // current checkpoint.
-func (t *DBTransaction) saveCheckpoint() error {
+func (t *Transaction) saveCheckpoint() error {
 	t.checkpointIdx++
 	name := fmt.Sprintf("sp_%d", t.checkpointIdx)
 	if _, err := t.tx.Exec(t.ctx, "SAVEPOINT "+name); err != nil {
@@ -289,7 +294,7 @@ func (t *DBTransaction) saveCheckpoint() error {
 
 // rollbackToCheckpoint rolls back to the last saved savepoint without
 // aborting the transaction, leaving it open for further operations.
-func (t *DBTransaction) rollbackToCheckpoint() error {
+func (t *Transaction) rollbackToCheckpoint() error {
 	if t.checkpoint == "" {
 		return nil
 	}
