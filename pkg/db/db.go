@@ -134,6 +134,13 @@ UPDATE vsds.folder_processing SET finishedat = NOW() WHERE id = $1::int
 		"deletefolderspreadsheets": `
 DELETE FROM vsds.spreadsheets WHERE folderid = $1::int
 `,
+
+		// common: look up systems by name
+		"lookupsystemsbyname": `
+SELECT id, edsmid, name, x, y, z
+FROM common.systems
+WHERE name = ANY($1::text[])
+`,
 	}
 
 

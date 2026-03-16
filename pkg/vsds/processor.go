@@ -112,6 +112,9 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 	}
 	defer txn.Close()
 
+	sysCache := db.NewSystemCache(txn)
+	_ = sysCache
+
 	items, err := gcp.ListFolder(job.GCPID)
 	if err != nil {
 		p.logger.Error().Err(err).
@@ -138,6 +141,15 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 			Str("content_type", item.MimeType).
 			Str("created_at", item.CreatedTime).
 			Str("modified_at", item.ModifiedTime).
-			Msg("Folder item")
+			Msg("Processing item")
+		if item.MimeType == typeGoogleSheet {
+		} else {
+		p.logger.Error().
+			Int("procid", job.ProcID).
+			Str("file_id", item.ID).
+			Str("name", item.Name).
+			Str("content_type", item.MimeType).
+			Msg("Type not implemented")
+		}
 	}
 }

@@ -34,25 +34,11 @@ func (s Survey) Hash() uint64 {
 
 	sorted := slices.SortedFunc(slices.Values(s.SurveyPoints),
 		func(a, b SurveyPoint) int {
-			if c := cmp.Compare(a.X, b.X); c != 0 {
-				return c
-			}
-			if c := cmp.Compare(a.Y, b.Y); c != 0 {
-				return c
-			}
-			return cmp.Compare(a.Z, b.Z)
+			return cmp.Compare(a.SystemName, b.SystemName)
 		})
 
 	buf := make([]byte, 8)
 	for _, sp := range sorted {
-		binary.LittleEndian.PutUint32(buf, math.Float32bits(sp.X))
-		h.Write(buf[:4])
-		binary.LittleEndian.PutUint32(buf, math.Float32bits(sp.Y))
-		h.Write(buf[:4])
-		binary.LittleEndian.PutUint32(buf, math.Float32bits(sp.Z))
-		h.Write(buf[:4])
-		binary.LittleEndian.PutUint64(buf, uint64(sp.EDSMID))
-		h.Write(buf)
 		h.Write([]byte(sp.SystemName))
 		binary.LittleEndian.PutUint32(buf, uint32(sp.ZSample))
 		h.Write(buf[:4])

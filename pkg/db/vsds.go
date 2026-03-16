@@ -23,11 +23,12 @@ type VSDSFolder struct {
 }
 
 type System struct {
-	ID int64 `db:"id"`
-	Name string `db:"name"`
-	X float32 `db:"x"`
-	Y float32 `db:"y"`
-	Z float32 `db:"z"`
+	ID     int64   `db:"id"`
+	EDSMID int64   `db:"edsmid"`
+	Name   string  `db:"name"`
+	X      float32 `db:"x"`
+	Y      float32 `db:"y"`
+	Z      float32 `db:"z"`
 }
 
 type VSDSProject struct {
