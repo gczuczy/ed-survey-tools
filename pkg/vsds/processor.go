@@ -8,6 +8,7 @@ import (
 	"github.com/gczuczy/ed-survey-tools/pkg/db"
 	"github.com/gczuczy/ed-survey-tools/pkg/gcp"
 	"github.com/gczuczy/ed-survey-tools/pkg/log"
+	"github.com/gczuczy/ed-survey-tools/pkg/types"
 	vsdstypes "github.com/gczuczy/ed-survey-tools/pkg/vsds/types"
 )
 
@@ -94,7 +95,11 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 		txn *db.Transaction
 		err error
 		gss *gcp.GSpreadsheetsService
+		ss gcp.GSpreadSheet
+		survey vsdstypes.Survey
 	)
+
+	surveyCache := types.NewSet[uint64]()
 
 	if gss, err = gcp.NewSheets(); err != nil {
 		p.logger.Error().Err(err).
@@ -143,13 +148,50 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 			Str("modified_at", item.ModifiedTime).
 			Msg("Processing item")
 		if item.MimeType == typeGoogleSheet {
+			// load the spreadsheet
+			if ss, err = gss.Sheet(item.ID); err != nil {
+				p.logger.Error().Err(err).
+					Int("procid", job.ProcID).
+					Str("file_id", item.ID).
+					Str("name", item.Name).
+					Msg("Unable to open Goolge Spreadsheet")
+				continue
+			}
+			// iterate over the sheets
+			if sheets, err = ss.GetSheets(); err != nil {
+				p.logger.Error().Err(err).
+					Int("procid", job.ProcID).
+					Str("file_id", item.ID).
+					Str("name", item.Name).
+					Msg("Unable to load Goolge Spreadsheet's sheets")
+				continue
+			}
+
+			for sheet := range sheets {
+				if survey, err = vsds.ParseSheet(sheet); err != nil {
+					p.logger.Error().Err(err).
+						Int("procid", job.ProcID).
+						Str("file_id", item.ID).
+						Str("name", item.Name).
+						Msg("Error parsing sheet")
+				}
+				// check whether we already have it
+				surveyHash = survey.Hash()
+				if surveyCache.IsSet(surveyHash) {
+					continue
+				}
+				// we insert it
+				surveyCache.Set(surveyHash)
+				// TODO resolve systemnames
+				// TODO txn-add
+			}
 		} else {
-		p.logger.Error().
-			Int("procid", job.ProcID).
-			Str("file_id", item.ID).
-			Str("name", item.Name).
-			Str("content_type", item.MimeType).
-			Msg("Type not implemented")
+			p.logger.Error().
+				Int("procid", job.ProcID).
+				Str("file_id", item.ID).
+				Str("name", item.Name).
+				Str("content_type", item.MimeType).
+				Msg("Type not implemented")
 		}
 	}
 }

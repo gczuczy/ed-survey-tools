@@ -30,9 +30,7 @@ func NewSystemCache(txn *Transaction) *SystemCache {
 // Lookup resolves a batch of system names, returning a System for
 // each. Lookup order: in-memory cache → database → EDSM (with DB
 // insert). Returns an error if any name cannot be resolved.
-func (sc *SystemCache) Lookup(
-	names []string,
-) ([]System, error) {
+func (sc *SystemCache) Lookup(names []string) ([]System, error) {
 	result := make([]System, 0, len(names))
 	missing := make([]string, 0)
 
