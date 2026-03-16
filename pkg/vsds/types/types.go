@@ -16,14 +16,51 @@ type Survey struct {
 }
 
 type SurveyPoint struct {
-	X          float32
-	Y          float32
-	Z          float32
-	EDSMID     int64
-	SystemName string
-	ZSample    int
-	Count      int
+	SystemName  string
+	ZSample     int
+	Count       int
 	MaxDistance float32
+}
+
+// Normalize deduplicates SurveyPoints by system name using the
+// supplied z-coordinate map (name → actual Z coordinate).  When
+// the same system appears more than once, the point whose ZSample
+// is closest to the system's real Z is kept; the others are
+// returned so the caller can log them.
+func (s *Survey) Normalize(
+	systemZ map[string]float32,
+) []SurveyPoint {
+	type entry struct {
+		idx  int
+		dist float32
+	}
+	best := make(map[string]entry, len(s.SurveyPoints))
+	for i, sp := range s.SurveyPoints {
+		z, ok := systemZ[sp.SystemName]
+		var dist float32
+		if ok {
+			diff := z - float32(sp.ZSample)
+			dist = float32(math.Abs(float64(diff)))
+		} else {
+			dist = math.MaxFloat32
+		}
+		if prev, seen := best[sp.SystemName]; !seen ||
+			dist < prev.dist {
+			best[sp.SystemName] = entry{i, dist}
+		}
+	}
+
+	kept := make([]SurveyPoint, 0, len(best))
+	dropped := make([]SurveyPoint, 0)
+	for i, sp := range s.SurveyPoints {
+		if best[sp.SystemName].idx == i {
+			kept = append(kept, sp)
+		} else {
+			dropped = append(dropped, sp)
+		}
+	}
+	s.SurveyPoints = kept
+	return dropped
 }
 
 func (s Survey) Hash() uint64 {

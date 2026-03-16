@@ -27,20 +27,56 @@ var (
 SELECT * FROM common.logincmdr($1::text, $2::bigint)
 `,
 
-		// add a sheet survey
-		"addsheetsurvey": `
-SELECT vsds.addsheetsurvey($1::text, $2::text)
-`,
 		"setsystem": `
 INSERT INTO common.systems (edsmid, name, x, y, z)
 VALUES ($1::bigint, $2::text, $3::float, $4::float, $5::float)
 ON CONFLICT (edsmid) DO UPDATE SET edsmid = EXCLUDED.edsmid
 RETURNING *
 `,
-		// surveyid, sysname, x,y,z, syscount, maxdistance
+		// add a spreadsheet file record, returns new id
+		"addspreadsheet": `
+INSERT INTO vsds.spreadsheets (folderid, gcpid, name, contenttype)
+VALUES ($1::int, $2::text, $3::text, $4::text)
+RETURNING id
+`,
+
+		// add a sheet (tab or implicit CSV sheet), returns new id
+		"addsheet": `
+INSERT INTO vsds.sheets (spreadsheetid, name)
+VALUES ($1::int, $2::text)
+RETURNING id
+`,
+
+		// upsert a CMDR by name, returns id
+		"upsertcmdr": `
+INSERT INTO common.cmdrs (name) VALUES ($1::text)
+ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+RETURNING id
+`,
+
+		// look up a project by name, returns id
+		"lookupproject": `
+SELECT id FROM vsds.projects WHERE name = $1::text
+`,
+
+		// add a survey, returns new id
+		"addsurvey": `
+INSERT INTO vsds.surveys (projectid, cmdrid, sheetid)
+VALUES ($1::int, $2::int, $3::int)
+RETURNING id
+`,
+
+		// add a survey point
 		"addsurveypoint": `
-INSERT INTO vsds.surveypoints (surveyid, sysid, zsample, syscount, maxdistance)
+INSERT INTO vsds.surveypoints
+    (surveyid, sysid, zsample, syscount, maxdistance)
 VALUES ($1::int, $2::bigint, $3::int, $4::int, $5::real)
+`,
+
+		// record a sheet processing outcome
+		"recordsheetresult": `
+INSERT INTO vsds.sheet_processing (procid, sheetid, success, message)
+VALUES ($1::int, $2::int, $3::boolean, NULLIF($4::text, ''))
 `,
 
 		// VSDS: list projects
@@ -266,6 +302,7 @@ func (p *DBPool) StartLongTxn() (*Transaction, error) {
 func (t *Transaction) Close() error {
 	defer t.conn.Release()
 
+	logger.Info().Msg("Closing transaction...")
 	if err := t.tx.Commit(t.ctx); err != nil {
 		logger.Error().Err(err).Caller().
 			Msg("Commit failed, rolling back to last checkpoint")

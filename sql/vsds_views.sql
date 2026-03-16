@@ -67,8 +67,9 @@ SELECT ss.folderid, ssp.procid,
 			 count(*) FILTER (WHERE ssp.success IS NULL)   AS inprogress,
 			 count(*) FILTER (WHERE ssp.success = true)    AS finished,
 			 count(*) FILTER (WHERE ssp.success = false)   AS failed
-FROM vsds.spreadsheet_processing ssp
-		 JOIN vsds.spreadsheets ss ON ssp.sheetid = ss.id
+FROM vsds.sheet_processing ssp
+		 JOIN vsds.sheets sh ON ssp.sheetid = sh.id
+		 JOIN vsds.spreadsheets ss ON sh.spreadsheetid = ss.id
 GROUP BY ss.folderid, ssp.procid
 )
 SELECT f.id AS folderid, f.name, f.gcpid,

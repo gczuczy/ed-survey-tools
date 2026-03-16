@@ -1,94 +1,60 @@
 package vsds
 
-import (
-)
+
 
 var (
 	variantDW3 = sheetVariant{
-		Name: "DW3",
+		Name:      "DW3",
 		HeaderRow: 4,
 		HeaderChecks: []sheetHeaderCheck{
-			sheetHeaderCheck{
-				Column: 0,
-				Row: 4,
-				Value: "System",
-			},
-			sheetHeaderCheck{
-				Column: 2,
-				Row: 4,
-				Value: "System Count",
-			},
-			sheetHeaderCheck{6, 4, "X"},
-			sheetHeaderCheck{7, 4, "Z"},
-			sheetHeaderCheck{8, 4, "Y"},
+			{Column: 0, Row: 4, Value: "System"},
+			{Column: 2, Row: 4, Value: "System Count"},
+			{Column: 6, Row: 4, Value: "X"},
+			{Column: 7, Row: 4, Value: "Z"},
+			{Column: 8, Row: 4, Value: "Y"},
 		},
 		SampleIndicatorColumn: 1,
-		SysNameColumn: 0,
-		ZSampleColumn: 1,
-		SystemCountColumn: 2,
-		MaxDistanceColumn: 4,
-		XColumn: 6,
-		ZColumn: 7,
-		YColumn: 8,
-		MinSampleRatio: 0.45,
+		SysNameColumn:         0,
+		ZSampleColumn:         1,
+		SystemCountColumn:     2,
+		MaxDistanceColumn:     4,
+		MinSampleRatio:        0.45,
 	}
 
 	variantA15X = sheetVariant{
-		Name: "A15X",
+		Name:      "A15X",
 		HeaderRow: 4,
 		HeaderChecks: []sheetHeaderCheck{
-			sheetHeaderCheck{
-				Column: 0,
-				Row: 4,
-				Value: "System",
-			},
-			sheetHeaderCheck{
-				Column: 2,
-				Row: 4,
-				Value: "n",
-			},
-			sheetHeaderCheck{5, 4, "X"},
-			sheetHeaderCheck{6, 4, "Z"},
-			sheetHeaderCheck{7, 4, "Y"},
+			{Column: 0, Row: 4, Value: "System"},
+			{Column: 2, Row: 4, Value: "n"},
+			{Column: 5, Row: 4, Value: "X"},
+			{Column: 6, Row: 4, Value: "Z"},
+			{Column: 7, Row: 4, Value: "Y"},
 		},
 		SampleIndicatorColumn: 1,
-		SysNameColumn: 0,
-		ZSampleColumn: 1,
-		SystemCountColumn: 2,
-		MaxDistanceColumn: 3,
-		XColumn: 5,
-		ZColumn: 6,
-		YColumn: 7,
-		MinSampleRatio: 0.9,
+		SysNameColumn:         0,
+		ZSampleColumn:         1,
+		SystemCountColumn:     2,
+		MaxDistanceColumn:     3,
+		MinSampleRatio:        0.9,
 	}
 
 	variantA15Xv1 = sheetVariant{
-		Name: "A15X",
+		Name:      "A15X",
 		HeaderRow: 5,
 		HeaderChecks: []sheetHeaderCheck{
-			sheetHeaderCheck{
-				Column: 0,
-				Row: 5,
-				Value: "System",
-			},
-			sheetHeaderCheck{
-				Column: 2,
-				Row: 5,
-				Value: "n",
-			},
-			sheetHeaderCheck{5, 5, "X"},
-			sheetHeaderCheck{6, 5, "Z"},
-			sheetHeaderCheck{7, 5, "Y"},
+			{Column: 0, Row: 5, Value: "System"},
+			{Column: 2, Row: 5, Value: "n"},
+			{Column: 5, Row: 5, Value: "X"},
+			{Column: 6, Row: 5, Value: "Z"},
+			{Column: 7, Row: 5, Value: "Y"},
 		},
 		SampleIndicatorColumn: 1,
-		SysNameColumn: 0,
-		ZSampleColumn: 1,
-		SystemCountColumn: 2,
-		MaxDistanceColumn: 3,
-		XColumn: 5,
-		ZColumn: 6,
-		YColumn: 7,
-		MinSampleRatio: 0.9,
+		SysNameColumn:         0,
+		ZSampleColumn:         1,
+		SystemCountColumn:     2,
+		MaxDistanceColumn:     3,
+		MinSampleRatio:        0.9,
 	}
 
 	sheetVariants = []*sheetVariant{
@@ -105,16 +71,12 @@ type sheetVariant struct {
 	// column header names
 	HeaderChecks []sheetHeaderCheck
 
-	// column orientations
-	// These are not lettered, but numbered, so A=0
+	// column orientations (0-indexed, A=0)
 	SampleIndicatorColumn int
-	SysNameColumn int
-	ZSampleColumn int
-	SystemCountColumn int
-	MaxDistanceColumn int
-	XColumn int
-	ZColumn int
-	YColumn int
+	SysNameColumn         int
+	ZSampleColumn         int
+	SystemCountColumn     int
+	MaxDistanceColumn     int
 	// 0..1, minimum ratio of samples filled in the survey sheet
 	MinSampleRatio float32
 }

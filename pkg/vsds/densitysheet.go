@@ -10,6 +10,11 @@ import (
 	vsdstypes "github.com/gczuczy/ed-survey-tools/pkg/vsds/types"
 )
 
+func parseFloat(s string, bitSize int) (float64, error) {
+	return strconv.ParseFloat(
+		strings.ReplaceAll(s, ",", "."), bitSize)
+}
+
 func ParseSheet(sheet gcp.Sheet) (vsdstypes.Survey, error) {
 	name := sheet.GetName()
 	m := vsdstypes.Survey{
@@ -57,7 +62,7 @@ func ParseSheet(sheet gcp.Sheet) (vsdstypes.Survey, error) {
 		mdstr = sheet.Get(i, variant.MaxDistanceColumn)
 		if mdstr == "" {
 			md = 20.0
-		} else if md, err = strconv.ParseFloat(mdstr, 32); err != nil {
+		} else if md, err = parseFloat(mdstr, 32); err != nil {
 			return m, errors.Join(err, fmt.Errorf(
 				"Conversion MaxDst error %d/%d '%v': %s",
 				i, variant.MaxDistanceColumn, mdstr, name))
@@ -100,7 +105,7 @@ func evalSheetVariant(sv *sheetVariant, sheet gcp.Sheet) bool {
 			syscount >= 0 && syscount < 50 {
 			hasSysCount = true
 		}
-		if maxdst, err := strconv.ParseFloat(
+		if maxdst, err := parseFloat(
 			sheet.Get(i, sv.MaxDistanceColumn), 32); err == nil &&
 			maxdst >= 0 && maxdst <= 20 {
 			hasMaxDistance = true

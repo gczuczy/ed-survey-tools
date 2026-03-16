@@ -618,83 +618,198 @@ func (t *Transaction) DeleteFolderSpreadsheets(folderID int) error {
 	return t.saveCheckpoint()
 }
 
-func (p *DBPool) AddSurvey(m *vsdstypes.Survey) (err error) {
-	conn, err := p.pool.Acquire(p.ctx)
+// Savepoint creates a new savepoint, recording it as the current
+// checkpoint. Callers use this to protect blocks of work that span
+// multiple Transaction method calls (e.g. system lookups followed by
+// survey insertion).
+func (t *Transaction) Savepoint() error {
+	return t.saveCheckpoint()
+}
+
+// Rollback rolls back to the last savepoint without aborting the
+// transaction, leaving it valid for further operations.
+func (t *Transaction) Rollback() error {
+	return t.rollbackToCheckpoint()
+}
+
+// AddSpreadsheet inserts a spreadsheet file record within the long
+// transaction and returns the new row id.
+func (t *Transaction) AddSpreadsheet(
+	folderID int,
+	gcpid, name, contentType string,
+) (int, error) {
+	var id int
+	err := t.tx.QueryRow(
+		t.ctx, "addspreadsheet",
+		folderID, gcpid, name, contentType,
+	).Scan(&id)
 	if err != nil {
-		logger.Error().Err(err).Caller().Msg("Unable to acquire connection from pool")
-		return err
+		logger.Error().Err(err).Caller().
+			Str("query", "addspreadsheet").
+			Str("gcpid", gcpid).
+			Msg("Error while executing query")
+		if rerr := t.rollbackToCheckpoint(); rerr != nil {
+			logger.Error().Err(rerr).Caller().
+				Msg("Error rolling back to checkpoint")
+		}
+		return 0, err
 	}
-	defer conn.Release()
-	tx, err := conn.Begin(p.ctx)
+	return id, t.saveCheckpoint()
+}
+
+// AddSheet inserts a sheet record within the long transaction and
+// returns the new row id. Pass name=nil for implicit CSV sheets.
+func (t *Transaction) AddSheet(
+	spreadsheetID int,
+	name *string,
+) (int, error) {
+	var id int
+	err := t.tx.QueryRow(
+		t.ctx, "addsheet", spreadsheetID, name,
+	).Scan(&id)
 	if err != nil {
-		logger.Error().Err(err).Caller().Msg("Error while opening txn")
+		logger.Error().Err(err).Caller().
+			Str("query", "addsheet").
+			Msg("Error while executing query")
+		if rerr := t.rollbackToCheckpoint(); rerr != nil {
+			logger.Error().Err(rerr).Caller().
+				Msg("Error rolling back to checkpoint")
+		}
+		return 0, err
+	}
+	return id, t.saveCheckpoint()
+}
+
+// UpsertCmdr inserts or retrieves a CMDR by name within the long
+// transaction and returns the row id.
+func (t *Transaction) UpsertCmdr(name string) (int, error) {
+	var id int
+	err := t.tx.QueryRow(
+		t.ctx, "upsertcmdr", name,
+	).Scan(&id)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "upsertcmdr").
+			Str("name", name).
+			Msg("Error while executing query")
+		if rerr := t.rollbackToCheckpoint(); rerr != nil {
+			logger.Error().Err(rerr).Caller().
+				Msg("Error rolling back to checkpoint")
+		}
+		return 0, err
+	}
+	return id, t.saveCheckpoint()
+}
+
+// LookupProject resolves a project id by name within the long
+// transaction. Returns ErrNotFound when no matching project exists;
+// only rolls back to the last checkpoint on a real SQL error.
+func (t *Transaction) LookupProject(name string) (int, error) {
+	var id int
+	err := t.tx.QueryRow(
+		t.ctx, "lookupproject", name,
+	).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, ErrNotFound
+	}
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "lookupproject").
+			Str("name", name).
+			Msg("Error while executing query")
+		if rerr := t.rollbackToCheckpoint(); rerr != nil {
+			logger.Error().Err(rerr).Caller().
+				Msg("Error rolling back to checkpoint")
+		}
+		return 0, err
+	}
+	return id, nil
+}
+
+// AddSurvey inserts a survey and all its points within the long
+// transaction. systems maps each SurveyPoint.SystemName to its
+// resolved db.System row.
+func (t *Transaction) AddSurvey(
+	sheetID, projectID, cmdrID int,
+	points []vsdstypes.SurveyPoint,
+	systems map[string]System,
+) error {
+	var surveyID int
+	err := t.tx.QueryRow(
+		t.ctx, "addsurvey",
+		projectID, cmdrID, sheetID,
+	).Scan(&surveyID)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "addsurvey").
+			Msg("Error while executing query")
+		if rerr := t.rollbackToCheckpoint(); rerr != nil {
+			logger.Error().Err(rerr).Caller().
+				Msg("Error rolling back to checkpoint")
+		}
 		return err
 	}
-	defer func() {
+
+	for _, sp := range points {
+		sys, ok := systems[sp.SystemName]
+		if !ok {
+			err := fmt.Errorf(
+				"system %q not in resolution map", sp.SystemName,
+			)
+			logger.Error().Err(err).Caller().
+				Str("system", sp.SystemName).
+				Msg("System missing from map")
+			if rerr := t.rollbackToCheckpoint(); rerr != nil {
+				logger.Error().Err(rerr).Caller().
+					Msg("Error rolling back to checkpoint")
+			}
+			return err
+		}
+		_, err = t.tx.Exec(
+			t.ctx, "addsurveypoint",
+			surveyID, sys.ID,
+			sp.ZSample, sp.Count, sp.MaxDistance,
+		)
 		if err != nil {
-			tx.Rollback(p.ctx)
-			return
-		}
-		if tx.Commit(p.ctx) != nil {
-			tx.Rollback(p.ctx)
-		}
-	}()
-
-	var rows pgx.Rows
-
-	if rows, err = tx.Query(p.ctx, "addsheetsurvey",	m.CMDR, m.Project);  err != nil {
-		logger.Error().Err(err).Caller().Str("query", "addsheetsurvey").
-			Msg("Error while performing query")
-		return err
-	}
-
-	if !rows.Next() {
-		logger.Error().Caller().Msg("No surveyid returned")
-		return fmt.Errorf("No surveyid returned")
-	}
-
-	var vs []any
-	if vs, err = rows.Values(); err != nil {
-		err := errors.Join(err, fmt.Errorf("Fuck golang's error handling"))
-		logger.Error().Err(err).Caller().Msg("Golang's error handling is definitely awesome")
-		return err
-	}
-
-	mid, ok := vs[0].(int32)
-	if !ok {
-		rows.Close()
-		err := errors.Join(err, fmt.Errorf("Fuck golang's error handling again, %v/%T -> %v", vs[0], vs[0], mid))
-		logger.Error().Err(err).Caller().Msgf("Type mismatch %v/%T -> %v",
-			vs[0], vs[0], mid)
-		return err
-	}
-	rows.Close()
-
-	for _, dp := range m.SurveyPoints {
-		if rows, err = tx.Query(p.ctx, "setsystem", dp.EDSMID, dp.SystemName,
-			dp.X, dp.Y, dp.Z);  err != nil {
-			err := errors.Join(err, fmt.Errorf("Query(setsystem) error"))
-			logger.Error().Err(err).Caller().Str("query", "setsystem").
-				Msg("Query error")
-			return err
-		}
-
-		sys, err := pgx.CollectRows(rows, pgx.RowToStructByName[System])
-		if err != nil {
-			err = errors.Join(err, fmt.Errorf("Unable to decode data %+v", rows))
-			logger.Error().Err(err).Caller().Interface("data", rows).
-				Msgf("Unable to decode data")
-			return err
-		}
-		rows.Close()
-		if _, err = tx.Exec(p.ctx, "addsurveypoint", mid, sys[0].ID, dp.ZSample,
-			dp.Count, dp.MaxDistance); err != nil {
-			err = errors.Join(err, fmt.Errorf("Error while inserting surveypoint"))
-			logger.Error().Err(err).Caller().Str("query", "addsurveypoint").
-				Msg("Query error")
+			logger.Error().Err(err).Caller().
+				Str("query", "addsurveypoint").
+				Str("system", sp.SystemName).
+				Int("zsample", sp.ZSample).
+				Int("count", sp.Count).
+				Float32("maxdistance", sp.MaxDistance).
+				Msg("Error while executing query")
+			if rerr := t.rollbackToCheckpoint(); rerr != nil {
+				logger.Error().Err(rerr).Caller().
+					Msg("Error rolling back to checkpoint")
+			}
 			return err
 		}
 	}
 
-	return nil
+	return t.saveCheckpoint()
+}
+
+// RecordSheetResult inserts a sheet_processing row recording the
+// outcome of processing one sheet. An empty message is stored as
+// NULL via the NULLIF in the prepared query.
+func (t *Transaction) RecordSheetResult(
+	procID, sheetID int,
+	success bool,
+	message string,
+) error {
+	_, err := t.tx.Exec(
+		t.ctx, "recordsheetresult",
+		procID, sheetID, success, message,
+	)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "recordsheetresult").
+			Msg("Error while executing query")
+		if rerr := t.rollbackToCheckpoint(); rerr != nil {
+			logger.Error().Err(rerr).Caller().
+				Msg("Error rolling back to checkpoint")
+		}
+		return err
+	}
+	return t.saveCheckpoint()
 }
