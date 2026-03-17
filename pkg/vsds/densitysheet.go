@@ -53,12 +53,16 @@ func ParseSheet(sheet gcp.Sheet) (vsdstypes.Survey, error) {
 		if sheet.Get(i, variant.ZSampleColumn) == "" {
 			break
 		}
-		if z, err = strconv.Atoi(
-			sheet.Get(i, variant.ZSampleColumn)); err != nil {
+		strz := sheet.Get(i, variant.ZSampleColumn)
+		if z, err = strconv.Atoi(strz); err != nil {
 			continue
 		}
-		if c, err = strconv.Atoi(
-			sheet.Get(i, variant.SystemCountColumn)); err != nil {
+		strc := sheet.Get(i, variant.SystemCountColumn)
+		if c, err = strconv.Atoi(strc); err != nil {
+			continue
+		}
+		// no data
+		if len(strz) == 0 && len(strc) == 0 {
 			continue
 		}
 		mdstr = sheet.Get(i, variant.MaxDistanceColumn)
