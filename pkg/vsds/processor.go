@@ -137,6 +137,16 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 		Int("count", len(items)).
 		Msg("Folder contents fetched")
 
+	// Delete & replace: wipe previous data for this folder so
+	// re-runs start from a clean slate.
+	if err = txn.DeleteFolderSpreadsheets(job.FolderID); err != nil {
+		p.logger.Error().Err(err).
+			Int("procid", job.ProcID).
+			Int("folderid", job.FolderID).
+			Msg("Error deleting existing folder spreadsheets")
+		return
+	}
+
 	sort.Slice(items, func(i, j int) bool {
 		return items[i].CreatedTime > items[j].CreatedTime
 	})
@@ -192,7 +202,7 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 		}
 
 		excludedTabs := []string{
-			"Blank", "Blank CW", "Summary",
+			"Blank", "Blank CW", "Summary", "Master", "MASTER",
 		}
 		for _, sheet := range sheets {
 			tabName := sheet.GetName()

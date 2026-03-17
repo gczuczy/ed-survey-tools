@@ -71,7 +71,7 @@ func ParseSheet(sheet gcp.Sheet) (vsdstypes.Survey, error) {
 		}
 		systemName := sheet.Get(i, variant.SysNameColumn)
 		// skip on empty system name
-		if len(systemName) == 0 {
+		if len(systemName) == 0 || systemName == "-" {
 			continue
 		}
 		// if both are 0, then md=20

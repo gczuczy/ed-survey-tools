@@ -81,7 +81,9 @@ func (s *GSpreadsheetsService) Sheet(id string) (*GSpreadsheet, error) {
 		SheetsService: s.SheetsService,
 	}
 
-	sheet.meta, err = s.SheetsService.Spreadsheets.Get(id).Do()
+	sheet.meta, err = RateLimit(func() (*sheets.Spreadsheet, error) {
+		return s.SheetsService.Spreadsheets.Get(id).Do()
+	}, 30*time.Second)
 	if err != nil {
 		return nil, err
 	}
