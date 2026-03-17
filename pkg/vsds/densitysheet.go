@@ -78,6 +78,14 @@ func ParseSheet(sheet gcp.Sheet) (vsdstypes.Survey, error) {
 		if c == 0 && md < 0.01 {
 			md = 20.0
 		}
+		if md > 20.0 {
+			// forgotten dot
+			if md > 100 && md < 200 {
+				md = md/10
+			} else {
+				md = 20.0
+			}
+		}
 		dp := vsdstypes.SurveyPoint{
 			SystemName:  systemName,
 			ZSample:     z,
