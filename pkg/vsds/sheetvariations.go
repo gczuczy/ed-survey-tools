@@ -3,12 +3,34 @@ package vsds
 
 
 var (
-	variantDW3 = sheetVariant{
+	variantDW3sds = sheetVariant{
 		Name:      "DW3",
+		Project:   `DW3 Stellar Density Scans`,
 		HeaderRow: 4,
 		HeaderChecks: []sheetHeaderCheck{
 			{Column: 0, Row: 4, Value: "System"},
 			{Column: 2, Row: 4, Value: "System Count"},
+			{Column: 1, Row: 5, Value: "0"},
+			{Column: 6, Row: 4, Value: "X"},
+			{Column: 7, Row: 4, Value: "Z"},
+			{Column: 8, Row: 4, Value: "Y"},
+		},
+		SampleIndicatorColumn: 1,
+		SysNameColumn:         0,
+		ZSampleColumn:         1,
+		SystemCountColumn:     2,
+		MaxDistanceColumn:     4,
+		MinSampleRatio:        0.45,
+	}
+
+	variantDW3log = sheetVariant{
+		Name:      "DW3",
+		Project:   `DW3 Logarithmic Density Scans`,
+		HeaderRow: 4,
+		HeaderChecks: []sheetHeaderCheck{
+			{Column: 0, Row: 4, Value: "System"},
+			{Column: 2, Row: 4, Value: "System Count"},
+			{Column: 1, Row: 5, Value: "-250"},
 			{Column: 6, Row: 4, Value: "X"},
 			{Column: 7, Row: 4, Value: "Z"},
 			{Column: 8, Row: 4, Value: "Y"},
@@ -23,6 +45,7 @@ var (
 
 	variantA15X = sheetVariant{
 		Name:      "A15X",
+		Project:   `A15X CW Density Scans`,
 		HeaderRow: 4,
 		HeaderChecks: []sheetHeaderCheck{
 			{Column: 0, Row: 4, Value: "System"},
@@ -41,6 +64,7 @@ var (
 
 	variantA15Xv1 = sheetVariant{
 		Name:      "A15X",
+		Project:   `A15X CW Density Scans`,
 		HeaderRow: 5,
 		HeaderChecks: []sheetHeaderCheck{
 			{Column: 0, Row: 5, Value: "System"},
@@ -58,13 +82,15 @@ var (
 	}
 
 	sheetVariants = []*sheetVariant{
-		&variantDW3, &variantA15X, &variantA15Xv1,
+		&variantDW3sds, &variantDW3log, &variantA15X, &variantA15Xv1,
 	}
 )
 
 type sheetVariant struct {
 	// debug
 	Name string
+	// project name
+	Project string
 	// row orientations
 	HeaderRow int
 

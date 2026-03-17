@@ -3,6 +3,7 @@ package vsds
 import (
 	"sort"
 	"time"
+	"slices"
 
 	"github.com/gczuczy/ed-survey-tools/pkg/config"
 	"github.com/gczuczy/ed-survey-tools/pkg/db"
@@ -190,8 +191,14 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 			continue
 		}
 
+		excludedTabs := []string{
+			"Blank", "Blank CW", "Summary",
+		}
 		for _, sheet := range sheets {
 			tabName := sheet.GetName()
+			if slices.Contains(excludedTabs, tabName) {
+				continue
+			}
 
 			sheetID, err = txn.AddSheet(spreadsheetID, &tabName)
 			if err != nil {

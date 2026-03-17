@@ -26,6 +26,8 @@ func ParseSheet(sheet gcp.Sheet) (vsdstypes.Survey, error) {
 	if len(parts) == 2 {
 		m.CMDR = parts[0]
 		m.Project = parts[1]
+	} else {
+		m.CMDR = sheet.Get(0, 0)
 	}
 
 	var variant *sheetVariant
@@ -67,8 +69,17 @@ func ParseSheet(sheet gcp.Sheet) (vsdstypes.Survey, error) {
 				"Conversion MaxDst error %d/%d '%v': %s",
 				i, variant.MaxDistanceColumn, mdstr, name))
 		}
+		systemName := sheet.Get(i, variant.SysNameColumn)
+		// skip on empty system name
+		if len(systemName) == 0 {
+			continue
+		}
+		// if both are 0, then md=20
+		if c == 0 && md < 0.01 {
+			md = 20.0
+		}
 		dp := vsdstypes.SurveyPoint{
-			SystemName:  sheet.Get(i, variant.SysNameColumn),
+			SystemName:  systemName,
 			ZSample:     z,
 			Count:       c,
 			MaxDistance: float32(md),
@@ -115,5 +126,7 @@ func evalSheetVariant(sv *sheetVariant, sheet gcp.Sheet) bool {
 			nsamples++
 		}
 	}
-	return float32(nzsamples)*sv.MinSampleRatio < float32(nsamples)
+	// if it has any data, that's good enough for now
+	//return float32(nzsamples)*sv.MinSampleRatio < float32(nsamples)
+	return nsamples > 0
 }
