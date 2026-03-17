@@ -43,3 +43,6 @@ sql/q.sql
 pkg/http/webroot.tar
 
 .claude/prompts
+*.log
+# screenshot dir for assisted debugging
+shots
