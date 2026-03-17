@@ -48,7 +48,13 @@
       <ng-template pTemplate="body" let-folder>
         <tr>
           <td>{{ folder.id }}</td>
-          <td>{{ folder.name }}</td>
+          <td>
+            @if (folder.received_at) {
+              <a [routerLink]="['/vsds/folders', folder.id]">{{ folder.name }}</a>
+            } @else {
+              {{ folder.name }}
+            }
+          </td>
           <td>{{ folder.received_at ? (folder.received_at | date:'yyyy-MM-dd HH:mm:ss':'UTC') : '—' }}</td>
           <td>{{ folder.in_progress ?? '—' }}</td>
           <td>{{ folder.finished ?? '—' }}</td>

@@ -47,6 +47,11 @@ export const routes: Routes = [
         loadComponent: () => import('./components/vsds/vsds-folders.component').then(m => m.VsdsFoldersComponent),
         canActivate: [adminGuard],
       },
+      {
+        path: 'folders/:id',
+        loadComponent: () => import('./components/vsds/vsds-folder-extraction.component').then(m => m.VsdsFolderExtractionComponent),
+        canActivate: [adminGuard],
+      },
     ]
   },
 

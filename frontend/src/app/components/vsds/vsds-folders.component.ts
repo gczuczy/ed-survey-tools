@@ -1,6 +1,7 @@
 import { Component, OnInit }           from '@angular/core';
 import { FormsModule }                 from '@angular/forms';
 import { DatePipe }                    from '@angular/common';
+import { RouterLink }                  from '@angular/router';
 import { HttpErrorResponse }           from '@angular/common/http';
 import { VsdsService, VSDSFolder }     from '../../services/vsds.service';
 import { ButtonModule }                from 'primeng/button';
@@ -15,7 +16,7 @@ import { ConfirmationService }         from 'primeng/api';
 @Component({
   selector:    'app-vsds-folders',
   standalone:  true,
-  imports:     [FormsModule, DatePipe, ButtonModule, CardModule, InputTextModule, MessageModule, TableModule, ConfirmDialogModule, TooltipModule],
+  imports:     [FormsModule, DatePipe, RouterLink, ButtonModule, CardModule, InputTextModule, MessageModule, TableModule, ConfirmDialogModule, TooltipModule],
   providers:   [ConfirmationService],
   templateUrl: './vsds-folders.component.html',
   styleUrl:    './vsds-folders.component.scss',

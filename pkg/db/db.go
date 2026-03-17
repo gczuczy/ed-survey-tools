@@ -171,6 +171,61 @@ UPDATE vsds.folder_processing SET finishedat = NOW() WHERE id = $1::int
 DELETE FROM vsds.spreadsheets WHERE folderid = $1::int
 `,
 
+		// VSDS: get the last processing run id and folder name
+		"getlastfolderprocessing": `
+SELECT fp.id, f.name AS folder_name
+FROM vsds.folder_processing fp
+JOIN vsds.folders f ON f.id = fp.folderid
+WHERE fp.folderid = $1::int
+ORDER BY fp.receivedat DESC
+LIMIT 1
+`,
+
+		// VSDS: summary statistics for a processing run
+		"getfolderprocessingsummary": `
+SELECT fp.receivedat,
+       fp.startedat,
+       fp.finishedat,
+       COUNT(DISTINCT s.id)    AS documents_total,
+       COUNT(DISTINCT sh.id)   AS sheets_total,
+       COUNT(DISTINCT sp.sheetid)
+           FILTER (WHERE sp.success = true)  AS sheets_success,
+       COUNT(DISTINCT sp.sheetid)
+           FILTER (WHERE sp.success = false) AS sheets_failed,
+       COUNT(DISTINCT sv.id)   AS surveys_ingested,
+       COUNT(svp.id)           AS points_ingested,
+       COUNT(DISTINCT sv.cmdrid) AS cmdrs_count
+FROM vsds.folder_processing fp
+LEFT JOIN vsds.spreadsheets s
+       ON s.folderid = fp.folderid
+LEFT JOIN vsds.sheets sh
+       ON sh.spreadsheetid = s.id
+LEFT JOIN vsds.sheet_processing sp
+       ON sp.sheetid = sh.id AND sp.procid = fp.id
+LEFT JOIN vsds.surveys sv ON sv.sheetid = sh.id
+LEFT JOIN vsds.surveypoints svp ON svp.surveyid = sv.id
+WHERE fp.id = $1::int
+GROUP BY fp.id, fp.receivedat, fp.startedat, fp.finishedat
+`,
+
+		// VSDS: failing sheets with their document for a processing run
+		"getfolderprocessingsheets": `
+SELECT s.id AS doc_id,
+       s.gcpid,
+       s.name AS doc_name,
+       s.contenttype,
+       sh.id AS sheet_id,
+       COALESCE(sh.name, '(CSV sheet)') AS sheet_name,
+       COALESCE(sp.message, '') AS message
+FROM vsds.spreadsheets s
+JOIN vsds.sheets sh ON sh.spreadsheetid = s.id
+JOIN vsds.sheet_processing sp ON sp.sheetid = sh.id
+WHERE s.folderid = $1::int
+  AND sp.procid = $2::int
+  AND sp.success = false
+ORDER BY s.name, sh.name
+`,
+
 		// common: look up systems by name
 		"lookupsystemsbyname": `
 SELECT id, edsmid, name, x, y, z

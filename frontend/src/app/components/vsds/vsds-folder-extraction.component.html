@@ -1,0 +1,134 @@
+<div class="vsds-extraction">
+
+  @if (loading) {
+    <p-message severity="info" text="Loading extraction summary…" />
+  } @else if (loadError) {
+    <p-message severity="error" [text]="loadError" />
+  } @else if (data) {
+
+    <!-- Summary Stats -->
+    <p-card header="Extraction Summary">
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="stat-label">Documents Processed</span>
+          <span class="stat-value">{{ data.stats.documents_total }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Tabs Processed</span>
+          <span class="stat-value">{{ data.stats.sheets_total }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Tabs Succeeded</span>
+          <span class="stat-value success">{{ data.stats.sheets_success }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Tabs Failed</span>
+          <span class="stat-value" [class.error]="data.stats.sheets_failed > 0">
+            {{ data.stats.sheets_failed }}
+          </span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Surveys Ingested</span>
+          <span class="stat-value">{{ data.stats.surveys_ingested }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Survey Points</span>
+          <span class="stat-value">{{ data.stats.points_ingested }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Contributors (CMDRs)</span>
+          <span class="stat-value">{{ data.stats.cmdrs_count }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Started</span>
+          <span class="stat-value timestamp">
+            {{
+              data.stats.started_at
+                ? (data.stats.started_at | date:'yyyy-MM-dd HH:mm:ss':'UTC') + ' UTC'
+                : '—'
+            }}
+          </span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Duration</span>
+          <span class="stat-value timestamp">{{ processingDuration }}</span>
+        </div>
+      </div>
+    </p-card>
+
+    <!-- Documents with Errors -->
+    <p-card header="Documents with Errors">
+      @if (data.documents.length > 0) {
+        <p-table #dt
+                 [value]="data.documents"
+                 dataKey="id">
+          <ng-template pTemplate="header">
+            <tr>
+              <th class="expand-col"></th>
+              <th>Document</th>
+              <th>Content Type</th>
+              <th>Tabs with Errors</th>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="body" let-doc>
+            <tr>
+              <td class="expand-col">
+                <p-button type="button"
+                          [text]="true"
+                          [rounded]="true"
+                          [icon]="dt.isRowExpanded(doc)
+                            ? 'pi pi-chevron-down'
+                            : 'pi pi-chevron-right'"
+                          (onClick)="dt.toggleRow(doc)" />
+              </td>
+              <td>
+                <a [href]="driveUrl(doc.gcpid)"
+                   target="_blank"
+                   rel="noopener noreferrer">
+                  {{ doc.name }}
+                </a>
+              </td>
+              <td class="content-type">{{ doc.content_type }}</td>
+              <td>
+                <p-tag [value]="doc.error_count.toString()"
+                       severity="danger" />
+              </td>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="expandedrow" let-doc>
+            <tr class="expansion-row">
+              <td colspan="4">
+                <div class="sheets-expansion">
+                  <p-table [value]="doc.sheets">
+                    <ng-template pTemplate="header">
+                      <tr>
+                        <th>Tab Name</th>
+                        <th>Error</th>
+                      </tr>
+                    </ng-template>
+                    <ng-template pTemplate="body" let-sheet>
+                      <tr>
+                        <td class="sheet-name">{{ sheet.name }}</td>
+                        <td class="error-message">{{ sheet.message }}</td>
+                      </tr>
+                    </ng-template>
+                  </p-table>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+
+        </p-table>
+      } @else {
+        <p class="no-errors">No errors recorded for this extraction run.</p>
+      }
+    </p-card>
+
+    <div class="back-link">
+      <a routerLink="/vsds/folders">← Back to Folders</a>
+    </div>
+
+  }
+</div>

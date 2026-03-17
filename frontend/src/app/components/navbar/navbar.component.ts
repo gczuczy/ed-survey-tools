@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, NavigationEnd }  from '@angular/router';
 import { filter, Subscription }               from 'rxjs';
+import { BreadcrumbService }                  from '../../services/breadcrumb.service';
 import { AuthService }                        from '../../auth/auth.service';
 import { ToolbarModule }                      from 'primeng/toolbar';
 import { ButtonModule }                       from 'primeng/button';
@@ -38,13 +39,17 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('vsdsMenu') vsdsMenu!: Menu;
   @ViewChild('userMenu') userMenu!: Menu;
 
-  private navSub?: Subscription;
+  private dynamicLabel: string | null = null;
+
+  private navSub?:     Subscription;
+  private crumbSub?:   Subscription;
   private resizeObserver?: ResizeObserver;
 
   constructor(
-    public  authService: AuthService,
-    private router:      Router,
-    private el:          ElementRef,
+    public  authService:       AuthService,
+    private router:            Router,
+    private el:                ElementRef,
+    private breadcrumbService: BreadcrumbService,
   ) {}
 
   ngOnInit(): void {
@@ -71,6 +76,11 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
     this.navSub = this.router.events.pipe(
       filter(e => e instanceof NavigationEnd)
     ).subscribe(() => this.updateBreadcrumbs());
+
+    this.crumbSub = this.breadcrumbService.dynamicLabel$.subscribe(label => {
+      this.dynamicLabel = label;
+      this.updateBreadcrumbs();
+    });
   }
 
   ngAfterViewInit(): void {
@@ -81,6 +91,7 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.navSub?.unsubscribe();
+    this.crumbSub?.unsubscribe();
     this.resizeObserver?.disconnect();
   }
 
@@ -99,6 +110,9 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
       crumbs.push({ label: 'VSDS', routerLink: '/vsds' });
       if (url.includes('/vsds/projects')) {
         crumbs.push({ label: 'Projects' });
+      } else if (/\/vsds\/folders\/\d+/.test(url)) {
+        crumbs.push({ label: 'Folders', routerLink: '/vsds/folders' });
+        crumbs.push({ label: this.dynamicLabel ?? '…' });
       } else if (url.includes('/vsds/folders')) {
         crumbs.push({ label: 'Folders' });
       }

@@ -10,6 +10,33 @@ import (
 	vsdstypes "github.com/gczuczy/ed-survey-tools/pkg/vsds/types"
 )
 
+// FolderProcessingSummary holds aggregate statistics for one
+// folder extraction run, returned by GetFolderProcessingDetails.
+type FolderProcessingSummary struct {
+	ReceivedAt      time.Time  `db:"receivedat"        json:"received_at"`
+	StartedAt       *time.Time `db:"startedat"         json:"started_at,omitempty"`
+	FinishedAt      *time.Time `db:"finishedat"        json:"finished_at,omitempty"`
+	DocumentsTotal  int64      `db:"documents_total"   json:"documents_total"`
+	SheetsTotal     int64      `db:"sheets_total"      json:"sheets_total"`
+	SheetsSuccess   int64      `db:"sheets_success"    json:"sheets_success"`
+	SheetsFailed    int64      `db:"sheets_failed"     json:"sheets_failed"`
+	SurveysIngested int64      `db:"surveys_ingested"  json:"surveys_ingested"`
+	PointsIngested  int64      `db:"points_ingested"   json:"points_ingested"`
+	CmdrsCount      int64      `db:"cmdrs_count"       json:"cmdrs_count"`
+}
+
+// FolderProcessingSheetRow is one failing sheet row returned by
+// GetFolderProcessingDetails, grouped into documents by the caller.
+type FolderProcessingSheetRow struct {
+	DocID       int    `db:"doc_id"`
+	DocGCPID    string `db:"gcpid"`
+	DocName     string `db:"doc_name"`
+	ContentType string `db:"contenttype"`
+	SheetID     int    `db:"sheet_id"`
+	SheetName   string `db:"sheet_name"`
+	Message     string `db:"message"`
+}
+
 type VSDSFolder struct {
 	FolderID   int        `db:"folderid" json:"id"`
 	Name       string     `db:"name" json:"name"`
@@ -593,6 +620,87 @@ func (p *DBPool) FinishFolderProcessing(procID int) (err error) {
 	if tag.RowsAffected() == 0 {
 		err = ErrNotFound
 	}
+	return
+}
+
+// GetFolderProcessingDetails returns the folder name, summary
+// statistics, and failing sheet rows for the most recent processing
+// run of the given folder. Returns ErrNotFound when no run exists.
+func (p *DBPool) GetFolderProcessingDetails(folderID int) (
+	folderName string,
+	summary FolderProcessingSummary,
+	sheetRows []FolderProcessingSheetRow,
+	err error,
+) {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Unable to acquire connection from pool")
+		return
+	}
+	defer conn.Release()
+
+	var procID int
+	err = conn.QueryRow(
+		p.ctx, "getlastfolderprocessing", folderID,
+	).Scan(&procID, &folderName)
+	if errors.Is(err, pgx.ErrNoRows) {
+		err = ErrNotFound
+		return
+	}
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "getlastfolderprocessing").
+			Msg("Error while executing query")
+		return
+	}
+
+	var rows pgx.Rows
+	if rows, err = conn.Query(
+		p.ctx, "getfolderprocessingsummary", procID,
+	); err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "getfolderprocessingsummary").
+			Msg("Error while executing query")
+		return
+	}
+	defer rows.Close()
+
+	summaries, cerr := pgx.CollectRows(
+		rows, pgx.RowToStructByName[FolderProcessingSummary],
+	)
+	if cerr != nil {
+		err = cerr
+		logger.Error().Err(err).Caller().
+			Msg("Error while reading summary results")
+		return
+	}
+	if len(summaries) == 0 {
+		err = ErrNotFound
+		return
+	}
+	summary = summaries[0]
+
+	var srows pgx.Rows
+	if srows, err = conn.Query(
+		p.ctx, "getfolderprocessingsheets", folderID, procID,
+	); err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "getfolderprocessingsheets").
+			Msg("Error while executing query")
+		return
+	}
+	defer srows.Close()
+
+	sheetRows, err = pgx.CollectRows(
+		srows, pgx.RowToStructByName[FolderProcessingSheetRow],
+	)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Error while reading sheet results")
+		return
+	}
+
 	return
 }
 
