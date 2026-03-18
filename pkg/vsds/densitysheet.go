@@ -66,6 +66,8 @@ func ParseSheet(sheet gcp.Sheet) (vsdstypes.Survey, error) {
 		return m, errors.Join(varianterr, fmt.Errorf(
 			"Unable to identify sheet variant for %s", name))
 	}
+	// fix the project name
+	m.Project = variant.Project
 
 	var (
 		z     int

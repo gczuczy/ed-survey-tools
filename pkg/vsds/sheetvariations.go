@@ -2,6 +2,7 @@ package vsds
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"strconv"
 	"github.com/gczuczy/ed-survey-tools/pkg/gcp"
@@ -183,6 +184,11 @@ func (sv *sheetVariant) Eval(sheet gcp.Sheet) error {
 
 		hasSysCount := false
 		hasMaxDistance := false
+
+		systemName = sheet.Get(i, sv.SysNameColumn)
+		if slices.Contains(skipSysNames, systemName) {
+			continue
+		}
 
 		if syscount, err := strconv.Atoi(
 			sheet.Get(i, sv.SystemCountColumn)); err == nil &&
