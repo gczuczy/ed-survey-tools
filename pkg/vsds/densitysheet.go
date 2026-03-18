@@ -15,6 +15,13 @@ func parseFloat(s string, bitSize int) (float64, error) {
 		strings.ReplaceAll(s, ",", "."), bitSize)
 }
 
+func stripCmdrPrefix(name string) string {
+	if strings.HasPrefix(strings.ToLower(name), "cmdr ") {
+		return name[5:]
+	}
+	return name
+}
+
 func ParseSheet(sheet gcp.Sheet) (vsdstypes.Survey, error) {
 	name := sheet.GetName()
 	m := vsdstypes.Survey{
@@ -30,20 +37,27 @@ func ParseSheet(sheet gcp.Sheet) (vsdstypes.Survey, error) {
 		m.CMDR = sheet.Get(0, 0)
 	}
 	// strip the `CMDR ` prefix
-	if strings.HasPrefix(strings.ToLower(m.CMDR), "cmdr ") {
-		m.CMDR = m.CMDR[5:]
+	m.CMDR = stripCmdrPrefix(m.CMDR)
+	b1name := sheet.Get(0, 1)
+	if strings.ToLower(m.CMDR) == "name" && b1name != "" {
+		m.CMDR = stripCmdrPrefix(b1name)
 	}
 
-	var variant *sheetVariant
+	var (
+		variant *sheetVariant
+		varianterr error
+	)
 	for _, sv := range sheetVariants {
-		if evalSheetVariant(sv, sheet) {
+		if err := sv.Eval(sheet); err != nil {
+			varianterr = errors.Join(varianterr, err)
+		} else {
 			variant = sv
 			break
 		}
 	}
 	if variant == nil {
-		return m, fmt.Errorf(
-			"Unable to identify sheet variant for %s", name)
+		return m, errors.Join(varianterr, fmt.Errorf(
+			"Unable to identify sheet variant for %s", name))
 	}
 
 	var (
@@ -106,43 +120,3 @@ func ParseSheet(sheet gcp.Sheet) (vsdstypes.Survey, error) {
 	return m, nil
 }
 
-func evalSheetVariant(sv *sheetVariant, sheet gcp.Sheet) bool {
-	for _, check := range sv.HeaderChecks {
-		if sheet.Rows() <= check.Row {
-			return false
-		}
-		if sheet.Get(check.Row, check.Column) != check.Value {
-			return false
-		}
-	}
-
-	nsamples := 0
-	nzsamples := 0
-	for i := sv.HeaderRow + 1; i < sheet.Rows(); i++ {
-		if len(sheet.Get(i, sv.ZSampleColumn)) == 0 {
-			break
-		}
-		nzsamples++
-
-		hasSysCount := false
-		hasMaxDistance := false
-
-		if syscount, err := strconv.Atoi(
-			sheet.Get(i, sv.SystemCountColumn)); err == nil &&
-			syscount >= 0 && syscount < 50 {
-			hasSysCount = true
-		}
-		if maxdst, err := parseFloat(
-			sheet.Get(i, sv.MaxDistanceColumn), 32); err == nil &&
-			maxdst >= 0 && maxdst <= 20 {
-			hasMaxDistance = true
-		}
-
-		if hasSysCount || hasMaxDistance {
-			nsamples++
-		}
-	}
-	// if it has any data, that's good enough for now
-	//return float32(nzsamples)*sv.MinSampleRatio < float32(nsamples)
-	return nsamples > 0
-}

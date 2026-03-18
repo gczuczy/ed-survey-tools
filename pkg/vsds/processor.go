@@ -202,7 +202,7 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 		}
 
 		excludedTabs := []string{
-			"Blank", "Blank CW", "Summary", "Master", "MASTER",
+			"Blank", "Blank CW", "Summary", "Master", "MASTER", "Master CW",
 		}
 		for _, sheet := range sheets {
 			tabName := sheet.GetName()
