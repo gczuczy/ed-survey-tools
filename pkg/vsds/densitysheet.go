@@ -29,6 +29,10 @@ func ParseSheet(sheet gcp.Sheet) (vsdstypes.Survey, error) {
 	} else {
 		m.CMDR = sheet.Get(0, 0)
 	}
+	// strip the `CMDR ` prefix
+	if strings.HasPrefix(strings.ToLower(m.CMDR), "cmdr ") {
+		m.CMDR = m.CMDR[5:]
+	}
 
 	var variant *sheetVariant
 	for _, sv := range sheetVariants {
