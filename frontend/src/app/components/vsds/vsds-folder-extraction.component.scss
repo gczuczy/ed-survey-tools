@@ -59,6 +59,7 @@
 .error-message {
   color: var(--p-text-muted-color);
   font-size: 0.875rem;
+  white-space: pre-wrap;
 }
 
 .no-errors {
