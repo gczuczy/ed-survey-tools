@@ -154,7 +154,8 @@ func (ve VariantError) Error() string {
 	if len(ve.Message) != 0 {
 		parts = append(parts, ve.Message)
 	}
-	return fmt.Sprintf("Variant Mismatch: %s(%s)", strings.Join(parts, " "))
+	return fmt.Sprintf("Variant Mismatch: %s(%s)", ve.VariantName,
+		strings.Join(parts, " "))
 }
 
 func (sv *sheetVariant) Eval(sheet gcp.Sheet) error {

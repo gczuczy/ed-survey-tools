@@ -2,12 +2,19 @@ package vsds
 
 import (
 	"fmt"
+	"slices"
 	"errors"
 	"strings"
 	"strconv"
 
 	"github.com/gczuczy/ed-survey-tools/pkg/gcp"
 	vsdstypes "github.com/gczuczy/ed-survey-tools/pkg/vsds/types"
+)
+
+var (
+	skipSysNames = []string{
+		"-", "N/A", "",
+	}
 )
 
 func parseFloat(s string, bitSize int) (float64, error) {
@@ -93,7 +100,7 @@ func ParseSheet(sheet gcp.Sheet) (vsdstypes.Survey, error) {
 		}
 		systemName := sheet.Get(i, variant.SysNameColumn)
 		// skip on empty system name
-		if len(systemName) == 0 || systemName == "-" {
+		if len(systemName) == 0 || slices.Contains(skipSysNames, systemName) {
 			continue
 		}
 		// if both are 0, then md=20
