@@ -257,22 +257,37 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 
 			systems, lErr := sysCache.Lookup(names)
 			if lErr != nil {
-				p.logger.Error().Err(lErr).
+				if len(systems) == 0 {
+					// Fatal error or every system
+					// unresolvable; roll back any partial
+					// inserts and skip this tab.
+					p.logger.Error().Err(lErr).
+						Int("procid", job.ProcID).
+						Str("file_id", item.ID).
+						Str("tab", tabName).
+						Msg("Error resolving system names")
+					if rerr := txn.Rollback(); rerr != nil {
+						p.logger.Error().Err(rerr).
+							Int("procid", job.ProcID).
+							Msg("Error rolling back transaction")
+					}
+					p.recordResult(txn, job.ProcID, sheetID,
+						false, lErr.Error())
+					continue
+				}
+				// Partial resolution: some systems found.
+				// Keep partial inserts; errors recorded
+				// in the final sheet result.
+				p.logger.Warn().Err(lErr).
 					Int("procid", job.ProcID).
 					Str("file_id", item.ID).
 					Str("tab", tabName).
-					Msg("Error resolving system names")
-				if rerr := txn.Rollback(); rerr != nil {
-					p.logger.Error().Err(rerr).
-						Int("procid", job.ProcID).
-						Msg("Error rolling back transaction")
-				}
-				p.recordResult(txn, job.ProcID, sheetID,
-					false, lErr.Error())
-				continue
+					Int("resolved", len(systems)).
+					Msg("Some system names could not be resolved")
 			}
 
-			// Lock in any newly inserted system rows.
+			// Lock in newly inserted system rows
+			// (including the partial set on error).
 			if err = txn.Savepoint(); err != nil {
 				p.logger.Error().Err(err).
 					Int("procid", job.ProcID).
@@ -337,7 +352,13 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 				continue
 			}
 
-			p.recordResult(txn, job.ProcID, sheetID, true, "")
+			if lErr != nil {
+				p.recordResult(txn, job.ProcID, sheetID,
+					false, lErr.Error())
+			} else {
+				p.recordResult(txn, job.ProcID, sheetID,
+					true, "")
+			}
 		}
 	}
 }

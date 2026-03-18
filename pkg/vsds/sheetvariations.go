@@ -149,7 +149,7 @@ func (ve VariantError) Error() string {
 			fmt.Sprintf("Check:%s", ve.Check.String()))
 	}
 	if ve.Value != nil {
-		parts = append(parts, fmt.Sprintf("Value:%s", *ve.Value))
+		parts = append(parts, fmt.Sprintf("Value:%v", *ve.Value))
 	}
 	if len(ve.Message) != 0 {
 		parts = append(parts, ve.Message)

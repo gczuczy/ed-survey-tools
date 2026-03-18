@@ -889,17 +889,9 @@ func (t *Transaction) AddSurvey(
 	for _, sp := range points {
 		sys, ok := systems[sp.SystemName]
 		if !ok {
-			err := fmt.Errorf(
-				"system %q not in resolution map", sp.SystemName,
-			)
-			logger.Error().Err(err).Caller().
-				Str("system", sp.SystemName).
-				Msg("System missing from map")
-			if rerr := t.rollbackToCheckpoint(); rerr != nil {
-				logger.Error().Err(rerr).Caller().
-					Msg("Error rolling back to checkpoint")
-			}
-			return err
+			// System was not resolved during lookup;
+			// the caller has already noted the error.
+			continue
 		}
 		_, err = t.tx.Exec(
 			t.ctx, "addsurveypoint",

@@ -1,6 +1,7 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
@@ -78,19 +79,23 @@ func (sc *SystemCache) Lookup(names []string) ([]System, error) {
 	for _, d := range edsmData {
 		edsmFound[d.Name] = true
 	}
+
+	var errs []error
 	for _, name := range stillMissing {
 		if !edsmFound[name] {
-			return nil, fmt.Errorf(
+			errs = append(errs, fmt.Errorf(
 				"system %q not found in EDSM", name,
-			)
+			))
 		}
 	}
 
 	for _, d := range edsmData {
 		if d.Coords == nil {
-			return nil, fmt.Errorf(
-				"system %q has no coordinates in EDSM", d.Name,
-			)
+			errs = append(errs, fmt.Errorf(
+				"system %q has no coordinates in EDSM",
+				d.Name,
+			))
+			continue
 		}
 		sys, err := sc.insertDB(d)
 		if err != nil {
@@ -100,7 +105,7 @@ func (sc *SystemCache) Lookup(names []string) ([]System, error) {
 		result = append(result, sys)
 	}
 
-	return result, nil
+	return result, errors.Join(errs...)
 }
 
 func (sc *SystemCache) lookupDB(

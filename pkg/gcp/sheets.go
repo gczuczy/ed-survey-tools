@@ -56,6 +56,7 @@ type GSpreadsheet struct {
 	meta          *sheets.Spreadsheet
 	SheetsService *sheets.Service
 	ID            string
+	sheets        []Sheet
 }
 
 func NewSheets() (*GSpreadsheetsService, error) {
@@ -74,6 +75,21 @@ func NewSheets() (*GSpreadsheetsService, error) {
 	return gs, nil
 }
 
+// gridDataToValues converts GridData (from IncludeGridData fetch) into
+// the same [][]interface{} format produced by Values.Get. The API
+// omits trailing empty cells/rows, matching FORMATTED_VALUE behaviour.
+func gridDataToValues(gd *sheets.GridData) [][]interface{} {
+	rows := make([][]interface{}, 0, len(gd.RowData))
+	for _, row := range gd.RowData {
+		cells := make([]interface{}, 0, len(row.Values))
+		for _, cell := range row.Values {
+			cells = append(cells, cell.FormattedValue)
+		}
+		rows = append(rows, cells)
+	}
+	return rows
+}
+
 func (s *GSpreadsheetsService) Sheet(id string) (*GSpreadsheet, error) {
 	var err error
 	sheet := &GSpreadsheet{
@@ -81,11 +97,23 @@ func (s *GSpreadsheetsService) Sheet(id string) (*GSpreadsheet, error) {
 		SheetsService: s.SheetsService,
 	}
 
+	// IncludeGridData fetches metadata and all cell values in one call,
+	// eliminating per-tab round-trips in GetSheets.
 	sheet.meta, err = RateLimit(func() (*sheets.Spreadsheet, error) {
-		return s.SheetsService.Spreadsheets.Get(id).Do()
+		return s.SheetsService.Spreadsheets.Get(id).
+			IncludeGridData(true).Do()
 	}, 30*time.Second)
 	if err != nil {
 		return nil, err
+	}
+
+	sheet.sheets = make([]Sheet, 0, len(sheet.meta.Sheets))
+	for _, sh := range sheet.meta.Sheets {
+		gs := &GSheet{name: sh.Properties.Title}
+		if len(sh.Data) > 0 {
+			gs.data = gridDataToValues(sh.Data[0])
+		}
+		sheet.sheets = append(sheet.sheets, gs)
 	}
 
 	return sheet, nil
@@ -101,6 +129,12 @@ func (s *GSpreadsheet) readSheet(
 }
 
 func (s *GSpreadsheet) GetSheets() ([]Sheet, error) {
+	// Return pre-loaded data from the Sheet() fetch when available.
+	if s.sheets != nil {
+		return s.sheets, nil
+	}
+
+	// Fallback: fetch each tab individually.
 	result := make([]Sheet, 0, len(s.meta.Sheets))
 	for _, sh := range s.meta.Sheets {
 		name := sh.Properties.Title

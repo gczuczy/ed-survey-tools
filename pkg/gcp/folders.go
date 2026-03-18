@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/option"
@@ -66,29 +67,46 @@ func ListFolder(folderID string) ([]FolderItem, error) {
 		return nil, fmt.Errorf("failed to create drive service: %w", err)
 	}
 
-	query := fmt.Sprintf("'%s' in parents and trashed = false and mimeType != '%s'",
+	query := fmt.Sprintf(
+		"'%s' in parents and trashed = false and mimeType != '%s'",
 		folderID, driveFolderMimeType)
 
-	var items []FolderItem
-	err = svc.Files.List().
-		Q(query).
-		Fields("nextPageToken, files(id, name, mimeType, createdTime, modifiedTime)").
-		SupportsAllDrives(true).
-		IncludeItemsFromAllDrives(true).
-		Pages(ctx, func(page *drive.FileList) error {
-			for _, f := range page.Files {
-				items = append(items, FolderItem{
-					ID:           f.Id,
-					Name:         f.Name,
-					MimeType:     f.MimeType,
-					CreatedTime:  f.CreatedTime,
-					ModifiedTime: f.ModifiedTime,
-				})
-			}
-			return nil
-		})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list folder %s: %w", folderID, err)
+	const fields = "nextPageToken, " +
+		"files(id, name, mimeType, createdTime, modifiedTime)"
+
+	var (
+		items     []FolderItem
+		pageToken string
+	)
+	for {
+		call := svc.Files.List().
+			Q(query).
+			Fields(fields).
+			SupportsAllDrives(true).
+			IncludeItemsFromAllDrives(true)
+		if pageToken != "" {
+			call = call.PageToken(pageToken)
+		}
+		page, pErr := RateLimit(func() (*drive.FileList, error) {
+			return call.Do()
+		}, 30*time.Second)
+		if pErr != nil {
+			return nil, fmt.Errorf(
+				"failed to list folder %s: %w", folderID, pErr)
+		}
+		for _, f := range page.Files {
+			items = append(items, FolderItem{
+				ID:           f.Id,
+				Name:         f.Name,
+				MimeType:     f.MimeType,
+				CreatedTime:  f.CreatedTime,
+				ModifiedTime: f.ModifiedTime,
+			})
+		}
+		pageToken = page.NextPageToken
+		if pageToken == "" {
+			break
+		}
 	}
 
 	return items, nil
