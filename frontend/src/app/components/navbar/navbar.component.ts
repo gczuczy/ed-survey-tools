@@ -28,8 +28,9 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
   isPublicMenuActive = false;
   isVsdsActive       = false;
 
-  sideMenuItems: MenuItem[] = [];
-  userMenuItems: MenuItem[] = [];
+  sideMenuItems:  MenuItem[] = [];
+  userMenuItems:  MenuItem[] = [];
+  vsdsMenuItems:  MenuItem[] = [];
 
   breadcrumbItems: MenuItem[] = [];
   homeCrumb: MenuItem = { icon: 'pi pi-home', routerLink: '/' };
@@ -72,10 +73,14 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
       { label: 'Logout', icon: 'pi pi-sign-out', command: () => this.logout() },
     ];
 
+    this.buildVsdsMenuItems();
     this.updateBreadcrumbs();
     this.navSub = this.router.events.pipe(
       filter(e => e instanceof NavigationEnd)
-    ).subscribe(() => this.updateBreadcrumbs());
+    ).subscribe(() => {
+      this.buildVsdsMenuItems();
+      this.updateBreadcrumbs();
+    });
 
     this.crumbSub = this.breadcrumbService.dynamicLabel$.subscribe(label => {
       this.dynamicLabel = label;
@@ -122,13 +127,21 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
     this.hasBreadcrumb = crumbs.length > 0;
   }
 
-  get vsdsMenuItems(): MenuItem[] {
+  private buildVsdsMenuItems(): void {
     const items: MenuItem[] = [];
-    items.push({ label: 'Projects', icon: 'pi pi-briefcase', command: () => this.router.navigate(['/vsds/projects']) });
+    items.push({
+      label:   'Projects',
+      icon:    'pi pi-briefcase',
+      command: () => this.router.navigate(['/vsds/projects']),
+    });
     if (this.authService.user?.isadmin) {
-      items.push({ label: 'Folders', icon: 'pi pi-folder', command: () => this.router.navigate(['/vsds/folders']) });
+      items.push({
+        label:   'Folders',
+        icon:    'pi pi-folder',
+        command: () => this.router.navigate(['/vsds/folders']),
+      });
     }
-    return items;
+    this.vsdsMenuItems = items;
   }
 
   login():  void { this.authService.login(); }
