@@ -273,7 +273,10 @@ func (p *DBPool) AddZSample(projectID, zsample int) (project VSDSProject, err er
 	if _, err = tx.Exec(p.ctx, "insertprojectzsample", projectID, zsample); err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			err = ErrDuplicate
+			err = newQueryError(ErrDuplicate, map[string]any{
+				"projectid": projectID,
+				"zsample":   zsample,
+			})
 		} else {
 			logger.Error().Err(err).Caller().Str("query", "insertprojectzsample").
 				Msg("Error while executing query")
@@ -428,7 +431,10 @@ func (p *DBPool) AddFolder(gcpid, name string) (folder VSDSFolder, err error) {
 	if err = tx.QueryRow(p.ctx, "addfolder", gcpid, name).Scan(&id); err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			err = ErrDuplicate
+			err = newQueryError(ErrDuplicate, map[string]any{
+				"gcpid": gcpid,
+				"name":  name,
+			})
 		} else {
 			logger.Error().Err(err).Caller().Str("query", "addfolder").
 				Msg("Error while executing query")
@@ -720,7 +726,9 @@ func (t *Transaction) DeleteFolderSpreadsheets(folderID int) error {
 			logger.Error().Err(rerr).Caller().
 				Msg("Error rolling back to checkpoint")
 		}
-		return err
+		return newQueryError(err, map[string]any{
+			"folderid": folderID,
+		})
 	}
 
 	return t.saveCheckpoint()
@@ -760,7 +768,12 @@ func (t *Transaction) AddSpreadsheet(
 			logger.Error().Err(rerr).Caller().
 				Msg("Error rolling back to checkpoint")
 		}
-		return 0, err
+		return 0, newQueryError(err, map[string]any{
+			"contenttype": contentType,
+			"folderid":    folderID,
+			"gcpid":       gcpid,
+			"name":        name,
+		})
 	}
 	return id, t.saveCheckpoint()
 }
@@ -783,7 +796,14 @@ func (t *Transaction) AddSheet(
 			logger.Error().Err(rerr).Caller().
 				Msg("Error rolling back to checkpoint")
 		}
-		return 0, err
+		var nameParam any
+		if name != nil {
+			nameParam = *name
+		}
+		return 0, newQueryError(err, map[string]any{
+			"name":          nameParam,
+			"spreadsheetid": spreadsheetID,
+		})
 	}
 	return id, t.saveCheckpoint()
 }
@@ -804,7 +824,9 @@ func (t *Transaction) UpsertCmdr(name string) (int, error) {
 			logger.Error().Err(rerr).Caller().
 				Msg("Error rolling back to checkpoint")
 		}
-		return 0, err
+		return 0, newQueryError(err, map[string]any{
+			"name": name,
+		})
 	}
 	return id, t.saveCheckpoint()
 }
@@ -829,7 +851,9 @@ func (t *Transaction) LookupProject(name string) (int, error) {
 			logger.Error().Err(rerr).Caller().
 				Msg("Error rolling back to checkpoint")
 		}
-		return 0, err
+		return 0, newQueryError(err, map[string]any{
+			"name": name,
+		})
 	}
 	return id, nil
 }
@@ -855,7 +879,11 @@ func (t *Transaction) AddSurvey(
 			logger.Error().Err(rerr).Caller().
 				Msg("Error rolling back to checkpoint")
 		}
-		return err
+		return newQueryError(err, map[string]any{
+			"cmdrid":    cmdrID,
+			"projectid": projectID,
+			"sheetid":   sheetID,
+		})
 	}
 
 	for _, sp := range points {
@@ -890,7 +918,13 @@ func (t *Transaction) AddSurvey(
 				logger.Error().Err(rerr).Caller().
 					Msg("Error rolling back to checkpoint")
 			}
-			return err
+			return newQueryError(err, map[string]any{
+				"count":       sp.Count,
+				"maxdistance": sp.MaxDistance,
+				"surveyid":    surveyID,
+				"system":      sp.SystemName,
+				"zsample":     sp.ZSample,
+			})
 		}
 	}
 
@@ -917,7 +951,11 @@ func (t *Transaction) RecordSheetResult(
 			logger.Error().Err(rerr).Caller().
 				Msg("Error rolling back to checkpoint")
 		}
-		return err
+		return newQueryError(err, map[string]any{
+			"procid":  procID,
+			"sheetid": sheetID,
+			"success": success,
+		})
 	}
 	return t.saveCheckpoint()
 }
