@@ -10,12 +10,18 @@ import (
 )
 
 type Config struct {
-	DB DBConfig `koanf:"db"`
-	HTTP HTTPConfig `koanf:"http"`
-	OAuth2 OAuth2Config `koanf:"oauth2"`
+	DB       DBConfig       `koanf:"db"`
+	HTTP     HTTPConfig     `koanf:"http"`
+	OAuth2   OAuth2Config   `koanf:"oauth2"`
 	Sessions SessionsConfig `koanf:"sessions"`
-	Logging LoggingConfig `koanf:"logging"`
-	VSDS VSDSConfig `koanf:"vsds"`
+	Logging  LoggingConfig  `koanf:"logging"`
+	VSDS     VSDSConfig     `koanf:"vsds"`
+	EDSM     EDSMConfig     `koanf:"edsm"`
+}
+
+type EDSMConfig struct {
+	Timeout time.Duration `koanf:"timeout"`
+	Retries int           `koanf:"retries"`
 }
 
 type VSDSConfig struct {
@@ -92,6 +98,10 @@ func ParseConfig(k *koanf.Koanf) (*Config, error) {
 		},
 		VSDS: VSDSConfig{
 			ProcessorInterval: time.Minute,
+		},
+		EDSM: EDSMConfig{
+			Timeout: 5 * time.Second,
+			Retries: 10,
 		},
 	}
 	if err = k.Unmarshal("", &cfg); err != nil {

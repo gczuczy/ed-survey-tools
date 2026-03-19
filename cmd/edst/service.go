@@ -10,10 +10,11 @@ import (
 	"github.com/knadh/koanf/providers/posflag"
 	flag "github.com/spf13/pflag"
 
-	"github.com/gczuczy/ed-survey-tools/pkg/gcp"
 	"github.com/gczuczy/ed-survey-tools/pkg/config"
-	"github.com/gczuczy/ed-survey-tools/pkg/http"
 	"github.com/gczuczy/ed-survey-tools/pkg/db"
+	"github.com/gczuczy/ed-survey-tools/pkg/edsm"
+	"github.com/gczuczy/ed-survey-tools/pkg/gcp"
+	"github.com/gczuczy/ed-survey-tools/pkg/http"
 	"github.com/gczuczy/ed-survey-tools/pkg/log"
 	"github.com/gczuczy/ed-survey-tools/pkg/vsds"
 )
@@ -82,7 +83,8 @@ func Run() {
 		os.Exit(1)
 	}
 
-	proc := vsds.NewProcessor(&cfg.VSDS)
+	edsmClient := edsm.New(&cfg.EDSM)
+	proc := vsds.NewProcessor(&cfg.VSDS, edsmClient)
 	proc.Start()
 
 	sigChan := make(chan os.Signal, 1)

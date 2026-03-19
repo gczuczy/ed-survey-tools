@@ -22,7 +22,7 @@ CREATE TABLE vsds.spreadsheets (
        folderid    int          NOT NULL,
        gcpid       varchar(128) NOT NULL,
        name        varchar(256) NOT NULL,
-       contenttype varchar(64)  NOT NULL,
+       contenttype varchar(128) NOT NULL,
        PRIMARY KEY (id),
        UNIQUE (folderid, gcpid),
        FOREIGN KEY (folderid)

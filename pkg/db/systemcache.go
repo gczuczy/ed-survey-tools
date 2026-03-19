@@ -20,11 +20,11 @@ type SystemCache struct {
 
 // NewSystemCache creates a SystemCache that uses txn for all
 // database operations.
-func NewSystemCache(txn *Transaction) *SystemCache {
+func NewSystemCache(txn *Transaction, edsm *edsm.EDSM) *SystemCache {
 	return &SystemCache{
 		cache: make(map[string]System),
 		txn:   txn,
-		edsm:  edsm.New(),
+		edsm:  edsm,
 	}
 }
 

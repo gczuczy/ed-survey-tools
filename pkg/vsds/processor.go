@@ -1,12 +1,13 @@
 package vsds
 
 import (
+	"slices"
 	"sort"
 	"time"
-	"slices"
 
 	"github.com/gczuczy/ed-survey-tools/pkg/config"
 	"github.com/gczuczy/ed-survey-tools/pkg/db"
+	"github.com/gczuczy/ed-survey-tools/pkg/edsm"
 	"github.com/gczuczy/ed-survey-tools/pkg/gcp"
 	"github.com/gczuczy/ed-survey-tools/pkg/log"
 	"github.com/gczuczy/ed-survey-tools/pkg/types"
@@ -20,16 +21,33 @@ const (
 	typeODS         = "application/vnd.oasis.opendocument.spreadsheet"
 )
 
+var excludedTabs = []string{
+	"Blank", "Blank CW", "Summary",
+	"Master", "MASTER", "Master CW",
+}
+
+func filterSheets(sheets []gcp.Sheet) []gcp.Sheet {
+	result := make([]gcp.Sheet, 0, len(sheets))
+	for _, s := range sheets {
+		if !slices.Contains(excludedTabs, s.GetName()) {
+			result = append(result, s)
+		}
+	}
+	return result
+}
+
 type Processor struct {
 	cfg    *config.VSDSConfig
+	edsm   *edsm.EDSM
 	logger log.Logger
 	stopCh chan struct{}
 	doneCh chan struct{}
 }
 
-func NewProcessor(cfg *config.VSDSConfig) *Processor {
+func NewProcessor(cfg *config.VSDSConfig, edsm *edsm.EDSM) *Processor {
 	return &Processor{
 		cfg:    cfg,
+		edsm:   edsm,
 		logger: log.GetLogger("VSDSProcessor"),
 		stopCh: make(chan struct{}),
 		doneCh: make(chan struct{}),
@@ -96,11 +114,9 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 		txn           *db.Transaction
 		err           error
 		gss           *gcp.GSpreadsheetsService
-		ss            *gcp.GSpreadsheet
 		survey        vsdstypes.Survey
 		spreadsheetID int
 		sheetID       int
-		sheets        []gcp.Sheet
 		surveyHash    uint64
 	)
 
@@ -121,7 +137,7 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 	}
 	defer txn.Close()
 
-	sysCache := db.NewSystemCache(txn)
+	sysCache := db.NewSystemCache(txn, p.edsm)
 
 	items, err := gcp.ListFolder(job.GCPID)
 	if err != nil {
@@ -161,7 +177,15 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 			Str("modified_at", item.ModifiedTime).
 			Msg("Processing item")
 
-		if item.MimeType != typeGoogleSheet {
+		var sheets []gcp.Sheet
+		switch item.MimeType {
+		case typeGoogleSheet:
+			sheets, err = openGoogleSheets(gss, item)
+		case typeXlsx:
+			sheets, err = openXlsxSheets(item)
+		case typeODS:
+			sheets, err = openOdsSheets(item)
+		default:
 			p.logger.Error().
 				Int("procid", job.ProcID).
 				Str("file_id", item.ID).
@@ -170,18 +194,17 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 				Msg("Type not implemented")
 			continue
 		}
-
-		if ss, err = gss.Sheet(item.ID); err != nil {
+		if err != nil {
 			p.logger.Error().Err(err).
 				Int("procid", job.ProcID).
 				Str("file_id", item.ID).
 				Str("name", item.Name).
-				Msg("Unable to open Google Spreadsheet")
+				Msg("Unable to open spreadsheet")
 			continue
 		}
 
 		spreadsheetID, err = txn.AddSpreadsheet(
-			job.FolderID, item.ID, item.Name, typeGoogleSheet,
+			job.FolderID, item.ID, item.Name, item.MimeType,
 		)
 		if err != nil {
 			p.logger.Error().Err(err).
@@ -192,23 +215,8 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 			continue
 		}
 
-		if sheets, err = ss.GetSheets(); err != nil {
-			p.logger.Error().Err(err).
-				Int("procid", job.ProcID).
-				Str("file_id", item.ID).
-				Str("name", item.Name).
-				Msg("Unable to load spreadsheet tabs")
-			continue
-		}
-
-		excludedTabs := []string{
-			"Blank", "Blank CW", "Summary", "Master", "MASTER", "Master CW",
-		}
-		for _, sheet := range sheets {
+		for _, sheet := range filterSheets(sheets) {
 			tabName := sheet.GetName()
-			if slices.Contains(excludedTabs, tabName) {
-				continue
-			}
 
 			sheetID, err = txn.AddSheet(spreadsheetID, &tabName)
 			if err != nil {

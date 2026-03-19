@@ -1,34 +1,43 @@
 package edsm
 
 import (
-	"net/url"
-	"net/http"
 	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/url"
+
+	"github.com/gczuczy/ed-survey-tools/pkg/config"
 )
 
 const urlBase = "https://www.edsm.net"
 
 type EDSM struct {
-	client *http.Client
+	client  *http.Client
+	retries int
 }
 
-func New() *EDSM {
+func New(cfg *config.EDSMConfig) *EDSM {
 	return &EDSM{
-		client: &http.Client{},
+		client: &http.Client{
+			Timeout: cfg.Timeout,
+		},
+		retries: cfg.Retries,
 	}
 }
 
-func (e *EDSM) newRequest(method string, endpoint string) (req *http.Request, err error) {
-	req, err = http.NewRequest(method, urlBase, nil)
-	var (
-		base *url.URL
-	)
+func (e *EDSM) newRequest(
+	method string,
+	endpoint string,
+) (req *http.Request, err error) {
+	var base *url.URL
 	if base, err = url.Parse(urlBase); err != nil {
 		return
 	}
 
 	rel := &url.URL{Path: endpoint}
-	req.URL = base.ResolveReference(rel)
+	if req, err = http.NewRequest(method, base.ResolveReference(rel).String(), nil); err != nil {
+		return
+	}
 
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Usage-Agent", "ed-survey-tools")
@@ -36,10 +45,23 @@ func (e *EDSM) newRequest(method string, endpoint string) (req *http.Request, er
 	return
 }
 
-func (e *EDSM) call(req *http.Request, v any) (resp *http.Response, err error) {
-
-	c := http.Client{}
-	if resp, err = c.Do(req); err != nil {
+func (e *EDSM) call(
+	req *http.Request,
+	v any,
+) (resp *http.Response, err error) {
+	for attempt := 0; attempt <= e.retries; attempt++ {
+		resp, err = e.client.Do(req)
+		if err != nil {
+			continue
+		}
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			resp.Body.Close()
+			err = fmt.Errorf("unexpected status %d", resp.StatusCode)
+			continue
+		}
+		break
+	}
+	if err != nil {
 		return
 	}
 	defer resp.Body.Close()
@@ -50,4 +72,3 @@ func (e *EDSM) call(req *http.Request, v any) (resp *http.Response, err error) {
 
 	return
 }
-

@@ -3,6 +3,8 @@ package gcp
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"path"
 	"strings"
@@ -21,6 +23,32 @@ type FolderItem struct {
 }
 
 const driveFolderMimeType = "application/vnd.google-apps.folder"
+
+func DownloadFile(fileID string) ([]byte, error) {
+	ctx := context.Background()
+	scopes := option.WithScopes(drive.DriveReadonlyScope)
+	svc, err := drive.NewService(ctx, authOption, scopes)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"failed to create drive service: %w", err)
+	}
+
+	resp, err := RateLimit(func() (*http.Response, error) {
+		return svc.Files.Get(fileID).Download()
+	}, 30*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"failed to download file %s: %w", fileID, err)
+	}
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"failed to read file %s: %w", fileID, err)
+	}
+	return data, nil
+}
 
 func ValidateFolder(folderURL string) (string, string, error) {
 	u, err := url.Parse(folderURL)
