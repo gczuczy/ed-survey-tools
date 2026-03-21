@@ -73,6 +73,35 @@ export interface VSDSProject {
   zsamples: number[];
 }
 
+/**
+ * One cell-value assertion used to fingerprint a sheet variant.
+ * col and row are 0-indexed (as stored in the DB).
+ * The UI converts col→letter and row→1-indexed for display.
+ */
+export interface VSDSSheetVariantCheck {
+  id:    number;
+  col:   number;
+  row:   number;
+  value: string;
+}
+
+/**
+ * Mirrors db.DBSheetVariant returned by
+ * /api/vsds/projects/{id}/variants.
+ * All column/row fields are 0-indexed.
+ */
+export interface VSDSSheetVariant {
+  id:                 number;
+  project_id:         number;
+  name:               string;
+  header_row:         number;
+  sysname_column:     number;
+  zsample_column:     number;
+  syscount_column:    number;
+  maxdistance_column: number;
+  checks:             VSDSSheetVariantCheck[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class VsdsService {
 
@@ -122,7 +151,72 @@ export class VsdsService {
     return this.api.put<ApiResponse<VSDSProject>>(`/api/vsds/projects/${id}/zsamples/${zsample}`, null);
   }
 
-  deleteZSample(id: number, zsample: number): Observable<ApiResponse<VSDSProject>> {
-    return this.api.delete<ApiResponse<VSDSProject>>(`/api/vsds/projects/${id}/zsamples/${zsample}`);
+  deleteZSample(
+    id: number,
+    zsample: number,
+  ): Observable<ApiResponse<VSDSProject>> {
+    return this.api.delete<ApiResponse<VSDSProject>>(
+      `/api/vsds/projects/${id}/zsamples/${zsample}`);
+  }
+
+  listVariants(
+    projectId: number,
+  ): Observable<ApiResponse<VSDSSheetVariant[]>> {
+    return this.api.get<ApiResponse<VSDSSheetVariant[]>>(
+      `/api/vsds/projects/${projectId}/variants`);
+  }
+
+  addVariant(
+    projectId: number,
+    body: {
+      name: string; header_row: number;
+      sysname_column: number; zsample_column: number;
+      syscount_column: number; maxdistance_column: number;
+    },
+  ): Observable<ApiResponse<VSDSSheetVariant>> {
+    return this.api.put<ApiResponse<VSDSSheetVariant>>(
+      `/api/vsds/projects/${projectId}/variants`, body);
+  }
+
+  updateVariant(
+    projectId: number,
+    variantId: number,
+    body: {
+      name: string; header_row: number;
+      sysname_column: number; zsample_column: number;
+      syscount_column: number; maxdistance_column: number;
+    },
+  ): Observable<ApiResponse<VSDSSheetVariant>> {
+    return this.api.post<ApiResponse<VSDSSheetVariant>>(
+      `/api/vsds/projects/${projectId}/variants/${variantId}`,
+      body);
+  }
+
+  deleteVariant(
+    projectId: number,
+    variantId: number,
+  ): Observable<ApiResponse<null>> {
+    return this.api.delete<ApiResponse<null>>(
+      `/api/vsds/projects/${projectId}/variants/${variantId}`);
+  }
+
+  addVariantCheck(
+    projectId: number,
+    variantId: number,
+    body: { col: number; row: number; value: string },
+  ): Observable<ApiResponse<VSDSSheetVariant>> {
+    return this.api.put<ApiResponse<VSDSSheetVariant>>(
+      `/api/vsds/projects/${projectId}/variants/${variantId}/checks`,
+      body);
+  }
+
+  deleteVariantCheck(
+    projectId: number,
+    variantId: number,
+    checkId: number,
+  ): Observable<ApiResponse<VSDSSheetVariant>> {
+    return this.api.delete<ApiResponse<VSDSSheetVariant>>(
+      `/api/vsds/projects/${projectId}/variants/${variantId}` +
+      `/checks/${checkId}`);
   }
 }

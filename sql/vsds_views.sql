@@ -80,3 +80,34 @@ FROM vsds.folders f
 		 LEFT JOIN procstatus ps ON lp.id = ps.procid AND lp.folderid = f.id
 ;
 GRANT SELECT ON vsds.v_folders TO edservice;
+
+CREATE OR REPLACE VIEW vsds.v_spreadsheetvariants AS
+SELECT sv.id,
+       sv.projectid,
+       p.name AS projectname,
+       sv.name,
+       sv.headerrow,
+       sv.sysnamecolumn,
+       sv.zsamplecolumn,
+       sv.systemcountcolumn,
+       sv.maxdistancecolumn,
+       COALESCE(
+           jsonb_agg(
+               jsonb_build_object(
+                   'id',    vc.id,
+                   'col',   vc.col,
+                   'row',   vc.row,
+                   'value', vc.value
+               ) ORDER BY vc.id
+           ) FILTER (WHERE vc.id IS NOT NULL),
+           '[]'::jsonb
+       ) AS checks
+FROM vsds.spreadsheetvariants sv
+JOIN vsds.projects p ON p.id = sv.projectid
+LEFT JOIN vsds.spreadsheetvariant_checks vc
+    ON vc.variantid = sv.id
+GROUP BY sv.id, sv.projectid, p.name, sv.name,
+         sv.headerrow, sv.sysnamecolumn, sv.zsamplecolumn,
+         sv.systemcountcolumn, sv.maxdistancecolumn;
+GRANT SELECT ON vsds.v_spreadsheetvariants TO edservice;
+GRANT SELECT ON vsds.v_spreadsheetvariants TO edviewer;

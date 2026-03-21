@@ -17,7 +17,7 @@
 }
 
 .breadcrumb-bar {
-  background-color: var(--p-surface-ground);
+  background: var(--p-toolbar-background);
   border-bottom: 1px solid var(--p-content-border-color);
 
   ::ng-deep .p-breadcrumb {

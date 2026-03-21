@@ -20,7 +20,7 @@
 			"Edit(**/*.md)",
 			"Edit(sql/**/*.sql)",
 			"Edit(memory/**.md)",
-			"Edit(fronted/memory/**.md)"
+			"Edit(frontend/memory/**.md)"
     ],
     "deny": [
     ]

@@ -245,9 +245,73 @@ ORDER BY sv.id
 
 		// VSDS: fetch all sheet variant header checks
 		"fetchsheetvariantchecks": `
-SELECT variantid, col, row, value
+SELECT id, variantid, col, row, value
 FROM vsds.spreadsheetvariant_checks
 ORDER BY variantid, id
+`,
+
+		// VSDS: list all variants for a project (with checks)
+		"listprojectvariants": `
+SELECT id, projectid, projectname, name, headerrow,
+       sysnamecolumn, zsamplecolumn,
+       systemcountcolumn, maxdistancecolumn,
+       checks::text AS checks
+FROM vsds.v_spreadsheetvariants
+WHERE projectid = $1::int
+ORDER BY id
+`,
+
+		// VSDS: get one variant by id within a project
+		"getvariant": `
+SELECT id, projectid, projectname, name, headerrow,
+       sysnamecolumn, zsamplecolumn,
+       systemcountcolumn, maxdistancecolumn,
+       checks::text AS checks
+FROM vsds.v_spreadsheetvariants
+WHERE id = $1::int AND projectid = $2::int
+`,
+
+		// VSDS: insert a new variant, returns new id
+		"addvariant": `
+INSERT INTO vsds.spreadsheetvariants
+    (projectid, name, headerrow,
+     sysnamecolumn, zsamplecolumn,
+     systemcountcolumn, maxdistancecolumn)
+VALUES ($1::int, $2::text, $3::int,
+        $4::int, $5::int, $6::int, $7::int)
+RETURNING id
+`,
+
+		// VSDS: update a variant's base fields
+		"updatevariant": `
+UPDATE vsds.spreadsheetvariants
+SET name              = $3::text,
+    headerrow         = $4::int,
+    sysnamecolumn     = $5::int,
+    zsamplecolumn     = $6::int,
+    systemcountcolumn = $7::int,
+    maxdistancecolumn = $8::int
+WHERE id = $1::int AND projectid = $2::int
+`,
+
+		// VSDS: delete a variant (cascades to its checks)
+		"deletevariant": `
+DELETE FROM vsds.spreadsheetvariants
+WHERE id = $1::int AND projectid = $2::int
+`,
+
+		// VSDS: insert a header check for a variant, returns new id
+		"addvariantcheck": `
+INSERT INTO vsds.spreadsheetvariant_checks
+    (variantid, col, row, value)
+VALUES ($1::int, $2::int, $3::int, $4::text)
+RETURNING id
+`,
+
+		// VSDS: delete a header check by id within a variant
+		"deletevariantcheck": `
+DELETE FROM vsds.spreadsheetvariant_checks
+WHERE id = $1::int AND variantid = $2::int
 `,
 	}
 

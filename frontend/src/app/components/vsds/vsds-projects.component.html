@@ -21,7 +21,8 @@
                       [rounded]="true" />
           </div>
           @if (addProjectError) {
-            <p-message severity="error" [text]="addProjectError" styleClass="form-message" />
+            <p-message severity="error" [text]="addProjectError"
+                       styleClass="form-message" />
           }
         </div>
       </div>
@@ -32,7 +33,8 @@
       <div class="panel-header">Projects</div>
       <div class="panel-body">
         @if (loadError) {
-          <p-message severity="error" [text]="loadError" styleClass="form-message" />
+          <p-message severity="error" [text]="loadError"
+                     styleClass="form-message" />
         }
         @if (loadingProjects) {
           <div class="loading-text text-muted">Loading...</div>
@@ -46,7 +48,9 @@
               </li>
             }
             @if (projects.length === 0) {
-              <li class="project-empty text-muted">No projects found.</li>
+              <li class="project-empty text-muted">
+                No projects found.
+              </li>
             }
           </ul>
         }
@@ -55,7 +59,7 @@
 
   </div>
 
-  <!-- Right: ZSamples panel -->
+  <!-- Right: panels -->
   <div class="projects-right">
 
     @if (!selectedProject) {
@@ -64,72 +68,644 @@
         Select a project to view its ZSamples.
       </div>
     } @else {
-      <p-card [header]="'ZSamples — ' + selectedProject.name">
+      <div class="right-cards">
 
-        @if (delZSampleError) {
-          <p-message severity="error" [text]="delZSampleError" styleClass="form-message" />
-        }
+        <!-- ── ZSamples card ── -->
+        <p-card [header]="'ZSamples — ' + selectedProject.name">
 
-        <div class="zsamples-chips">
-          @for (zsample of selectedProject.zsamples; track zsample) {
-            <div class="zsample-tag">
-              <span class="zsample-value">{{ zsample }}</span>
-              @if (isAdmin) {
-                <p-button icon="pi pi-times"
-                          [text]="true"
-                          [rounded]="true"
-                          severity="danger"
-                          size="small"
-                          (onClick)="deleteZSample(zsample)"
-                          [loading]="deletingZSample === zsample" />
-              }
-            </div>
+          @if (delZSampleError) {
+            <p-message severity="error" [text]="delZSampleError"
+                       styleClass="form-message" />
           }
-          @if (selectedProject.zsamples.length === 0) {
-            <span class="text-muted">No ZSamples assigned.</span>
-          }
-        </div>
 
-        @if (isAdmin) {
-          <div class="admin-zsample-controls">
-
-            <p class="control-label">Add Single</p>
-            <div class="add-zsample-form">
-              <p-inputnumber [(ngModel)]="newZSample"
-                             placeholder="ZSample value"
-                             [useGrouping]="false"
-                             styleClass="zsample-input" />
-              <p-button icon="pi pi-plus"
-                        label="Add"
-                        (onClick)="addZSample()"
-                        [loading]="addZSampleLoad"
-                        [disabled]="newZSample === null" />
-            </div>
-            @if (addZSampleError) {
-              <p-message severity="error" [text]="addZSampleError" styleClass="form-message" />
+          <div class="zsamples-chips">
+            @for (zsample of selectedProject.zsamples; track zsample) {
+              <div class="zsample-tag">
+                <span class="zsample-value">{{ zsample }}</span>
+                @if (isAdmin) {
+                  <p-button icon="pi pi-times"
+                            [text]="true"
+                            [rounded]="true"
+                            severity="danger"
+                            size="small"
+                            (onClick)="deleteZSample(zsample)"
+                            [loading]="deletingZSample === zsample" />
+                }
+              </div>
             }
-
-            <p class="control-label">Bulk Replace</p>
-            <div class="bulk-form">
-              <textarea pTextarea
-                        [(ngModel)]="bulkZSamples"
-                        rows="4"
-                        placeholder="Enter comma or newline-separated ZSample values..."></textarea>
-              <p-button icon="pi pi-sync"
-                        label="Replace All"
-                        severity="warning"
-                        (onClick)="setBulkZSamples()"
-                        [loading]="bulkLoad"
-                        [disabled]="!bulkZSamples.trim()" />
-            </div>
-            @if (bulkError) {
-              <p-message severity="error" [text]="bulkError" styleClass="form-message" />
+            @if (selectedProject.zsamples.length === 0) {
+              <span class="text-muted">No ZSamples assigned.</span>
             }
-
           </div>
+
+          @if (isAdmin) {
+            <div class="admin-zsample-controls">
+
+              <p class="control-label">Add Single</p>
+              <div class="add-zsample-form">
+                <p-inputnumber [(ngModel)]="newZSample"
+                               placeholder="ZSample value"
+                               [useGrouping]="false"
+                               styleClass="zsample-input" />
+                <p-button icon="pi pi-plus"
+                          label="Add"
+                          (onClick)="addZSample()"
+                          [loading]="addZSampleLoad"
+                          [disabled]="newZSample === null" />
+              </div>
+              @if (addZSampleError) {
+                <p-message severity="error" [text]="addZSampleError"
+                           styleClass="form-message" />
+              }
+
+              <p class="control-label">Bulk Replace</p>
+              <div class="bulk-form">
+                <textarea pTextarea
+                          [(ngModel)]="bulkZSamples"
+                          rows="4"
+                          placeholder="Enter comma or newline-separated ZSample values...">
+                </textarea>
+                <p-button icon="pi pi-sync"
+                          label="Replace All"
+                          severity="warning"
+                          (onClick)="setBulkZSamples()"
+                          [loading]="bulkLoad"
+                          [disabled]="!bulkZSamples.trim()" />
+              </div>
+              @if (bulkError) {
+                <p-message severity="error" [text]="bulkError"
+                           styleClass="form-message" />
+              }
+
+            </div>
+          }
+
+        </p-card>
+
+        <!-- ── Sheet Variants card (admin only) ── -->
+        @if (isAdmin) {
+          <p-card>
+            <ng-template pTemplate="title">
+              <span class="variants-card-title">
+                Sheet Variants
+                <i class="pi pi-question-circle variants-help-icon"
+                   (click)="variantHelp.toggle($event)"></i>
+                <p-popover #variantHelp>
+                  <div class="variant-help-popover">
+                    <p>
+                      A <strong>sheet variant</strong> defines how
+                      the system recognises and reads a specific
+                      survey spreadsheet format. When a spreadsheet
+                      is processed, each variant is tested in order;
+                      the first one whose
+                      <strong>header checks</strong> all pass is
+                      used to extract the data.
+                    </p>
+                    <p>Each variant specifies:</p>
+                    <ul>
+                      <li>
+                        <strong>Header Row</strong> — the row
+                        containing column titles (data starts on
+                        the next row).
+                      </li>
+                      <li>
+                        <strong>Four column positions</strong> —
+                        system name, Z-sample, system count, and
+                        max distance.
+                      </li>
+                      <li>
+                        <strong>Header Checks</strong> — cell
+                        values that must all match for this variant
+                        to be selected.
+                      </li>
+                    </ul>
+                    <p>
+                      Columns use spreadsheet letters (A, B … Z,
+                      AA …); rows are 1-indexed. The system stores
+                      them as 0-indexed — conversion is automatic.
+                    </p>
+                  </div>
+                </p-popover>
+              </span>
+            </ng-template>
+
+            <p-confirmpopup />
+
+            @if (variantLoadError) {
+              <p-message severity="error" [text]="variantLoadError"
+                         styleClass="form-message" />
+            }
+
+            @if (loadingVariants) {
+              <div class="loading-text text-muted">
+                Loading variants…
+              </div>
+            } @else {
+
+              <p-tabs [(value)]="activeVariantTab"
+                      styleClass="variant-tabs">
+
+                <p-tablist>
+                  @for (v of variants; track v.id) {
+                    <p-tab [value]="v.id">{{ v.name }}</p-tab>
+                  }
+                  <p-tab value="new">＋</p-tab>
+                </p-tablist>
+
+                <p-tabpanels>
+
+                  <!-- ── One panel per existing variant ── -->
+                  @for (v of variants; track v.id) {
+                    <p-tabpanel [value]="v.id">
+
+                      <div class="variant-panel">
+
+                        <!-- Base fields -->
+                        <div class="variant-fields">
+
+                          @if (editingVariantId === v.id) {
+
+                            <!-- EDIT MODE -->
+                            <div class="field-grid">
+                              <label class="field-label">
+                                Name
+                                <i class="pi pi-question-circle
+                                         field-help"
+                                   pTooltip="A descriptive label
+ for this variant, shown in logs and error reports."
+                                   tooltipPosition="top"></i>
+                              </label>
+                              <input pInputText
+                                     [(ngModel)]="editDraft.name"
+                                     class="field-input" />
+
+                              <label class="field-label">
+                                Header Row
+                                <i class="pi pi-question-circle
+                                         field-help"
+                                   pTooltip="The 1-indexed row
+ containing column titles. Data rows start immediately below."
+                                   tooltipPosition="top"></i>
+                              </label>
+                              <p-inputnumber
+                                [(ngModel)]="editDraft.header_row"
+                                [min]="1"
+                                [useGrouping]="false"
+                                styleClass="field-input-num" />
+
+                              <label class="field-label">
+                                SysName Column
+                                <i class="pi pi-question-circle
+                                         field-help"
+                                   pTooltip="The column (A, B,
+ C…) containing the star system name."
+                                   tooltipPosition="top"></i>
+                              </label>
+                              <div class="col-input-wrap">
+                                <input pInputText
+                                       [(ngModel)]="editDraft.sysname_column"
+                                       class="col-input"
+                                       placeholder="A" />
+                                <span class="col-hint text-muted">
+                                  ({{ letterToCol(editDraft.sysname_column) >= 0
+                                       ? letterToCol(editDraft.sysname_column)
+                                       : '?' }})
+                                </span>
+                              </div>
+
+                              <label class="field-label">
+                                ZSample Column
+                                <i class="pi pi-question-circle
+                                         field-help"
+                                   pTooltip="The column containing
+ the Z-coordinate survey slice value."
+                                   tooltipPosition="top"></i>
+                              </label>
+                              <div class="col-input-wrap">
+                                <input pInputText
+                                       [(ngModel)]="editDraft.zsample_column"
+                                       class="col-input"
+                                       placeholder="B" />
+                                <span class="col-hint text-muted">
+                                  ({{ letterToCol(editDraft.zsample_column) >= 0
+                                       ? letterToCol(editDraft.zsample_column)
+                                       : '?' }})
+                                </span>
+                              </div>
+
+                              <label class="field-label">
+                                SysCount Column
+                                <i class="pi pi-question-circle
+                                         field-help"
+                                   pTooltip="The column with the
+ number of star systems found within survey range (0–50)."
+                                   tooltipPosition="top"></i>
+                              </label>
+                              <div class="col-input-wrap">
+                                <input pInputText
+                                       [(ngModel)]="editDraft.syscount_column"
+                                       class="col-input"
+                                       placeholder="C" />
+                                <span class="col-hint text-muted">
+                                  ({{ letterToCol(editDraft.syscount_column) >= 0
+                                       ? letterToCol(editDraft.syscount_column)
+                                       : '?' }})
+                                </span>
+                              </div>
+
+                              <label class="field-label">
+                                MaxDist Column
+                                <i class="pi pi-question-circle
+                                         field-help"
+                                   pTooltip="The column with the
+ maximum survey distance in light-years (must be ≤ 20)."
+                                   tooltipPosition="top"></i>
+                              </label>
+                              <div class="col-input-wrap">
+                                <input pInputText
+                                       [(ngModel)]="editDraft.maxdistance_column"
+                                       class="col-input"
+                                       placeholder="D" />
+                                <span class="col-hint text-muted">
+                                  ({{ letterToCol(editDraft.maxdistance_column) >= 0
+                                       ? letterToCol(editDraft.maxdistance_column)
+                                       : '?' }})
+                                </span>
+                              </div>
+                            </div>
+
+                            @if (saveVariantError) {
+                              <p-message severity="error"
+                                         [text]="saveVariantError"
+                                         [closable]="true"
+                                         (onClose)="saveVariantError = null"
+                                         styleClass="form-message" />
+                            }
+
+                            <div class="edit-actions">
+                              <p-button label="Save"
+                                        icon="pi pi-check"
+                                        (onClick)="saveVariant(v.id)"
+                                        [loading]="savingVariantId === v.id" />
+                              <p-button label="Cancel"
+                                        icon="pi pi-times"
+                                        severity="secondary"
+                                        [text]="true"
+                                        (onClick)="cancelEdit()"
+                                        [disabled]="savingVariantId === v.id" />
+                            </div>
+
+                          } @else {
+
+                            <!-- READ-ONLY MODE -->
+                            <div class="variant-stats">
+                              <div class="stat-item">
+                                <span class="stat-label">
+                                  Name
+                                  <i class="pi pi-question-circle
+                                           field-help"
+                                     pTooltip="A descriptive label for this variant."
+                                     tooltipPosition="top"></i>
+                                </span>
+                                <span class="stat-value">
+                                  {{ v.name }}
+                                </span>
+                              </div>
+
+                              <div class="stat-item">
+                                <span class="stat-label">
+                                  Header Row
+                                  <i class="pi pi-question-circle
+                                           field-help"
+                                     pTooltip="Row containing column titles (1-indexed)."
+                                     tooltipPosition="top"></i>
+                                </span>
+                                <span class="stat-value">
+                                  {{ v.header_row + 1 }}
+                                </span>
+                              </div>
+
+                              <div class="stat-item">
+                                <span class="stat-label">
+                                  SysName Column
+                                  <i class="pi pi-question-circle
+                                           field-help"
+                                     pTooltip="Column containing the star system name."
+                                     tooltipPosition="top"></i>
+                                </span>
+                                <span class="stat-value">
+                                  {{ colToLetter(v.sysname_column) }}
+                                  <span class="stat-hint">
+                                    ({{ v.sysname_column }})
+                                  </span>
+                                </span>
+                              </div>
+
+                              <div class="stat-item">
+                                <span class="stat-label">
+                                  ZSample Column
+                                  <i class="pi pi-question-circle
+                                           field-help"
+                                     pTooltip="Column containing the Z-coordinate survey slice value."
+                                     tooltipPosition="top"></i>
+                                </span>
+                                <span class="stat-value">
+                                  {{ colToLetter(v.zsample_column) }}
+                                  <span class="stat-hint">
+                                    ({{ v.zsample_column }})
+                                  </span>
+                                </span>
+                              </div>
+
+                              <div class="stat-item">
+                                <span class="stat-label">
+                                  SysCount Column
+                                  <i class="pi pi-question-circle
+                                           field-help"
+                                     pTooltip="Column with the number of star systems found within range (0–50)."
+                                     tooltipPosition="top"></i>
+                                </span>
+                                <span class="stat-value">
+                                  {{ colToLetter(v.syscount_column) }}
+                                  <span class="stat-hint">
+                                    ({{ v.syscount_column }})
+                                  </span>
+                                </span>
+                              </div>
+
+                              <div class="stat-item">
+                                <span class="stat-label">
+                                  MaxDist Column
+                                  <i class="pi pi-question-circle
+                                           field-help"
+                                     pTooltip="Column with the max survey distance in ly (≤ 20)."
+                                     tooltipPosition="top"></i>
+                                </span>
+                                <span class="stat-value">
+                                  {{ colToLetter(v.maxdistance_column) }}
+                                  <span class="stat-hint">
+                                    ({{ v.maxdistance_column }})
+                                  </span>
+                                </span>
+                              </div>
+                            </div>
+
+                            <div class="variant-edit-btn">
+                              <p-button label="Edit"
+                                        icon="pi pi-pencil"
+                                        severity="secondary"
+                                        size="small"
+                                        (onClick)="startEdit(v)" />
+                            </div>
+
+                          }
+                        </div>
+
+                        <!-- Header Checks -->
+                        <div class="checks-section">
+                          <p class="control-label">
+                            Header Checks
+                            <i class="pi pi-question-circle field-help"
+                               pTooltip="Cell-value assertions used
+ to identify this format. All checks must pass for the variant
+ to be selected."
+                               tooltipPosition="top"></i>
+                          </p>
+
+                          @if (v.checks.length === 0) {
+                            <p class="text-muted checks-empty">
+                              No checks defined — this variant will
+                              match any sheet.
+                            </p>
+                          } @else {
+                            <div class="checks-list">
+                              @for (chk of v.checks; track chk.id) {
+                                <div class="check-row">
+                                  <span class="check-coord">
+                                    {{ colToLetter(chk.col) }}{{ chk.row + 1 }}
+                                  </span>
+                                  <span class="check-value">
+                                    {{ chk.value }}
+                                  </span>
+                                  <p-button icon="pi pi-times"
+                                            [text]="true"
+                                            [rounded]="true"
+                                            severity="danger"
+                                            size="small"
+                                            (onClick)="confirmDeleteCheck($event, v.id, chk.id)"
+                                            [loading]="deletingCheckId === chk.id" />
+                                </div>
+                              }
+                            </div>
+                          }
+
+                          @if (deleteCheckError) {
+                            <p-message severity="error"
+                                       [text]="deleteCheckError"
+                                       [closable]="true"
+                                       (onClose)="deleteCheckError = null"
+                                       styleClass="form-message" />
+                          }
+
+                          <!-- Add check form -->
+                          <div class="add-check-form">
+                            <input pInputText
+                                   [(ngModel)]="newCheck.col"
+                                   placeholder="Col (A)"
+                                   class="check-col-input"
+                                   pTooltip="Spreadsheet column letter (A, B, C…)"
+                                   tooltipPosition="top" />
+                            <p-inputnumber
+                              [(ngModel)]="newCheck.row"
+                              [min]="1"
+                              [useGrouping]="false"
+                              placeholder="Row"
+                              styleClass="check-row-input"
+                              pTooltip="1-indexed row number"
+                              tooltipPosition="top" />
+                            <input pInputText
+                                   [(ngModel)]="newCheck.value"
+                                   placeholder="Expected cell value"
+                                   class="check-value-input"
+                                   pTooltip="Exact text the cell must contain"
+                                   tooltipPosition="top" />
+                            <p-button icon="pi pi-plus"
+                                      (onClick)="addCheck(v.id)"
+                                      [loading]="addCheckLoad"
+                                      [rounded]="true"
+                                      pTooltip="Add check"
+                                      tooltipPosition="top" />
+                          </div>
+                          @if (addCheckError) {
+                            <p-message severity="error"
+                                       [text]="addCheckError"
+                                       [closable]="true"
+                                       (onClose)="addCheckError = null"
+                                       styleClass="form-message" />
+                          }
+                        </div>
+
+                        <!-- Danger zone -->
+                        <div class="danger-zone">
+                          @if (deleteVariantError) {
+                            <p-message severity="error"
+                                       [text]="deleteVariantError"
+                                       [closable]="true"
+                                       (onClose)="deleteVariantError = null"
+                                       styleClass="form-message" />
+                          }
+                          <p-button label="Delete Variant"
+                                    icon="pi pi-trash"
+                                    severity="danger"
+                                    [text]="true"
+                                    (onClick)="confirmDeleteVariant($event, v.id)"
+                                    [loading]="deletingVariantId === v.id" />
+                        </div>
+
+                      </div>
+
+                    </p-tabpanel>
+                  }
+
+                  <!-- ── Add new variant tab ── -->
+                  <p-tabpanel value="new">
+                    <div class="variant-panel">
+
+                      <p class="new-variant-intro text-muted">
+                        Define a new column layout for recognising
+                        spreadsheets belonging to this project.
+                      </p>
+
+                      <div class="field-grid">
+                        <label class="field-label">
+                          Name
+                          <i class="pi pi-question-circle field-help"
+                             pTooltip="A short descriptive name
+ shown in logs and error reports."
+                             tooltipPosition="top"></i>
+                        </label>
+                        <input pInputText
+                               [(ngModel)]="newVariant.name"
+                               placeholder="e.g. DW3 SDS"
+                               class="field-input" />
+
+                        <label class="field-label">
+                          Header Row
+                          <i class="pi pi-question-circle field-help"
+                             pTooltip="The 1-indexed row containing
+ column titles. Data rows start immediately below."
+                             tooltipPosition="top"></i>
+                        </label>
+                        <p-inputnumber
+                          [(ngModel)]="newVariant.header_row"
+                          [min]="1"
+                          [useGrouping]="false"
+                          styleClass="field-input-num" />
+
+                        <label class="field-label">
+                          SysName Column
+                          <i class="pi pi-question-circle field-help"
+                             pTooltip="The column (A, B, C…)
+ containing the star system name."
+                             tooltipPosition="top"></i>
+                        </label>
+                        <div class="col-input-wrap">
+                          <input pInputText
+                                 [(ngModel)]="newVariant.sysname_column"
+                                 class="col-input"
+                                 placeholder="A" />
+                          <span class="col-hint text-muted">
+                            ({{ letterToCol(newVariant.sysname_column) >= 0
+                                 ? letterToCol(newVariant.sysname_column)
+                                 : '?' }})
+                          </span>
+                        </div>
+
+                        <label class="field-label">
+                          ZSample Column
+                          <i class="pi pi-question-circle field-help"
+                             pTooltip="The column containing the
+ Z-coordinate survey slice value."
+                             tooltipPosition="top"></i>
+                        </label>
+                        <div class="col-input-wrap">
+                          <input pInputText
+                                 [(ngModel)]="newVariant.zsample_column"
+                                 class="col-input"
+                                 placeholder="B" />
+                          <span class="col-hint text-muted">
+                            ({{ letterToCol(newVariant.zsample_column) >= 0
+                                 ? letterToCol(newVariant.zsample_column)
+                                 : '?' }})
+                          </span>
+                        </div>
+
+                        <label class="field-label">
+                          SysCount Column
+                          <i class="pi pi-question-circle field-help"
+                             pTooltip="The column with the number
+ of star systems within range (0–50)."
+                             tooltipPosition="top"></i>
+                        </label>
+                        <div class="col-input-wrap">
+                          <input pInputText
+                                 [(ngModel)]="newVariant.syscount_column"
+                                 class="col-input"
+                                 placeholder="C" />
+                          <span class="col-hint text-muted">
+                            ({{ letterToCol(newVariant.syscount_column) >= 0
+                                 ? letterToCol(newVariant.syscount_column)
+                                 : '?' }})
+                          </span>
+                        </div>
+
+                        <label class="field-label">
+                          MaxDist Column
+                          <i class="pi pi-question-circle field-help"
+                             pTooltip="The column with the maximum
+ survey distance in ly (must be ≤ 20)."
+                             tooltipPosition="top"></i>
+                        </label>
+                        <div class="col-input-wrap">
+                          <input pInputText
+                                 [(ngModel)]="newVariant.maxdistance_column"
+                                 class="col-input"
+                                 placeholder="D" />
+                          <span class="col-hint text-muted">
+                            ({{ letterToCol(newVariant.maxdistance_column) >= 0
+                                 ? letterToCol(newVariant.maxdistance_column)
+                                 : '?' }})
+                          </span>
+                        </div>
+                      </div>
+
+                      @if (addVariantError) {
+                        <p-message severity="error"
+                                   [text]="addVariantError"
+                                   [closable]="true"
+                                   (onClose)="addVariantError = null"
+                                   styleClass="form-message" />
+                      }
+
+                      <div class="edit-actions">
+                        <p-button label="Add Variant"
+                                  icon="pi pi-plus"
+                                  (onClick)="addVariant()"
+                                  [loading]="addVariantLoad" />
+                      </div>
+
+                    </div>
+                  </p-tabpanel>
+
+                </p-tabpanels>
+              </p-tabs>
+
+            }
+
+          </p-card>
         }
 
-      </p-card>
+      </div>
     }
 
   </div>

@@ -20,6 +20,18 @@
 - `POST /api/vsds/folders/{id}/process` - queue folder processing (AuthPost, IsAdmin); returns 409 if already queued/in-progress
 - `GET /api/vsds/projects`, `PUT /api/vsds/projects` etc.
 
+### Sheet Variant CRUD (admin-only, backend complete as of 2026-03-21)
+- `GET /api/vsds/projects/{id}/variants` - list variants for project
+- `PUT /api/vsds/projects/{id}/variants` - add variant
+- `POST /api/vsds/projects/{id}/variants/{vid}` - update variant
+- `DELETE /api/vsds/projects/{id}/variants/{vid}` - delete variant
+- `PUT /api/vsds/projects/{id}/variants/{vid}/checks` - add check
+- `DELETE /api/vsds/projects/{id}/variants/{vid}/checks/{cid}` - delete check
+- All handlers in `pkg/http/api/vsds/variants.go`
+- DB methods: `ListVariants`, `AddVariant`, `UpdateVariant`, `DeleteVariant`, `AddVariantCheck`, `DeleteVariantCheck` in `pkg/db/vsds.go`
+- View: `vsds.v_spreadsheetvariants` in `sql/vsds_views.sql`
+- Coordinates: 0-indexed (no transform in backend)
+
 ## Database
 - Prepared statements in `pkg/db/db.go` `afterConn()` function
 - VSDs types in `pkg/db/vsds.go`

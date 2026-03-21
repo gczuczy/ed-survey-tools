@@ -288,6 +288,32 @@ implementation.
 
 ---
 
+## 16. Confirmation Dialogs on Destructive Actions - RECURRING
+
+**Session:** vsds-basics (2026-03-21, two separate corrections)
+
+### Mistakes made:
+- Delete variant button had no confirmation — user caught it
+- Delete header check button had no confirmation — user caught it in the
+  same session, immediately after the variant fix
+
+### Rules:
+- **Every** delete/remove button in the UI must show a confirmation dialog
+  before executing. No exceptions, regardless of how "minor" the item.
+- Use `ConfirmPopup` (anchored to the button) for inline row/item deletions:
+  - Import `ConfirmPopupModule` from `primeng/confirmpopup`
+  - Add `ConfirmationService` to component `providers`
+  - Inject in constructor
+  - Place `<p-confirmpopup />` once in the template (inside the relevant card)
+  - Add a `confirmDeleteX(event: Event, id)` wrapper method that calls
+    `confirmationService.confirm({ target: event.target, message, accept })`
+  - Wire button to `(onClick)="confirmDeleteX($event, item.id)"` — never
+    directly to the delete method
+- Use `ConfirmDialog` (modal) for higher-stakes bulk or irreversible actions
+  if needed, but `ConfirmPopup` is preferred for individual row deletions
+
+---
+
 ## Summary Checklist for New Frontend Features
 
 Before finishing any frontend implementation:
@@ -306,3 +332,4 @@ Before finishing any frontend implementation:
 11. Are all new routes in app.routes.ts using lazy `loadComponent`?
 12. Do all Go structs for API responses have `json:""` struct tags?
 13. Do error message display elements have `white-space: pre-wrap`?
+14. Does every delete/remove button go through a `ConfirmPopup` confirmation?

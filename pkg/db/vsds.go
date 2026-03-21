@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"errors"
 	"time"
+	"encoding/json"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -67,24 +68,26 @@ type VSDSProject struct {
 // DBSheetVariantCheck is one header-cell assertion belonging to a
 // sheet variant.
 type DBSheetVariantCheck struct {
-	VariantID int    `db:"variantid"`
-	Col       int    `db:"col"`
-	Row       int    `db:"row"`
-	Value     string `db:"value"`
+	ID        int    `db:"id"        json:"id"`
+	VariantID int    `db:"variantid" json:"-"`
+	Col       int    `db:"col"       json:"col"`
+	Row       int    `db:"row"       json:"row"`
+	Value     string `db:"value"     json:"value"`
 }
 
 // DBSheetVariant is a sheet variant definition with its checks
 // assembled from the database.
 type DBSheetVariant struct {
-	ID                int
-	Name              string
-	ProjectName       string
-	HeaderRow         int
-	SysNameColumn     int
-	ZSampleColumn     int
-	SystemCountColumn int
-	MaxDistanceColumn int
-	Checks            []DBSheetVariantCheck
+	ID                int `db:"id" json:"id"`
+	ProjectID         int `db:"projectid" json:"project_id"`
+	ProjectName       string `db:"projectname" json:"-"`
+	Name              string `db:"name" json:"name"`
+	HeaderRow         int `db:"headerrow" json:"header_row"`
+	SysNameColumn     int `db:"sysnamecolumn" json:"sysname_column"`
+	ZSampleColumn     int `db:"zsamplecolumn" json:"zsample_column"`
+	SystemCountColumn int `db:"systemcountcolumn" json:"syscount_column"`
+	MaxDistanceColumn int `db:"maxdistancecolumn" json:"maxdistance_column"`
+	Checks            []DBSheetVariantCheck `db:"-" json:"checks"`
 }
 
 // FetchVariants loads all sheet variant definitions together with
@@ -1045,4 +1048,406 @@ func (t *Transaction) RecordSheetResult(
 		})
 	}
 	return t.saveCheckpoint()
+}
+
+// variantScanRow is used to scan a row from v_spreadsheetvariants.
+// The checks column is JSONB cast to text; it is parsed separately.
+type variantScanRow struct {
+	ID                int    `db:"id"`
+	ProjectID         int    `db:"projectid"`
+	ProjectName       string `db:"projectname"`
+	Name              string `db:"name"`
+	HeaderRow         int    `db:"headerrow"`
+	SysNameColumn     int    `db:"sysnamecolumn"`
+	ZSampleColumn     int    `db:"zsamplecolumn"`
+	SystemCountColumn int    `db:"systemcountcolumn"`
+	MaxDistanceColumn int    `db:"maxdistancecolumn"`
+	ChecksJSON        string `db:"checks"`
+}
+
+func parseVariantRow(r variantScanRow) (DBSheetVariant, error) {
+	sv := DBSheetVariant{
+		ID:                r.ID,
+		ProjectID:         r.ProjectID,
+		ProjectName:       r.ProjectName,
+		Name:              r.Name,
+		HeaderRow:         r.HeaderRow,
+		SysNameColumn:     r.SysNameColumn,
+		ZSampleColumn:     r.ZSampleColumn,
+		SystemCountColumn: r.SystemCountColumn,
+		MaxDistanceColumn: r.MaxDistanceColumn,
+	}
+	if err := json.Unmarshal(
+		[]byte(r.ChecksJSON), &sv.Checks,
+	); err != nil {
+		return sv, fmt.Errorf("parseVariantRow: %w", err)
+	}
+	if sv.Checks == nil {
+		sv.Checks = []DBSheetVariantCheck{}
+	}
+	return sv, nil
+}
+
+func (p *DBPool) ListVariants(projectID int) (
+	variants []DBSheetVariant, err error,
+) {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Unable to acquire connection from pool")
+		return
+	}
+	defer conn.Release()
+
+	rows, err := conn.Query(
+		p.ctx, "listprojectvariants", projectID)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "listprojectvariants").
+			Msg("Error while executing query")
+		return
+	}
+	defer rows.Close()
+
+	scanRows, err := pgx.CollectRows(
+		rows, pgx.RowToStructByName[variantScanRow])
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Error while reading results")
+		return
+	}
+
+	variants = make([]DBSheetVariant, 0, len(scanRows))
+	for _, r := range scanRows {
+		sv, perr := parseVariantRow(r)
+		if perr != nil {
+			err = perr
+			return
+		}
+		variants = append(variants, sv)
+	}
+	return
+}
+
+func (p *DBPool) AddVariant(sv DBSheetVariant) (
+	result DBSheetVariant, err error,
+) {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Unable to acquire connection from pool")
+		return
+	}
+	defer conn.Release()
+
+	tx, err := conn.Begin(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Error while opening txn")
+		return
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback(p.ctx)
+			return
+		}
+		if cerr := tx.Commit(p.ctx); cerr != nil {
+			tx.Rollback(p.ctx)
+			err = cerr
+		}
+	}()
+
+	var newID int
+	err = tx.QueryRow(p.ctx, "addvariant",
+		sv.ProjectID, sv.Name, sv.HeaderRow,
+		sv.SysNameColumn, sv.ZSampleColumn,
+		sv.SystemCountColumn, sv.MaxDistanceColumn,
+	).Scan(&newID)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "addvariant").
+			Msg("Error while executing query")
+		return
+	}
+
+	rows, err := tx.Query(
+		p.ctx, "getvariant", newID, sv.ProjectID)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "getvariant").
+			Msg("Error while executing query")
+		return
+	}
+	scanRows, cerr := pgx.CollectRows(
+		rows, pgx.RowToStructByName[variantScanRow])
+	if cerr != nil {
+		err = cerr
+		logger.Error().Err(err).Caller().
+			Msg("Error while reading results")
+		return
+	}
+	if len(scanRows) == 0 {
+		err = ErrNotFound
+		return
+	}
+	return parseVariantRow(scanRows[0])
+}
+
+func (p *DBPool) UpdateVariant(sv DBSheetVariant) (
+	result DBSheetVariant, err error,
+) {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Unable to acquire connection from pool")
+		return
+	}
+	defer conn.Release()
+
+	tx, err := conn.Begin(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Error while opening txn")
+		return
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback(p.ctx)
+			return
+		}
+		if cerr := tx.Commit(p.ctx); cerr != nil {
+			tx.Rollback(p.ctx)
+			err = cerr
+		}
+	}()
+
+	tag, err := tx.Exec(p.ctx, "updatevariant",
+		sv.ID, sv.ProjectID, sv.Name, sv.HeaderRow,
+		sv.SysNameColumn, sv.ZSampleColumn,
+		sv.SystemCountColumn, sv.MaxDistanceColumn,
+	)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "updatevariant").
+			Msg("Error while executing query")
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		err = ErrNotFound
+		return
+	}
+
+	rows, err := tx.Query(
+		p.ctx, "getvariant", sv.ID, sv.ProjectID)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "getvariant").
+			Msg("Error while executing query")
+		return
+	}
+	scanRows, cerr := pgx.CollectRows(
+		rows, pgx.RowToStructByName[variantScanRow])
+	if cerr != nil {
+		err = cerr
+		logger.Error().Err(err).Caller().
+			Msg("Error while reading results")
+		return
+	}
+	if len(scanRows) == 0 {
+		err = ErrNotFound
+		return
+	}
+	return parseVariantRow(scanRows[0])
+}
+
+func (p *DBPool) DeleteVariant(projectID, variantID int) error {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Unable to acquire connection from pool")
+		return err
+	}
+	defer conn.Release()
+
+	tag, err := conn.Exec(
+		p.ctx, "deletevariant", variantID, projectID)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "deletevariant").
+			Msg("Error while executing query")
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (p *DBPool) AddVariantCheck(
+	projectID, variantID int, c DBSheetVariantCheck,
+) (result DBSheetVariant, err error) {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Unable to acquire connection from pool")
+		return
+	}
+	defer conn.Release()
+
+	tx, err := conn.Begin(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Error while opening txn")
+		return
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback(p.ctx)
+			return
+		}
+		if cerr := tx.Commit(p.ctx); cerr != nil {
+			tx.Rollback(p.ctx)
+			err = cerr
+		}
+	}()
+
+	// Verify variant belongs to this project
+	rows, err := tx.Query(
+		p.ctx, "getvariant", variantID, projectID)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "getvariant").
+			Msg("Error while executing query")
+		return
+	}
+	existing, cerr := pgx.CollectRows(
+		rows, pgx.RowToStructByName[variantScanRow])
+	if cerr != nil {
+		err = cerr
+		return
+	}
+	if len(existing) == 0 {
+		err = ErrNotFound
+		return
+	}
+
+	_, err = tx.Exec(p.ctx, "addvariantcheck",
+		variantID, c.Col, c.Row, c.Value)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			err = newQueryError(ErrDuplicate, map[string]any{
+				"variantid": variantID,
+				"col":       c.Col,
+				"row":       c.Row,
+			})
+		} else {
+			logger.Error().Err(err).Caller().
+				Str("query", "addvariantcheck").
+				Msg("Error while executing query")
+		}
+		return
+	}
+
+	rows, err = tx.Query(
+		p.ctx, "getvariant", variantID, projectID)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "getvariant").
+			Msg("Error while executing query")
+		return
+	}
+	scanRows, cerr := pgx.CollectRows(
+		rows, pgx.RowToStructByName[variantScanRow])
+	if cerr != nil {
+		err = cerr
+		return
+	}
+	if len(scanRows) == 0 {
+		err = ErrNotFound
+		return
+	}
+	return parseVariantRow(scanRows[0])
+}
+
+func (p *DBPool) DeleteVariantCheck(
+	projectID, variantID, checkID int,
+) (result DBSheetVariant, err error) {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Unable to acquire connection from pool")
+		return
+	}
+	defer conn.Release()
+
+	tx, err := conn.Begin(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Error while opening txn")
+		return
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback(p.ctx)
+			return
+		}
+		if cerr := tx.Commit(p.ctx); cerr != nil {
+			tx.Rollback(p.ctx)
+			err = cerr
+		}
+	}()
+
+	// Verify variant belongs to this project
+	rows, err := tx.Query(
+		p.ctx, "getvariant", variantID, projectID)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "getvariant").
+			Msg("Error while executing query")
+		return
+	}
+	existing, cerr := pgx.CollectRows(
+		rows, pgx.RowToStructByName[variantScanRow])
+	if cerr != nil {
+		err = cerr
+		return
+	}
+	if len(existing) == 0 {
+		err = ErrNotFound
+		return
+	}
+
+	tag, err := tx.Exec(
+		p.ctx, "deletevariantcheck", checkID, variantID)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "deletevariantcheck").
+			Msg("Error while executing query")
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		err = ErrNotFound
+		return
+	}
+
+	rows, err = tx.Query(
+		p.ctx, "getvariant", variantID, projectID)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "getvariant").
+			Msg("Error while executing query")
+		return
+	}
+	scanRows, cerr := pgx.CollectRows(
+		rows, pgx.RowToStructByName[variantScanRow])
+	if cerr != nil {
+		err = cerr
+		return
+	}
+	if len(scanRows) == 0 {
+		err = ErrNotFound
+		return
+	}
+	return parseVariantRow(scanRows[0])
 }

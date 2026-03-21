@@ -39,6 +39,25 @@
   - Admin right: add single zsample (PUT .../zsamples/{zsample}), bulk replace via textarea (POST .../zsamples with []int)
   - All zsample mutations return updated VSDSProject; `updateProject()` syncs list + selection
   - `VSDSProject` interface: `{ id: number; name: string; zsamples: number[] }`
+- **Projects subsection variants panel** (admin only, right panel second card):
+  - Sheet Variants card rendered below ZSamples card in `.right-cards` flex column
+  - `p-tabs [(value)]="activeVariantTab"` — value is `number` (variant.id) or
+    `'new'` (string); initialised to first variant's id or `'new'` when empty
+  - `editDraft` shape: `{ name: string; header_row: number; sysname_column: string;
+    zsample_column: string; syscount_column: string; maxdistance_column: string }`
+    — column fields are letter strings (e.g. 'A'), header_row is 1-indexed
+  - `colToLetter(n: number): string` — 0-indexed col → spreadsheet letter (A, B…)
+  - `letterToCol(s: string): number` — letter → 0-indexed, returns -1 if invalid
+  - Both helpers are **public** (not private) — called from the template
+  - All API values are 0-indexed; UI shows 1-indexed rows and letter columns;
+    conversion happens entirely in the frontend
+  - `loadVariants(projectId)` called from `selectProject()` when `isAdmin`
+  - `updateVariantInList(variant)` private helper — same pattern as `updateProject`
+  - Imports added: `TabsModule`, `PanelModule`, `TooltipModule`
+  - Interfaces: `VSDSSheetVariant`, `VSDSSheetVariantCheck` in vsds.service.ts
+  - Service methods: `listVariants`, `addVariant`, `updateVariant`, `deleteVariant`,
+    `addVariantCheck`, `deleteVariantCheck`
+
 - **Folders subsection** (`/vsds/folders`, protected: isAdmin):
   - `components/vsds/vsds-folders.component.ts`
   - Lists folders via GET /api/vsds/folders

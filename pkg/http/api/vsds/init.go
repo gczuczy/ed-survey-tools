@@ -35,5 +35,27 @@ func Init(r *mux.Router) error {
 		w.NewAPIHandler().AuthPut(addZSample, w.IsAdmin).
 			AuthDelete(deleteZSample, w.IsAdmin),
 	)
+
+	// sheet variants
+	r.Handle("/projects/{id:[0-9]+}/variants",
+		w.NewAPIHandler().
+			AuthGet(listVariants, w.IsAdmin).
+			AuthPut(addVariant, w.IsAdmin),
+	)
+	r.Handle("/projects/{id:[0-9]+}/variants/{vid:[0-9]+}",
+		w.NewAPIHandler().
+			AuthPost(updateVariant, w.IsAdmin).
+			AuthDelete(deleteVariant, w.IsAdmin),
+	)
+	r.Handle(
+		"/projects/{id:[0-9]+}/variants/{vid:[0-9]+}/checks",
+		w.NewAPIHandler().
+			AuthPut(addVariantCheck, w.IsAdmin),
+	)
+	r.Handle(
+		"/projects/{id:[0-9]+}/variants/{vid:[0-9]+}/checks/{cid:[0-9]+}",
+		w.NewAPIHandler().
+			AuthDelete(deleteVariantCheck, w.IsAdmin),
+	)
 	return nil
 }

@@ -161,3 +161,242 @@
 .loading-text {
   padding: 0.5rem 0;
 }
+
+// ── Right panel: multi-card layout ───────────────────────────────────────────
+.right-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+// ── Variant card title row ────────────────────────────────────────────────────
+.variants-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.variants-help-icon {
+  font-size: 0.85rem;
+  cursor: pointer;
+  opacity: 0.55;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+// ── Variant help popover content ──────────────────────────────────────────────
+.variant-help-popover {
+  max-width: 22rem;
+  font-size: 0.875rem;
+
+  p, ul {
+    margin: 0.35rem 0;
+  }
+
+  ul {
+    padding-left: 1.25rem;
+  }
+
+  li {
+    margin: 0.2rem 0;
+  }
+}
+
+// ── Variant tabs ──────────────────────────────────────────────────────────────
+.variant-tabs {
+  margin-top: 0.5rem;
+}
+
+// ── Variant panel (tab content) ───────────────────────────────────────────────
+.variant-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 0.75rem 0;
+}
+
+// ── Field grid (2-column label/value layout) ──────────────────────────────────
+.field-grid {
+  display: grid;
+  grid-template-columns: 11rem 1fr;
+  gap: 0.6rem 1rem;
+  align-items: center;
+}
+
+.field-label {
+  font-weight: 500;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.field-value {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.field-help {
+  font-size: 0.75rem;
+  cursor: help;
+  opacity: 0.6;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.field-input {
+  width: 100%;
+}
+
+.field-input-num {
+  width: 8rem;
+}
+
+.col-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.col-input {
+  width: 5rem;
+  text-transform: uppercase;
+}
+
+.col-hint {
+  font-size: 0.8rem;
+}
+
+// ── Variant stat cards (read-only 2-col layout) ───────────────────────────────
+.variant-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.6rem 0.85rem;
+  background: var(--p-surface-ground);
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 8px;
+}
+
+.stat-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--p-text-muted-color);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.stat-value {
+  font-size: 1rem;
+  font-weight: 500;
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.stat-hint {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--p-text-muted-color);
+}
+
+// ── Edit-mode action buttons ──────────────────────────────────────────────────
+.variant-edit-btn {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+// ── Header checks ─────────────────────────────────────────────────────────────
+.checks-section {
+  border-top: 1px solid var(--p-content-border-color);
+  padding-top: 1rem;
+}
+
+.checks-empty {
+  font-size: 0.875rem;
+  font-style: italic;
+  margin: 0.25rem 0 0.75rem;
+}
+
+.checks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.check-coord {
+  font-family: monospace;
+  font-size: 0.875rem;
+  font-weight: 600;
+  min-width: 3.5rem;
+}
+
+.check-value {
+  flex: 1;
+  font-size: 0.875rem;
+}
+
+.add-check-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.check-col-input {
+  width: 4.5rem;
+  text-transform: uppercase;
+}
+
+.check-row-input {
+  width: 5.5rem;
+}
+
+.check-value-input {
+  flex: 1;
+  min-width: 10rem;
+}
+
+// ── Danger zone ───────────────────────────────────────────────────────────────
+.danger-zone {
+  border-top: 1px solid var(--p-content-border-color);
+  padding-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+// ── Add new variant tab intro ─────────────────────────────────────────────────
+.new-variant-intro {
+  font-size: 0.9rem;
+  margin: 0;
+}

@@ -114,7 +114,14 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
     if (url.startsWith('/vsds/')) {
       crumbs.push({ label: 'VSDS', routerLink: '/vsds' });
       if (url.includes('/vsds/projects')) {
-        crumbs.push({ label: 'Projects' });
+        if (this.dynamicLabel) {
+          crumbs.push({
+            label: 'Projects', routerLink: '/vsds/projects',
+          });
+          crumbs.push({ label: this.dynamicLabel });
+        } else {
+          crumbs.push({ label: 'Projects' });
+        }
       } else if (/\/vsds\/folders\/\d+/.test(url)) {
         crumbs.push({ label: 'Folders', routerLink: '/vsds/folders' });
         crumbs.push({ label: this.dynamicLabel ?? '…' });
