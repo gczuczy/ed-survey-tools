@@ -68,8 +68,18 @@ type RedisSessionConfig struct {
 	Port *uint16 `koanf:"port"`
 }
 
+type SyslogConfig struct {
+	Host     string `koanf:"host"`
+	Port     uint16 `koanf:"port"`
+	Proto    string `koanf:"proto"`
+	Facility string `koanf:"facility"`
+}
+
 type LoggingConfig struct {
-	Level string `koanf:"level"`
+	Level     string       `koanf:"level"`
+	Output    string       `koanf:"output"`
+	Timestamp bool         `koanf:"timestamp"`
+	Syslog    SyslogConfig `koanf:"syslog"`
 }
 
 func ParseConfig(k *koanf.Koanf) (*Config, error) {
@@ -94,7 +104,14 @@ func ParseConfig(k *koanf.Koanf) (*Config, error) {
 			Issuer: "https://auth.frontierstore.net",
 		},
 		Logging: LoggingConfig{
-			Level: "info",
+			Level:     "info",
+			Output:    "stdio",
+			Timestamp: false,
+			Syslog: SyslogConfig{
+				Host:     "127.0.0.1",
+				Port:     514,
+				Facility: "LOCAL0",
+			},
 		},
 		VSDS: VSDSConfig{
 			ProcessorInterval: time.Minute,
