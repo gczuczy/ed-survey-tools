@@ -75,4 +75,10 @@
 - Section name (`<a class="nav-link section-name">`) + chevron (`<span class="section-chevron">`)
 - Wrapped in `<span class="nav-section">` (display: flex)
 - CSS in navbar.component.scss: `.nav-section`, `.section-name`, `.section-chevron`
-- `vsdsMenuItems` is a getter for reactive permission filtering
+- `vsdsMenuItems` is a property (NOT a getter) initialized in ngOnInit — a getter
+  would return a new array every change detection cycle, causing p-menu to
+  reinitialize and requiring double-click to navigate
+
+## Recurring Correction Patterns
+See `frontend/memory/CORRECTION_PATTERNS.md` for a full checklist of mistakes
+that were historically corrected by the user after implementation.
