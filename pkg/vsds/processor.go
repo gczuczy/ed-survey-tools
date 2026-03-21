@@ -185,6 +185,8 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 			sheets, err = openXlsxSheets(item)
 		case typeODS:
 			sheets, err = openOdsSheets(item)
+		case typeCSV:
+			sheets, err = openCsvSheets(item)
 		default:
 			p.logger.Error().
 				Int("procid", job.ProcID).
@@ -215,7 +217,11 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 			continue
 		}
 
-		for _, sheet := range filterSheets(sheets) {
+		toProcess := filterSheets(sheets)
+		if item.MimeType == typeCSV {
+			toProcess = sheets
+		}
+		for _, sheet := range toProcess {
 			tabName := sheet.GetName()
 
 			sheetID, err = txn.AddSheet(spreadsheetID, &tabName)
