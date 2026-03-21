@@ -1,143 +1,67 @@
 package vsds
 
 import (
+	"errors"
 	"fmt"
 	"slices"
-	"strings"
 	"strconv"
+	"strings"
+
+	"github.com/gczuczy/ed-survey-tools/pkg/db"
 	"github.com/gczuczy/ed-survey-tools/pkg/gcp"
 )
 
-var (
-	variantDW3sds = sheetVariant{
-		Name:      "DW3 SDS",
-		Project:   `DW3 Stellar Density Scans`,
-		HeaderRow: 4,
-		HeaderChecks: []sheetHeaderCheck{
-			{Column: 0, Row: 4, Value: "System"},
-			{Column: 2, Row: 4, Value: "System Count"},
-			{Column: 1, Row: 5, Value: "0"},
-			{Column: 6, Row: 4, Value: "X"},
-			{Column: 7, Row: 4, Value: "Z"},
-			{Column: 8, Row: 4, Value: "Y"},
-		},
-		SampleIndicatorColumn: 1,
-		SysNameColumn:         0,
-		ZSampleColumn:         1,
-		SystemCountColumn:     2,
-		MaxDistanceColumn:     4,
-		MinSampleRatio:        0.45,
-	}
-
-	variantDW3log = sheetVariant{
-		Name:      "DW3 Logarithmic",
-		Project:   `DW3 Logarithmic Density Scans`,
-		HeaderRow: 4,
-		HeaderChecks: []sheetHeaderCheck{
-			{Column: 0, Row: 4, Value: "System"},
-			{Column: 2, Row: 4, Value: "System Count"},
-			{Column: 1, Row: 5, Value: "-250"},
-			{Column: 6, Row: 4, Value: "X"},
-			{Column: 7, Row: 4, Value: "Z"},
-			{Column: 8, Row: 4, Value: "Y"},
-		},
-		SampleIndicatorColumn: 1,
-		SysNameColumn:         0,
-		ZSampleColumn:         1,
-		SystemCountColumn:     2,
-		MaxDistanceColumn:     4,
-		MinSampleRatio:        0.45,
-	}
-
-	variantA15X = sheetVariant{
-		Name:      "A15X A",
-		Project:   `A15X CW Density Scans`,
-		HeaderRow: 4,
-		HeaderChecks: []sheetHeaderCheck{
-			{Column: 0, Row: 4, Value: "System"},
-			{Column: 2, Row: 4, Value: "n"},
-			{Column: 5, Row: 4, Value: "X"},
-			{Column: 6, Row: 4, Value: "Z"},
-			{Column: 7, Row: 4, Value: "Y"},
-		},
-		SampleIndicatorColumn: 1,
-		SysNameColumn:         0,
-		ZSampleColumn:         1,
-		SystemCountColumn:     2,
-		MaxDistanceColumn:     3,
-		MinSampleRatio:        0.9,
-	}
-
-	variantA15Xv1 = sheetVariant{
-		Name:      "A15X B",
-		Project:   `A15X CW Density Scans`,
-		HeaderRow: 5,
-		HeaderChecks: []sheetHeaderCheck{
-			{Column: 0, Row: 5, Value: "System"},
-			{Column: 2, Row: 5, Value: "n"},
-			{Column: 5, Row: 5, Value: "X"},
-			{Column: 6, Row: 5, Value: "Z"},
-			{Column: 7, Row: 5, Value: "Y"},
-		},
-		SampleIndicatorColumn: 1,
-		SysNameColumn:         0,
-		ZSampleColumn:         1,
-		SystemCountColumn:     2,
-		MaxDistanceColumn:     3,
-		MinSampleRatio:        0.9,
-	}
-
-	sheetVariants = []*sheetVariant{
-		&variantDW3sds, &variantDW3log, &variantA15X, &variantA15Xv1,
-	}
-)
-
+// sheetVariant describes the column layout of one recognised
+// spreadsheet format. All coordinates are 0-indexed.
 type sheetVariant struct {
-	// debug
+	// display / debug name
 	Name string
-	// project name
+	// resolved project name
 	Project string
-	// row orientations
+	// index of the header row
 	HeaderRow int
-
-	// column header names
+	// cell assertions used to fingerprint the variant
 	HeaderChecks []sheetHeaderCheck
-
-	// column orientations (0-indexed, A=0)
-	SampleIndicatorColumn int
-	SysNameColumn         int
-	ZSampleColumn         int
-	SystemCountColumn     int
-	MaxDistanceColumn     int
-	// 0..1, minimum ratio of samples filled in the survey sheet
-	MinSampleRatio float32
+	// column indices
+	SysNameColumn     int
+	ZSampleColumn     int
+	SystemCountColumn int
+	MaxDistanceColumn int
 }
 
-// Column and Rows are on the 0-indexed result set, not cell designations
+// sheetHeaderCheck is a single cell-value assertion used to
+// fingerprint a sheet variant.
+// Column and Row are 0-indexed result-set coordinates.
 type sheetHeaderCheck struct {
 	Column int
-	Row int
-	Value string
+	Row    int
+	Value  string
 }
+
 func (shc sheetHeaderCheck) String() string {
 	return fmt.Sprintf(`(%d,%d,%s)"`, shc.Column, shc.Row, shc.Value)
 }
 
+// VariantError is returned when a sheet cannot be matched to a
+// known variant.
 type VariantError struct {
 	VariantName string
-	Check *sheetHeaderCheck
-	Value *string
-	Message string
+	Check       *sheetHeaderCheck
+	Value       *string
+	Message     string
 }
+
 func (ve *VariantError) setCheck(check *sheetHeaderCheck) *VariantError {
 	ve.Check = check
 	return ve
 }
+
 func (ve *VariantError) setValue(v string) *VariantError {
 	x := v
 	ve.Value = &x
 	return ve
 }
+
 func (ve *VariantError) msgf(format string, args ...any) *VariantError {
 	ve.Message = fmt.Sprintf(format, args...)
 	return ve
@@ -166,7 +90,8 @@ func (sv *sheetVariant) Eval(sheet gcp.Sheet) error {
 	for _, check := range sv.HeaderChecks {
 		if sheet.Rows() <= check.Row {
 			return reterr.setCheck(&check).
-				msgf("Not enough rows has:%d needs:%d",	sheet.Rows(),	check.Row)
+				msgf("Not enough rows has:%d needs:%d",
+					sheet.Rows(), check.Row)
 		}
 		val := sheet.Get(check.Row, check.Column)
 		if val != check.Value {
@@ -175,20 +100,18 @@ func (sv *sheetVariant) Eval(sheet gcp.Sheet) error {
 	}
 
 	nsamples := 0
-	nzsamples := 0
 	for i := sv.HeaderRow + 1; i < sheet.Rows(); i++ {
 		if len(sheet.Get(i, sv.ZSampleColumn)) == 0 {
 			break
 		}
-		nzsamples++
-
-		hasSysCount := false
-		hasMaxDistance := false
 
 		systemName := sheet.Get(i, sv.SysNameColumn)
 		if slices.Contains(skipSysNames, systemName) {
 			continue
 		}
+
+		hasSysCount := false
+		hasMaxDistance := false
 
 		if syscount, err := strconv.Atoi(
 			sheet.Get(i, sv.SystemCountColumn)); err == nil &&
@@ -205,10 +128,62 @@ func (sv *sheetVariant) Eval(sheet gcp.Sheet) error {
 			nsamples++
 		}
 	}
-	// if it has any data, that's good enough for now
-	//return float32(nzsamples)*sv.MinSampleRatio < float32(nsamples)
 	if nsamples == 0 {
 		return reterr.msgf("Sheet has no data")
 	}
 	return nil
+}
+
+// VariantService holds the set of known sheet variants loaded from
+// the database at the start of a processing run.
+type VariantService struct {
+	variants []*sheetVariant
+}
+
+// NewVariantService loads all sheet variant definitions from the
+// database within the given transaction and returns a ready service.
+func NewVariantService(txn *db.Transaction) (*VariantService, error) {
+	dbVariants, err := txn.FetchVariants()
+	if err != nil {
+		return nil, err
+	}
+
+	variants := make([]*sheetVariant, len(dbVariants))
+	for i, dv := range dbVariants {
+		sv := &sheetVariant{
+			Name:              dv.Name,
+			Project:           dv.ProjectName,
+			HeaderRow:         dv.HeaderRow,
+			SysNameColumn:     dv.SysNameColumn,
+			ZSampleColumn:     dv.ZSampleColumn,
+			SystemCountColumn: dv.SystemCountColumn,
+			MaxDistanceColumn: dv.MaxDistanceColumn,
+			HeaderChecks:      make([]sheetHeaderCheck, len(dv.Checks)),
+		}
+		for j, c := range dv.Checks {
+			sv.HeaderChecks[j] = sheetHeaderCheck{
+				Column: c.Col,
+				Row:    c.Row,
+				Value:  c.Value,
+			}
+		}
+		variants[i] = sv
+	}
+
+	return &VariantService{variants: variants}, nil
+}
+
+// Identify returns the first variant that matches sheet, or an error
+// aggregating all mismatch details when no variant matches.
+func (vs *VariantService) Identify(sheet gcp.Sheet) (*sheetVariant, error) {
+	var varianterr error
+	for _, sv := range vs.variants {
+		if err := sv.Eval(sheet); err != nil {
+			varianterr = errors.Join(varianterr, err)
+		} else {
+			return sv, nil
+		}
+	}
+	return nil, errors.Join(varianterr, fmt.Errorf(
+		"Unable to identify sheet variant for %s", sheet.GetName()))
 }

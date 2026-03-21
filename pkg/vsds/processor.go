@@ -118,6 +118,7 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 		spreadsheetID int
 		sheetID       int
 		surveyHash    uint64
+		variantSvc    *VariantService
 	)
 
 	surveyCache := types.NewSet[uint64]()
@@ -138,6 +139,13 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 	defer txn.Close()
 
 	sysCache := db.NewSystemCache(txn, p.edsm)
+
+	if variantSvc, err = NewVariantService(txn); err != nil {
+		p.logger.Error().Err(err).
+			Int("procid", job.ProcID).
+			Msg("Error loading sheet variants")
+		return
+	}
 
 	items, err := gcp.ListFolder(job.GCPID)
 	if err != nil {
@@ -234,7 +242,7 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 				continue
 			}
 
-			survey, err = ParseSheet(sheet)
+			survey, err = ParseSheet(sheet, variantSvc)
 			if err != nil {
 				p.logger.Error().Err(err).
 					Int("procid", job.ProcID).

@@ -29,7 +29,9 @@ func stripCmdrPrefix(name string) string {
 	return name
 }
 
-func ParseSheet(sheet gcp.Sheet) (vsdstypes.Survey, error) {
+func ParseSheet(
+	sheet gcp.Sheet, vs *VariantService,
+) (vsdstypes.Survey, error) {
 	name := sheet.GetName()
 	m := vsdstypes.Survey{
 		Name:         name,
@@ -50,21 +52,9 @@ func ParseSheet(sheet gcp.Sheet) (vsdstypes.Survey, error) {
 		m.CMDR = stripCmdrPrefix(b1name)
 	}
 
-	var (
-		variant *sheetVariant
-		varianterr error
-	)
-	for _, sv := range sheetVariants {
-		if err := sv.Eval(sheet); err != nil {
-			varianterr = errors.Join(varianterr, err)
-		} else {
-			variant = sv
-			break
-		}
-	}
-	if variant == nil {
-		return m, errors.Join(varianterr, fmt.Errorf(
-			"Unable to identify sheet variant for %s", name))
+	variant, err := vs.Identify(sheet)
+	if err != nil {
+		return m, err
 	}
 	// fix the project name
 	m.Project = variant.Project
@@ -74,7 +64,6 @@ func ParseSheet(sheet gcp.Sheet) (vsdstypes.Survey, error) {
 		c     int
 		mdstr string
 		md    float64
-		err   error
 	)
 	for i := variant.HeaderRow + 1; i < sheet.Rows(); i++ {
 		if sheet.Get(i, variant.ZSampleColumn) == "" {

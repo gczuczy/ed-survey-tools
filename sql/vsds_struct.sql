@@ -151,3 +151,95 @@ CREATE TABLE vsds.sheet_processing (
            REFERENCES vsds.sheets (id) ON DELETE CASCADE
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON vsds.sheet_processing TO edservice;
+
+-- Named column layouts used to recognise and parse survey sheets.
+-- Each variant belongs to exactly one project.
+CREATE TABLE vsds.spreadsheetvariants (
+       id                int         GENERATED ALWAYS AS IDENTITY,
+       projectid         int         NOT NULL,
+       name              varchar(64) NOT NULL,
+       headerrow         int         NOT NULL,
+       sysnamecolumn     int         NOT NULL,
+       zsamplecolumn     int         NOT NULL,
+       systemcountcolumn int         NOT NULL,
+       maxdistancecolumn int         NOT NULL,
+       PRIMARY KEY (id),
+       FOREIGN KEY (projectid)
+           REFERENCES vsds.projects (id) ON DELETE CASCADE
+);
+GRANT SELECT, INSERT, UPDATE, DELETE
+    ON vsds.spreadsheetvariants TO edservice;
+GRANT SELECT ON vsds.spreadsheetvariants TO edviewer;
+
+-- Individual cell-value assertions that fingerprint a variant.
+-- (variantid, col, row) is unique: no two checks on the same cell.
+CREATE TABLE vsds.spreadsheetvariant_checks (
+       id        int         GENERATED ALWAYS AS IDENTITY,
+       variantid int         NOT NULL,
+       col       int         NOT NULL,
+       row       int         NOT NULL,
+       value     varchar(64) NOT NULL,
+       PRIMARY KEY (id),
+       UNIQUE (variantid, col, row),
+       FOREIGN KEY (variantid)
+           REFERENCES vsds.spreadsheetvariants (id) ON DELETE CASCADE
+);
+GRANT SELECT, INSERT, UPDATE, DELETE
+    ON vsds.spreadsheetvariant_checks TO edservice;
+GRANT SELECT ON vsds.spreadsheetvariant_checks TO edviewer;
+
+-- Seed the four known variants (previously hard-coded in Go).
+WITH p AS (
+    SELECT id, name FROM vsds.projects
+)
+INSERT INTO vsds.spreadsheetvariants
+    (projectid, name, headerrow,
+     sysnamecolumn, zsamplecolumn,
+     systemcountcolumn, maxdistancecolumn)
+SELECT p.id,
+       v.name, v.headerrow,
+       v.sysnamecolumn, v.zsamplecolumn,
+       v.systemcountcolumn, v.maxdistancecolumn
+FROM (VALUES
+    ('DW3 Stellar Density Scans',     'DW3 SDS',        4, 0, 1, 2, 4),
+    ('DW3 Logarithmic Density Scans', 'DW3 Logarithmic', 4, 0, 1, 2, 4),
+    ('A15X CW Density Scans',         'A15X A',          4, 0, 1, 2, 3),
+    ('A15X CW Density Scans',         'A15X B',          5, 0, 1, 2, 3)
+) AS v(projectname, name, headerrow,
+       sysnamecolumn, zsamplecolumn,
+       systemcountcolumn, maxdistancecolumn)
+JOIN p ON p.name = v.projectname
+;
+
+-- Seed header checks for each variant.
+WITH v AS (
+    SELECT id, name FROM vsds.spreadsheetvariants
+)
+INSERT INTO vsds.spreadsheetvariant_checks (variantid, col, row, value)
+SELECT v.id, c.col, c.row, c.value
+FROM (VALUES
+    ('DW3 SDS', 0, 4, 'System'),
+    ('DW3 SDS', 2, 4, 'System Count'),
+    ('DW3 SDS', 1, 5, '0'),
+    ('DW3 SDS', 6, 4, 'X'),
+    ('DW3 SDS', 7, 4, 'Z'),
+    ('DW3 SDS', 8, 4, 'Y'),
+    ('DW3 Logarithmic', 0, 4, 'System'),
+    ('DW3 Logarithmic', 2, 4, 'System Count'),
+    ('DW3 Logarithmic', 1, 5, '-250'),
+    ('DW3 Logarithmic', 6, 4, 'X'),
+    ('DW3 Logarithmic', 7, 4, 'Z'),
+    ('DW3 Logarithmic', 8, 4, 'Y'),
+    ('A15X A', 0, 4, 'System'),
+    ('A15X A', 2, 4, 'n'),
+    ('A15X A', 5, 4, 'X'),
+    ('A15X A', 6, 4, 'Z'),
+    ('A15X A', 7, 4, 'Y'),
+    ('A15X B', 0, 5, 'System'),
+    ('A15X B', 2, 5, 'n'),
+    ('A15X B', 5, 5, 'X'),
+    ('A15X B', 6, 5, 'Z'),
+    ('A15X B', 7, 5, 'Y')
+) AS c(variantname, col, row, value)
+JOIN v ON v.name = c.variantname
+;

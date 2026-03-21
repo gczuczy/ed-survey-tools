@@ -232,6 +232,23 @@ SELECT id, edsmid, name, x, y, z
 FROM common.systems
 WHERE name = ANY($1::text[])
 `,
+
+		// VSDS: fetch all sheet variants with their project names
+		"fetchsheetvariants": `
+SELECT sv.id, sv.name, p.name AS projectname,
+       sv.headerrow, sv.sysnamecolumn, sv.zsamplecolumn,
+       sv.systemcountcolumn, sv.maxdistancecolumn
+FROM vsds.spreadsheetvariants sv
+JOIN vsds.projects p ON p.id = sv.projectid
+ORDER BY sv.id
+`,
+
+		// VSDS: fetch all sheet variant header checks
+		"fetchsheetvariantchecks": `
+SELECT variantid, col, row, value
+FROM vsds.spreadsheetvariant_checks
+ORDER BY variantid, id
+`,
 	}
 
 

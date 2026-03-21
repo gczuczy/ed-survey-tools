@@ -64,6 +64,101 @@ type VSDSProject struct {
 	ZSamples []int  `db:"zsamples" json:"zsamples"`
 }
 
+// DBSheetVariantCheck is one header-cell assertion belonging to a
+// sheet variant.
+type DBSheetVariantCheck struct {
+	VariantID int    `db:"variantid"`
+	Col       int    `db:"col"`
+	Row       int    `db:"row"`
+	Value     string `db:"value"`
+}
+
+// DBSheetVariant is a sheet variant definition with its checks
+// assembled from the database.
+type DBSheetVariant struct {
+	ID                int
+	Name              string
+	ProjectName       string
+	HeaderRow         int
+	SysNameColumn     int
+	ZSampleColumn     int
+	SystemCountColumn int
+	MaxDistanceColumn int
+	Checks            []DBSheetVariantCheck
+}
+
+// FetchVariants loads all sheet variant definitions together with
+// their header checks within the current transaction.
+func (t *Transaction) FetchVariants() ([]DBSheetVariant, error) {
+	type varRow struct {
+		ID                int    `db:"id"`
+		Name              string `db:"name"`
+		ProjectName       string `db:"projectname"`
+		HeaderRow         int    `db:"headerrow"`
+		SysNameColumn     int    `db:"sysnamecolumn"`
+		ZSampleColumn     int    `db:"zsamplecolumn"`
+		SystemCountColumn int    `db:"systemcountcolumn"`
+		MaxDistanceColumn int    `db:"maxdistancecolumn"`
+	}
+
+	rows, err := t.tx.Query(t.ctx, "fetchsheetvariants")
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "fetchsheetvariants").
+			Msg("Error while executing query")
+		return nil, err
+	}
+	defer rows.Close()
+
+	vrows, err := pgx.CollectRows(rows, pgx.RowToStructByName[varRow])
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Error while reading variant results")
+		return nil, err
+	}
+
+	checkRows, err := t.tx.Query(t.ctx, "fetchsheetvariantchecks")
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "fetchsheetvariantchecks").
+			Msg("Error while executing query")
+		return nil, err
+	}
+	defer checkRows.Close()
+
+	checks, err := pgx.CollectRows(
+		checkRows,
+		pgx.RowToStructByName[DBSheetVariantCheck],
+	)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Error while reading variant check results")
+		return nil, err
+	}
+
+	byID := make(map[int][]DBSheetVariantCheck, len(vrows))
+	for _, c := range checks {
+		byID[c.VariantID] = append(byID[c.VariantID], c)
+	}
+
+	variants := make([]DBSheetVariant, len(vrows))
+	for i, vr := range vrows {
+		variants[i] = DBSheetVariant{
+			ID:                vr.ID,
+			Name:              vr.Name,
+			ProjectName:       vr.ProjectName,
+			HeaderRow:         vr.HeaderRow,
+			SysNameColumn:     vr.SysNameColumn,
+			ZSampleColumn:     vr.ZSampleColumn,
+			SystemCountColumn: vr.SystemCountColumn,
+			MaxDistanceColumn: vr.MaxDistanceColumn,
+			Checks:            byID[vr.ID],
+		}
+	}
+
+	return variants, nil
+}
+
 func (p *DBPool) ListProjects() (projects []VSDSProject, err error) {
 	var (
 		rows pgx.Rows
