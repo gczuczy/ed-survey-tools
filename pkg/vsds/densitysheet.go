@@ -18,8 +18,9 @@ var (
 )
 
 func parseFloat(s string, bitSize int) (float64, error) {
-	return strconv.ParseFloat(
-		strings.ReplaceAll(s, ",", "."), bitSize)
+	s = strings.ReplaceAll(s, ",", ".")
+	s = strings.ReplaceAll(s, "..", ".")
+	return strconv.ParseFloat(s, bitSize)
 }
 
 func stripCmdrPrefix(name string) string {
