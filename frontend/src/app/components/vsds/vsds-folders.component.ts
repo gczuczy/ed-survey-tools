@@ -22,6 +22,8 @@ import { ConfirmationService }         from 'primeng/api';
   styleUrl:    './vsds-folders.component.scss',
 })
 export class VsdsFoldersComponent implements OnInit {
+  gcpClientEmail = '';
+
   folders:    VSDSFolder[] = [];
   loading   = true;
   loadError: string | null = null;
@@ -40,6 +42,9 @@ export class VsdsFoldersComponent implements OnInit {
   constructor(private vsdsService: VsdsService, private confirmationService: ConfirmationService) {}
 
   ngOnInit(): void {
+    this.vsdsService.getConfig().subscribe({
+      next: (resp) => { this.gcpClientEmail = resp.data?.gcp_client_email ?? ''; },
+    });
     this.loadFolders();
   }
 

@@ -2,6 +2,18 @@
 <div class="vsds-folders">
   <!-- Add Folder -->
   <p-card header="Add Folder">
+    <div class="gcp-access-notice">
+      <p-message
+        severity="info"
+        text="The Google Drive folder must be shared with the GCP service account. Grant at least Viewer access to the account below."
+        styleClass="notice-msg" />
+      @if (gcpClientEmail) {
+        <div class="notice-email">
+          <span class="notice-email-label">Service account:</span>
+          <code>{{ gcpClientEmail }}</code>
+        </div>
+      }
+    </div>
     <div class="add-folder-form">
       <input pInputText
              [(ngModel)]="newFolderUrl"
