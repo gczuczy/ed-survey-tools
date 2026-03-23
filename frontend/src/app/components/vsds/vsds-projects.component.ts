@@ -161,6 +161,11 @@ export class VsdsProjectsComponent implements OnInit, OnDestroy {
     return this.authService.user?.isadmin ?? false;
   }
 
+  get sortedZSamples(): number[] {
+    if (!this.selectedProject) return [];
+    return [...this.selectedProject.zsamples].sort((a, b) => a - b);
+  }
+
   loadProjects(): void {
     this.loadingProjects = true;
     this.loadError = null;

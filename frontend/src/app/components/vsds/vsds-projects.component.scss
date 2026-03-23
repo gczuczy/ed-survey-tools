@@ -112,13 +112,46 @@
   font-size: 0.875rem;
 }
 
-// ── Right panel: admin controls ───────────────────────────────────────────────
-.admin-zsample-controls {
-  border-top: 1px solid var(--p-content-border-color);
-  padding-top: 1.25rem;
+// ── ZSample split layout (admin) ──────────────────────────────────────────────
+.zsample-split {
+  display: flex;
+  flex-direction: row;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.zsample-forms {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+.zsample-list-col {
+  flex: 0 0 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.zsample-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 18rem;
+  overflow-y: auto;
+}
+
+.zsample-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.2rem 0.25rem 0.2rem 0.5rem;
+  border-bottom: 1px solid var(--p-content-border-color);
+
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
 .control-label {
