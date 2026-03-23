@@ -1,0 +1,543 @@
+// ── Two-column split layout ───────────────────────────────────────────────────
+.projects-layout {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.projects-left {
+  flex: 0 0 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.projects-right {
+  flex: 1;
+}
+
+// ── Generic panel (replaces p-card on the left) ───────────────────────────────
+.panel {
+  background: var(--p-content-background);
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.panel-header {
+  padding: 0.875rem 1.25rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+  border-bottom: 1px solid var(--p-content-border-color);
+}
+
+.panel-body {
+  padding: 0.75rem 1rem;
+}
+
+// ── Add-project form ──────────────────────────────────────────────────────────
+.add-project-form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.project-name-input {
+  flex: 1;
+  min-width: 0;
+}
+
+// ── Project list ──────────────────────────────────────────────────────────────
+.project-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+.project-item {
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.35rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  user-select: none;
+
+  &:hover {
+    background-color: var(--p-content-hover-background);
+  }
+
+  &.active {
+    background-color: var(--p-highlight-background);
+    color: var(--p-primary-color);
+    font-weight: 500;
+  }
+}
+
+.project-empty {
+  padding: 0.75rem;
+}
+
+// ── Right panel: empty state ──────────────────────────────────────────────────
+.no-selection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 4rem 1rem;
+  font-size: 1.1rem;
+}
+
+// ── Right panel: zsample chips ────────────────────────────────────────────────
+.zsamples-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  min-height: 2rem;
+}
+
+.zsample-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  background-color: var(--p-highlight-background);
+  color: var(--p-primary-color);
+  border-radius: 1rem;
+  padding: 0.15rem 0.25rem 0.15rem 0.75rem;
+}
+
+.zsample-value {
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+// ── ZSample split layout (admin) ──────────────────────────────────────────────
+.zsample-split {
+  display: flex;
+  flex-direction: row;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.zsample-forms {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.zsample-list-col {
+  flex: 0 0 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.zsample-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 18rem;
+  overflow-y: auto;
+}
+
+.zsample-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.2rem 0.25rem 0.2rem 0.5rem;
+  border-bottom: 1px solid var(--p-content-border-color);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.control-label {
+  margin: 0;
+  font-weight: 600;
+  color: var(--p-text-muted-color);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.add-zsample-form {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.zsample-input {
+  width: 160px;
+}
+
+.bulk-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  textarea {
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+  }
+}
+
+// ── Shared ────────────────────────────────────────────────────────────────────
+.form-message {
+  margin-top: 0.75rem;
+  display: block;
+}
+
+.loading-text {
+  padding: 0.5rem 0;
+}
+
+// ── Right panel: multi-card layout ────────────────────────────────────────────
+.right-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+// ── Variant card title row ────────────────────────────────────────────────────
+.variants-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.variants-help-icon {
+  font-size: 0.85rem;
+  cursor: pointer;
+  opacity: 0.55;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+// ── Variant help popover content ──────────────────────────────────────────────
+.variant-help-popover {
+  max-width: 22rem;
+  font-size: 0.875rem;
+
+  p, ul {
+    margin: 0.35rem 0;
+  }
+
+  ul {
+    padding-left: 1.25rem;
+  }
+
+  li {
+    margin: 0.2rem 0;
+  }
+}
+
+// ── Variant tabs ──────────────────────────────────────────────────────────────
+.variant-tabs {
+  margin-top: 0.5rem;
+}
+
+// ── Field helpers (shared between inline and dialog) ──────────────────────────
+.field-label {
+  font-weight: 500;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.field-help {
+  font-size: 0.75rem;
+  cursor: help;
+  opacity: 0.6;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.field-input {
+  width: 100%;
+}
+
+.field-input-num {
+  width: 8rem;
+}
+
+.col-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.col-input {
+  width: 5rem;
+  text-transform: uppercase;
+}
+
+.col-hint {
+  font-size: 0.8rem;
+}
+
+// ── Add-check form (shared for dialog check adding) ───────────────────────────
+.add-check-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.check-col-input {
+  width: 4.5rem;
+  text-transform: uppercase;
+}
+
+.check-row-wrap {
+  flex: 0 0 3.5rem;
+
+  ::ng-deep .p-inputnumber {
+    width: 100%;
+  }
+}
+
+
+.check-value-input {
+  flex: 1;
+  min-width: 10rem;
+}
+
+// ── Compact variant read-only view ────────────────────────────────────────────
+.variant-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.variant-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.5rem;
+}
+
+.info-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.info-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.6;
+}
+
+.info-value {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+// ── Check badges ──────────────────────────────────────────────────────────────
+.checks-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.check-badge {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-family: monospace;
+  background: rgba(128, 128, 128, 0.15);
+}
+
+.checks-empty-note {
+  font-size: 0.85rem;
+}
+
+// ── Variant actions row ───────────────────────────────────────────────────────
+.variant-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.variant-add-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+// ── Dialog body ───────────────────────────────────────────────────────────────
+.dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.dialog-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.section-label {
+  font-weight: 600;
+  margin: 0;
+}
+
+.dialog-field-grid {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+}
+
+// ── 2×2 column-fields grid ────────────────────────────────────────────────────
+.dialog-col-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem 0.75rem;
+}
+
+.col-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+// ── Dialog checks list ────────────────────────────────────────────────────────
+.dialog-checks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.dialog-check-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.check-coord {
+  font-family: monospace;
+  font-weight: 600;
+  min-width: 3rem;
+}
+
+.check-eq {
+  opacity: 0.5;
+}
+
+.check-value {
+  flex: 1;
+  font-family: monospace;
+}
+
+// ── Validation section ────────────────────────────────────────────────────────
+.validate-section {
+  border-top: 1px solid var(--p-surface-300);
+  padding-top: 0.75rem;
+}
+
+.validate-url-row {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.validate-url-input {
+  flex: 1;
+}
+
+.validate-results {
+  margin-top: 0.5rem;
+}
+
+// ── Spreadsheet table ─────────────────────────────────────────────────────────
+.sheet-table-wrapper {
+  overflow: auto;
+  max-height: 360px;
+  border: 1px solid var(--p-surface-300);
+  border-radius: 4px;
+}
+
+.sheet-table {
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  white-space: nowrap;
+
+  th, td {
+    border: 1px solid var(--p-surface-300);
+    padding: 0.2rem 0.45rem;
+  }
+
+  th {
+    background: var(--p-surface-100);
+    font-weight: 600;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  .row-num-header,
+  .row-num {
+    text-align: right;
+    opacity: 0.5;
+    min-width: 2.5rem;
+  }
+
+  .row-num {
+    background: var(--p-surface-50);
+    position: sticky;
+    left: 0;
+  }
+
+  td.cell-ok {
+    background: rgba(34, 197, 94, 0.18);
+  }
+
+  td.cell-error {
+    background: rgba(239, 68, 68, 0.18);
+  }
+}
+
+// ── Validation tab icons ──────────────────────────────────────────────────────
+.tab-status-icon {
+  margin-right: 0.3rem;
+}
+
+.tab-icon-ok {
+  color: var(--p-green-500);
+}
+
+.tab-icon-err {
+  color: var(--p-red-500);
+}
+
+// ── Dialog footer ─────────────────────────────────────────────────────────────
+.dialog-footer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.dialog-footer-msg {
+  flex: 1;
+}

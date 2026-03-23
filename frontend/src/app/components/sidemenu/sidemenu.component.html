@@ -1,27 +1,26 @@
-<div class="row g-0 sidemenu-layout">
+<div class="sidemenu-layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+      <h6 class="sidebar-heading">Menu</h6>
+      <nav class="sidebar-nav">
+        <a class="nav-link"
+           routerLink="/sidemenu/alpha"
+           routerLinkActive="active">
+          <i class="pi pi-file"></i> Alpha
+        </a>
+        <a class="nav-link"
+           routerLink="/sidemenu/beta"
+           routerLinkActive="active">
+          <i class="pi pi-file"></i> Beta
+        </a>
+      </nav>
+    </div>
+  </aside>
 
-  <!-- ── Sidebar ─────────────────────────────────────────────── -->
-  <div class="col-auto sidebar p-3">
-    <h6 class="text-uppercase text-secondary px-2 mb-2" style="font-size:.75rem;letter-spacing:.08em">
-      Menu
-    </h6>
-    <nav class="nav flex-column">
-      <a class="nav-link"
-         routerLink="/sidemenu/alpha"
-         routerLinkActive="active">
-        📄 Alpha
-      </a>
-      <a class="nav-link"
-         routerLink="/sidemenu/beta"
-         routerLinkActive="active">
-        📄 Beta
-      </a>
-    </nav>
-  </div>
-
-  <!-- ── Main content area ───────────────────────────────────── -->
-  <div class="col p-4">
-    <span class="badge bg-warning text-dark mb-2" style="width:fit-content">🔒 Login-protected</span>
+  <!-- Main content area -->
+  <main class="sidemenu-content">
+    <p-tag value="Login-protected" icon="pi pi-lock" severity="warn" styleClass="protected-tag" />
     <router-outlet></router-outlet>
-  </div>
+  </main>
 </div>

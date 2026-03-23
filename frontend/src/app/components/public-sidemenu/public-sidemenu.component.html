@@ -1,9 +1,9 @@
-<div class="d-flex sidemenu-layout">
-  <!-- ── Sidebar ──────────────────────────────────────────────────── -->
+<div class="sidemenu-layout">
+  <!-- Sidebar -->
   <aside class="sidebar">
-    <div class="p-3 sidebar-content">
-      <h5 class="text-muted mb-3">Public Menu</h5>
-      <nav class="nav flex-column">
+    <div class="sidebar-inner">
+      <h5 class="text-muted sidebar-title">Public Menu</h5>
+      <nav class="sidebar-nav">
         <a class="nav-link" routerLink="option1" routerLinkActive="active">
           Option 1
         </a>
@@ -14,8 +14,8 @@
     </div>
   </aside>
 
-  <!-- ── Main content area ────────────────────────────────────────── -->
-  <main class="flex-grow-1 page-wrapper">
+  <!-- Main content area -->
+  <main class="sidemenu-content page-wrapper">
     <router-outlet />
   </main>
 </div>

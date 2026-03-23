@@ -4,13 +4,23 @@
     "allow": [
       "Bash(npm run lint)",
       "Bash(npm run test *)",
-			"Bash(gmake build)",
-			"Bash(gmake -C frontend/ build)",
-			"Bash(grep)",
+      "Bash(npm audit *)",
+      "Bash(npm update *)",
+      "Bash(npm ls *)",
+      "Bash(npm view *)",
+      "Bash(npm install *)",
+      "Bash(npm uninstall *)",
+			"Bash(gmake build*)",
+			"Bash(gmake -C frontend/ build *)",
+			"Bash(grep *)",
 			"Bash(xargs)",
+			"Read(frontend/node_modules/**)",
 			"Edit(/**/*.go)",
 			"Edit(/frontend/**)",
-			"Edit(**/*.md)"
+			"Edit(**/*.md)",
+			"Edit(sql/**/*.sql)",
+			"Edit(memory/**.md)",
+			"Edit(frontend/memory/**.md)"
     ],
     "deny": [
     ]

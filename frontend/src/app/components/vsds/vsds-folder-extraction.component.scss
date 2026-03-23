@@ -1,0 +1,78 @@
+.vsds-extraction {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: 1rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: var(--p-content-background);
+  border: 1px solid var(--p-content-border-color);
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--p-text-color);
+
+  &.success   { color: var(--p-green-500); }
+  &.error     { color: var(--p-red-500); }
+  &.timestamp { font-size: 0.9rem; font-weight: 400; }
+}
+
+.expand-col {
+  width: 3rem;
+  text-align: center;
+}
+
+.content-type {
+  font-size: 0.8rem;
+  color: var(--p-text-muted-color);
+}
+
+.sheets-expansion {
+  padding: 0.5rem 1rem 0.5rem 3rem;
+}
+
+.sheet-name {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.error-message {
+  color: var(--p-text-muted-color);
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+}
+
+.no-errors {
+  text-align: center;
+  color: var(--p-text-muted-color);
+  padding: 1.5rem 0;
+}
+
+.back-link {
+  a {
+    color: var(--p-primary-color);
+    text-decoration: none;
+
+    &:hover { text-decoration: underline; }
+  }
+}

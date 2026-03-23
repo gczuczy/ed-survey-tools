@@ -3,3 +3,13 @@ db:
   user: ''
   password: ''
   dbname: ''
+
+logging:
+  level: info
+  output: stdio       # stdio or syslog
+  timestamp: false
+  syslog:
+    host: 127.0.0.1
+    port: 514
+    proto:            # unset (local socket) or udp
+    facility: LOCAL0

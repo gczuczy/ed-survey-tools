@@ -1,0 +1,3 @@
+-- Survey insertion is handled by the Go processing layer via
+-- direct SQL statements within the long batch transaction.
+-- No PL/pgSQL functions are needed here at this time.

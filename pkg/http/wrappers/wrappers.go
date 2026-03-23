@@ -24,6 +24,7 @@ type Request struct {
 	R *http.Request
 	S *sessions.Session
 	L log.Logger
+	Vars map[string]string
 }
 
 type Error interface {

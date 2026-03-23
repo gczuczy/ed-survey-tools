@@ -27,7 +27,7 @@ export interface OAuthBackendConfig {
 export interface UserInfo {
   id:         number;
   name:       string;
-  customerid: number;
+  customerid: number | null;
   isowner:    boolean;
   isadmin:    boolean;
 }

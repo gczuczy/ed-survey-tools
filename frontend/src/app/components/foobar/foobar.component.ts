@@ -1,24 +1,28 @@
-import { Component } from '@angular/core';
+import { Component }  from '@angular/core';
+import { CardModule } from 'primeng/card';
+import { TagModule }  from 'primeng/tag';
 
 @Component({
   selector:   'app-foobar',
   standalone: true,
+  imports:    [CardModule, TagModule],
   template: `
-    <div class="row justify-content-center mt-4">
-      <div class="col-md-8">
-        <div class="card p-4">
-          <h2 class="card-title">Foobar</h2>
-          <span class="badge bg-warning text-dark mb-2" style="width:fit-content">🔒 Login-protected</span>
-          <p class="card-text text-secondary">
-            This is the <strong>Foobar</strong> page.  You can only see it after
-            successfully authenticating via OAuth2 PKCE.
-          </p>
-          <p class="card-text">
-            <em>Placeholder – replace this content with your feature.</em>
-          </p>
-        </div>
-      </div>
+    <div class="content-center">
+      <p-card header="Foobar">
+        <p-tag value="Login-protected" icon="pi pi-lock" severity="warn" />
+        <p class="text-muted" style="margin-top: 0.75rem">
+          This is the <strong>Foobar</strong> page.  You can only see it after
+          successfully authenticating via OAuth2 PKCE.
+        </p>
+        <p><em>Placeholder – replace this content with your feature.</em></p>
+      </p-card>
     </div>
-  `
+  `,
+  styles: [`
+    .content-center {
+      max-width: 800px;
+      margin: 1rem auto 0;
+    }
+  `]
 })
 export class FoobarComponent {}

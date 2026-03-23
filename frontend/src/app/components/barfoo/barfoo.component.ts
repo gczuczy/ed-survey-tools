@@ -1,23 +1,26 @@
-import { Component } from '@angular/core';
+import { Component }  from '@angular/core';
+import { CardModule } from 'primeng/card';
 
 @Component({
   selector:   'app-barfoo',
   standalone: true,
+  imports:    [CardModule],
   template: `
-    <div class="row justify-content-center mt-4">
-      <div class="col-md-8">
-        <div class="card p-4">
-          <h2 class="card-title">Barfoo</h2>
-          <p class="card-text text-secondary">
-            This is the <strong>Barfoo</strong> page.  It is publicly accessible —
-            no login is required.
-          </p>
-          <p class="card-text">
-            <em>Placeholder – replace this content with your feature.</em>
-          </p>
-        </div>
-      </div>
+    <div class="content-center">
+      <p-card header="Barfoo">
+        <p class="text-muted">
+          This is the <strong>Barfoo</strong> page.  It is publicly accessible —
+          no login is required.
+        </p>
+        <p><em>Placeholder – replace this content with your feature.</em></p>
+      </p-card>
     </div>
-  `
+  `,
+  styles: [`
+    .content-center {
+      max-width: 800px;
+      margin: 1rem auto 0;
+    }
+  `]
 })
 export class BarfooComponent {}

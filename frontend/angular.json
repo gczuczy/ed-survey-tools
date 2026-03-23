@@ -33,6 +33,7 @@
               }
             ],
             "styles": [
+              "node_modules/primeicons/primeicons.css",
               "src/styles.scss"
             ],
             "scripts": []
@@ -47,8 +48,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "2KB",
-                  "maximumError": "4KB"
+                  "maximumWarning": "8KB",
+                  "maximumError": "12KB"
                 }
               ],
               "outputHashing": "all"

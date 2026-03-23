@@ -1,48 +1,75 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './auth/auth.guard';
+import { adminGuard } from './auth/admin.guard';
+import { ownerGuard } from './auth/owner.guard';
 
-import { HomeComponent }     from './components/home/home.component';
-import { BarfooComponent }   from './components/barfoo/barfoo.component';
-import { FoobarComponent }   from './components/foobar/foobar.component';
-import { SettingsComponent } from './components/settings/settings.component';
-
-import { SidemenuComponent }      from './components/sidemenu/sidemenu.component';
-import { SidemenuAlphaComponent } from './components/sidemenu/sidemenu-alpha.component';
-import { SidemenuBetaComponent }  from './components/sidemenu/sidemenu-beta.component';
-
-import { PublicSidemenuComponent }        from './components/public-sidemenu/public-sidemenu.component';
-import { PublicSidemenuOption1Component } from './components/public-sidemenu/public-sidemenu-option1.component';
-import { PublicSidemenuOption2Component } from './components/public-sidemenu/public-sidemenu-option2.component';
+import { HomeComponent } from './components/home/home.component';
 
 export const routes: Routes = [
   // ── Public routes ─────────────────────────────────────────────────────────
-  { path: '',       component: HomeComponent },
-  { path: 'barfoo', component: BarfooComponent },
+  { path: '', component: HomeComponent },
 
-  // ── Public side menu (no auth required) ───────────────────────────────────
+  // ── VSDS section (public section, subsections permission-gated) ───────────
   {
-    path: 'public-menu',
-    component: PublicSidemenuComponent,
+    path: 'vsds',
+    loadComponent: () =>
+      import('./components/vsds/vsds.component')
+        .then(m => m.VsdsComponent),
     children: [
-      { path: '',        redirectTo: 'option1', pathMatch: 'full' },
-      { path: 'option1', component: PublicSidemenuOption1Component },
-      { path: 'option2', component: PublicSidemenuOption2Component },
+      {
+        path: '',
+        loadComponent: () =>
+          import('./components/vsds/vsds-dashboard.component')
+            .then(m => m.VsdsDashboardComponent),
+      },
+      {
+        path: 'projects',
+        loadComponent: () =>
+          import('./components/vsds/vsds-projects.component')
+            .then(m => m.VsdsProjectsComponent),
+      },
+      {
+        path: 'projects/:id',
+        loadComponent: () =>
+          import('./components/vsds/vsds-projects.component')
+            .then(m => m.VsdsProjectsComponent),
+      },
+      {
+        path: 'folders',
+        loadComponent: () =>
+          import('./components/vsds/vsds-folders.component')
+            .then(m => m.VsdsFoldersComponent),
+        canActivate: [adminGuard],
+      },
+      {
+        path: 'folders/:id',
+        loadComponent: () =>
+          import('./components/vsds/vsds-folder-extraction.component')
+            .then(m => m.VsdsFolderExtractionComponent),
+        canActivate: [adminGuard],
+      },
     ]
   },
 
-  // ── Protected routes ──────────────────────────────────────────────────────
-  { path: 'foobar',   component: FoobarComponent,   canActivate: [authGuard] },
-  { path: 'settings', component: SettingsComponent, canActivate: [authGuard] },
-
-  // ── Protected side menu ───────────────────────────────────────────────────
+  // ── Admin section (owner-only) ────────────────────────────────────────────
   {
-    path: 'sidemenu',
-    component: SidemenuComponent,
-    canActivate: [authGuard],
+    path: 'admin',
+    loadComponent: () =>
+      import('./components/admin/admin.component')
+        .then(m => m.AdminComponent),
+    canActivate: [ownerGuard],
     children: [
-      { path: '',      redirectTo: 'alpha', pathMatch: 'full' },
-      { path: 'alpha', component: SidemenuAlphaComponent },
-      { path: 'beta',  component: SidemenuBetaComponent },
+      {
+        path: '',
+        loadComponent: () =>
+          import('./components/admin/admin-dashboard.component')
+            .then(m => m.AdminDashboardComponent),
+      },
+      {
+        path: 'cmdrs',
+        loadComponent: () =>
+          import('./components/admin/admin-cmdrs.component')
+            .then(m => m.AdminCmdrsComponent),
+      },
     ]
   },
 

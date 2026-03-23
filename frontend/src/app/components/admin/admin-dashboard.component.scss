@@ -1,0 +1,39 @@
+.admin-dashboard {
+  padding: 1rem 0;
+}
+
+.subsection-card {
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.85;
+  }
+}
+
+.card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.card-icon {
+  font-size: 2.5rem;
+  color: var(--p-primary-color);
+  margin-bottom: 1rem;
+}
+
+.card-label {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.card-description {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--p-text-muted-color);
+}

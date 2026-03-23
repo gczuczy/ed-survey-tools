@@ -1,135 +1,175 @@
-import { Component, OnInit }              from '@angular/core';
-import { RouterLink, RouterLinkActive }   from '@angular/router';
-import { NgbDropdownModule }              from '@ng-bootstrap/ng-bootstrap';
-import { AuthService }                    from '../../auth/auth.service';
+import {
+  Component, OnInit, OnDestroy, AfterViewInit,
+  ViewChild, ElementRef,
+} from '@angular/core';
+import { Router, RouterLink, NavigationEnd } from '@angular/router';
+import { filter, Subscription }    from 'rxjs';
+import { BreadcrumbService }       from '../../services/breadcrumb.service';
+import { AuthService }             from '../../auth/auth.service';
+import { ToolbarModule }           from 'primeng/toolbar';
+import { ButtonModule }            from 'primeng/button';
+import { MenuModule, Menu }        from 'primeng/menu';
+import { BreadcrumbModule }        from 'primeng/breadcrumb';
+import { MenuItem }                from 'primeng/api';
 
 @Component({
-  selector:   'app-navbar',
-  standalone: true,
+  selector:    'app-navbar',
+  standalone:  true,
   imports: [
     RouterLink,
-    RouterLinkActive,
-    NgbDropdownModule,
+    ToolbarModule,
+    ButtonModule,
+    MenuModule,
+    BreadcrumbModule,
   ],
-  template: `
-  <nav class="navbar navbar-expand-lg navbar-bg shadow-sm fixed-top">
-    <div class="container-fluid">
-
-      <!-- ── Brand ───────────────────────────────────────────────────── -->
-      <a class="navbar-brand" routerLink="/">ED Survey Tools</a>
-
-      <!-- ── Toggler (mobile) ────────────────────────────────────────── -->
-      <button class="navbar-toggler" type="button"
-              data-bs-toggle="collapse" data-bs-target="#navbarNav"
-              aria-controls="navbarNav" aria-expanded="false"
-              aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-
-      <!-- ── Nav links ───────────────────────────────────────────────── -->
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav">
-
-          <!-- 1st menu - Barfoo (public) ────────────────────────────── -->
-          <li class="nav-item">
-            <a class="nav-link" routerLink="/barfoo" routerLinkActive="active">Barfoo</a>
-          </li>
-
-          <!-- 2nd menu - Public Menu with sidebar (public) ──────────── -->
-          <li class="nav-item">
-            <a class="nav-link" routerLink="/public-menu" 
-               [class.active]="isPublicMenuActive">
-              Public Menu
-            </a>
-          </li>
-
-          @if (!authService.isConfigured) {
-            <!-- Auth config failed warning ───────────────────────────── -->
-            <li class="nav-item">
-              <span class="nav-link text-warning" 
-                    title="Authentication service unavailable - only public pages accessible">
-                ⚠️ Auth Unavailable
-              </span>
-            </li>
-          } @else if (authService.isLoggedIn) {
-            <!-- Protected menus - only show when logged in ──────────── -->
-            
-            <!-- 3rd menu - Foobar (protected) ────────────────────────── -->
-            <li class="nav-item">
-              <a class="nav-link" routerLink="/foobar" routerLinkActive="active">Foobar</a>
-            </li>
-
-            <!-- 4th menu - Side Menu dropdown (protected) ────────────── -->
-            <li class="nav-item" ngbDropdown>
-              <a class="nav-link dropdown-toggle" ngbDropdownToggle
-                 [class.active]="isSidemenuActive">
-                Side Menu
-              </a>
-              <div ngbDropdownMenu>
-                <a ngbDropdownItem routerLink="/sidemenu/alpha">Alpha</a>
-                <a ngbDropdownItem routerLink="/sidemenu/beta" >Beta</a>
-              </div>
-            </li>
-          }
-        </ul>
-
-        <!-- ── Right-aligned: Settings/Login ──────────────────────────── -->
-        <ul class="navbar-nav ms-auto">
-          @if (authService.isLoggedIn) {
-            <!-- Settings dropdown (protected) ────────────────────────── -->
-            <li class="nav-item" ngbDropdown placement="bottom-end">
-              <button class="btn btn-outline-secondary btn-sm" ngbDropdownToggle>
-                👤 CMDR {{ authService.user?.name }}
-              </button>
-              <div ngbDropdownMenu>
-                <a ngbDropdownItem routerLink="/settings">Settings</a>
-                <div class="dropdown-divider"></div>
-                <button ngbDropdownItem (click)="logout()">Logout</button>
-              </div>
-            </li>
-          } @else if (authService.isConfigured) {
-            <!-- Login button (only when auth is configured) ──────────── -->
-            <li class="nav-item">
-              <button class="btn btn-primary btn-sm" (click)="login()">Login</button>
-            </li>
-          }
-        </ul>
-      </div>
-    </div>
-  </nav>
-  `,
-  styles: [`
-    :host { display: block; }
-
-    .navbar-bg {
-      background-color: var(--bs-navbar-bg, var(--bs-body-bg));
-      color: var(--bs-body-color);
-    }
-
-    .nav-link {
-      color: var(--bs-body-color);
-      &:hover  { color: var(--bs-primary); }
-      &.active { font-weight: 600; color: var(--bs-primary) !important; }
-    }
-
-    .text-warning {
-      cursor: help;
-    }
-  `]
+  templateUrl: './navbar.component.html',
+  styleUrl:    './navbar.component.scss',
 })
-export class NavbarComponent implements OnInit {
-  isSidemenuActive = false;
-  isPublicMenuActive = false;
+export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
+  isVsdsActive  = false;
+  isAdminActive = false;
 
-  constructor(public authService: AuthService) {}
+  userMenuItems:  MenuItem[] = [];
+  vsdsMenuItems:  MenuItem[] = [];
+  adminMenuItems: MenuItem[] = [];
+
+  breadcrumbItems: MenuItem[] = [];
+  homeCrumb: MenuItem = { icon: 'pi pi-home', routerLink: '/' };
+  hasBreadcrumb = false;
+
+  @ViewChild('vsdsMenu')  vsdsMenu!:  Menu;
+  @ViewChild('adminMenu') adminMenu!: Menu;
+  @ViewChild('userMenu')  userMenu!:  Menu;
+
+  private dynamicLabel: string | null = null;
+
+  private navSub?:   Subscription;
+  private crumbSub?: Subscription;
+  private resizeObserver?: ResizeObserver;
+
+  constructor(
+    public  authService:       AuthService,
+    private router:            Router,
+    private el:                ElementRef,
+    private breadcrumbService: BreadcrumbService,
+  ) {}
 
   ngOnInit(): void {
     const check = () => {
-      this.isSidemenuActive = window.location.pathname.startsWith('/sidemenu');
-      this.isPublicMenuActive = window.location.pathname.startsWith('/public-menu');
+      this.isVsdsActive  = window.location.pathname.startsWith('/vsds');
+      this.isAdminActive = window.location.pathname.startsWith('/admin');
     };
     check();
     window.addEventListener('popstate', check);
+
+    this.userMenuItems = [
+      {
+        label:   'Settings',
+        icon:    'pi pi-cog',
+        command: () => this.router.navigate(['/settings']),
+      },
+      { separator: true },
+      {
+        label:   'Logout',
+        icon:    'pi pi-sign-out',
+        command: () => this.logout(),
+      },
+    ];
+
+    this.buildVsdsMenuItems();
+    this.buildAdminMenuItems();
+    this.updateBreadcrumbs();
+
+    this.navSub = this.router.events.pipe(
+      filter(e => e instanceof NavigationEnd)
+    ).subscribe(() => {
+      this.isVsdsActive  = this.router.url.startsWith('/vsds');
+      this.isAdminActive = this.router.url.startsWith('/admin');
+      this.buildVsdsMenuItems();
+      this.buildAdminMenuItems();
+      this.updateBreadcrumbs();
+    });
+
+    this.crumbSub = this.breadcrumbService.dynamicLabel$.subscribe(label => {
+      this.dynamicLabel = label;
+      this.updateBreadcrumbs();
+    });
+  }
+
+  ngAfterViewInit(): void {
+    this.resizeObserver = new ResizeObserver(() => this.syncNavbarHeight());
+    this.resizeObserver.observe(this.el.nativeElement);
+    this.syncNavbarHeight();
+  }
+
+  ngOnDestroy(): void {
+    this.navSub?.unsubscribe();
+    this.crumbSub?.unsubscribe();
+    this.resizeObserver?.disconnect();
+  }
+
+  private syncNavbarHeight(): void {
+    document.documentElement.style.setProperty(
+      '--navbar-height',
+      `${this.el.nativeElement.offsetHeight}px`,
+    );
+  }
+
+  private updateBreadcrumbs(): void {
+    const url = this.router.url;
+    const crumbs: MenuItem[] = [];
+
+    if (url.startsWith('/vsds/')) {
+      crumbs.push({ label: 'VSDS', routerLink: '/vsds' });
+      if (url.includes('/vsds/projects')) {
+        if (this.dynamicLabel) {
+          crumbs.push({ label: 'Projects', routerLink: '/vsds/projects' });
+          crumbs.push({ label: this.dynamicLabel });
+        } else {
+          crumbs.push({ label: 'Projects' });
+        }
+      } else if (/\/vsds\/folders\/\d+/.test(url)) {
+        crumbs.push({ label: 'Folders', routerLink: '/vsds/folders' });
+        crumbs.push({ label: this.dynamicLabel ?? '…' });
+      } else if (url.includes('/vsds/folders')) {
+        crumbs.push({ label: 'Folders' });
+      }
+    } else if (url.startsWith('/admin/')) {
+      crumbs.push({ label: 'Admin', routerLink: '/admin' });
+      if (url.includes('/admin/cmdrs')) {
+        crumbs.push({ label: 'Commanders' });
+      }
+    }
+
+    this.breadcrumbItems = crumbs;
+    this.hasBreadcrumb   = crumbs.length > 0;
+  }
+
+  private buildVsdsMenuItems(): void {
+    const items: MenuItem[] = [];
+    items.push({
+      label:   'Projects',
+      icon:    'pi pi-briefcase',
+      command: () => this.router.navigate(['/vsds/projects']),
+    });
+    if (this.authService.user?.isadmin) {
+      items.push({
+        label:   'Folders',
+        icon:    'pi pi-folder',
+        command: () => this.router.navigate(['/vsds/folders']),
+      });
+    }
+    this.vsdsMenuItems = items;
+  }
+
+  private buildAdminMenuItems(): void {
+    this.adminMenuItems = [
+      {
+        label:   'Commanders',
+        icon:    'pi pi-users',
+        command: () => this.router.navigate(['/admin/cmdrs']),
+      },
+    ];
   }
 
   login():  void { this.authService.login(); }

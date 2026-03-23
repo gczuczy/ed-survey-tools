@@ -1,14 +1,34 @@
-import { bootstrapApplication } from '@angular/platform-browser';
-import { AppComponent }         from './app/app.component';
-import { provideRouter }        from '@angular/router';
-import { routes }               from './app/app.routes';
-import { provideHttpClient }    from '@angular/common/http';
-import { provideOAuthService }  from './app/auth/oauth.provider';
+import { bootstrapApplication }    from '@angular/platform-browser';
+import { provideAnimationsAsync }  from '@angular/platform-browser/animations/async';
+import { provideRouter }           from '@angular/router';
+import { provideHttpClient }       from '@angular/common/http';
+import { providePrimeNG }          from 'primeng/config';
+import { definePreset }            from '@primeuix/themes';
+import Aura                        from '@primeuix/themes/aura';
+
+import { AppComponent }            from './app/app.component';
+import { routes }                  from './app/app.routes';
+import { provideOAuthService }     from './app/auth/oauth.provider';
+
+const EdstPreset = definePreset(Aura, {
+  primitive: {
+    fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
+  },
+});
 
 bootstrapApplication(AppComponent, {
   providers: [
     provideHttpClient(),
+    provideAnimationsAsync(),
     provideRouter(routes),
     provideOAuthService(),
+    providePrimeNG({
+      theme: {
+        preset: EdstPreset,
+        options: {
+          darkModeSelector: 'system',
+        }
+      }
+    }),
   ]
 }).catch(err => console.error(err));

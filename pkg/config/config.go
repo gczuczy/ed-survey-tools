@@ -10,11 +10,22 @@ import (
 )
 
 type Config struct {
-	DB DBConfig `koanf:"db"`
-	HTTP HTTPConfig `koanf:"http"`
-	OAuth2 OAuth2Config `koanf:"oauth2"`
+	DB       DBConfig       `koanf:"db"`
+	HTTP     HTTPConfig     `koanf:"http"`
+	OAuth2   OAuth2Config   `koanf:"oauth2"`
 	Sessions SessionsConfig `koanf:"sessions"`
-	Logging LoggingConfig `koanf:"logging"`
+	Logging  LoggingConfig  `koanf:"logging"`
+	VSDS     VSDSConfig     `koanf:"vsds"`
+	EDSM     EDSMConfig     `koanf:"edsm"`
+}
+
+type EDSMConfig struct {
+	Timeout time.Duration `koanf:"timeout"`
+	Retries int           `koanf:"retries"`
+}
+
+type VSDSConfig struct {
+	ProcessorInterval time.Duration `koanf:"processorInterval"`
 }
 
 type DBConfig struct {
@@ -57,8 +68,18 @@ type RedisSessionConfig struct {
 	Port *uint16 `koanf:"port"`
 }
 
+type SyslogConfig struct {
+	Host     string `koanf:"host"`
+	Port     uint16 `koanf:"port"`
+	Proto    string `koanf:"proto"`
+	Facility string `koanf:"facility"`
+}
+
 type LoggingConfig struct {
-	Level string `koanf:"level"`
+	Level     string       `koanf:"level"`
+	Output    string       `koanf:"output"`
+	Timestamp bool         `koanf:"timestamp"`
+	Syslog    SyslogConfig `koanf:"syslog"`
 }
 
 func ParseConfig(k *koanf.Koanf) (*Config, error) {
@@ -83,7 +104,21 @@ func ParseConfig(k *koanf.Koanf) (*Config, error) {
 			Issuer: "https://auth.frontierstore.net",
 		},
 		Logging: LoggingConfig{
-			Level: "info",
+			Level:     "info",
+			Output:    "stdio",
+			Timestamp: false,
+			Syslog: SyslogConfig{
+				Host:     "127.0.0.1",
+				Port:     514,
+				Facility: "LOCAL0",
+			},
+		},
+		VSDS: VSDSConfig{
+			ProcessorInterval: time.Minute,
+		},
+		EDSM: EDSMConfig{
+			Timeout: 5 * time.Second,
+			Retries: 10,
 		},
 	}
 	if err = k.Unmarshal("", &cfg); err != nil {

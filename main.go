@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/gczuczy/ed-survey-tools/cmd/sdaservice"
+	"github.com/gczuczy/ed-survey-tools/cmd/edst"
 )
 
 
 func main() {
-	sdaservice.Run()
+	edst.Run()
 }
