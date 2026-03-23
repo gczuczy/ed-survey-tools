@@ -7,6 +7,10 @@ import (
 )
 
 func Init(r *mux.Router) error {
+	r.Handle("/config",
+		w.NewAPIHandler().AuthGet(getConfig, w.IsAdmin),
+	)
+
 	r.Handle("/folders",
 		w.NewAPIHandler().AuthGet(listFolders, w.IsAdmin).AuthPost(addFolder, w.IsAdmin),
 	)

@@ -1,44 +1,175 @@
 # ed-survey-tools
 
-## Getting started with CLI
+A web service for processing and analysing Elite Dangerous survey data
+from Google Drive and Google Sheets. It serves an Angular frontend and
+a REST API from a single binary.
 
-To build the tool run `gmake build`.
+---
 
-Running the cli needs 3 things:
+## Requirements
 
- 1. A google serviceaccount, please see notes. Extract the service account's credentials.json, that's one of the required args
- 1. An entry sheet, which is a spreadsheet, with a single sheet, where the A column has 1 entry per row. Each cell is either a link to an actual survey sheet, or just the ID of it
- 1. A running postgresql database with the schema created, see example config file for connection params.
+### Google Cloud Platform — Service Account
 
-Running the cli will ingest all sheets of the referenced spreadsheets which are matching the criterias. Once cli finished, you can inspect the data in the DB. Please see the available views for example calculations, feel free to experiment.
+The service authenticates to Google APIs using a GCP service account.
 
-## PostgreSQL database
+1. Create a project in the [Google Cloud Console](https://console.cloud.google.com/).
+2. Enable the following APIs for your project:
+   - [Google Drive API](https://console.cloud.google.com/apis/library/drive.googleapis.com)
+   - [Google Sheets API](https://console.cloud.google.com/apis/library/sheets.googleapis.com)
+3. Create a service account and download its JSON key file:
+   [Creating and managing service account keys](https://cloud.google.com/iam/docs/keys-create-delete)
+4. The service account requires the following OAuth2 scopes at runtime
+   (no IAM roles needed — scopes are requested per-call):
+   - `https://www.googleapis.com/auth/drive.readonly` — file downloads
+   - `https://www.googleapis.com/auth/drive.metadata.readonly` — folder/file metadata
+   - `https://www.googleapis.com/auth/spreadsheets` — spreadsheet reads
 
-Provide a functional PostgreSQL database, there are countless articles saying how to do this. Once you have this and connected to `template`, the steps are:
+   For Drive folders shared with the service account, the account must
+   have at least **Viewer** access on those folders in Google Drive.
 
- 1. Create 3 roles (admin, service and viewer):
-    ```
-	CREATE ROLE edadmin WITH LOGIN PASSWORD 'pass';
-	CREATE ROLE edservice WITH LOGIN PASSWORD 'pass';
-	CREATE ROLE edviewer WITH NOLOGIN;
-	```
-	A local cli is not using all, however the DB is prepared for the next step, where administration, the service and human querying are separated by roles. The creation scripts later are referencing all of them
- 1. Create a database (`edtools` as example):
-	```
-	CREATE DATABASE edtools_dev WITH OWNER edadmin;
-	```
- 1. Import the schema:
-	Start `psql` once you are in the `sql/` directory, then:
-	```
-	\i _all.sql
-	```
+### PostgreSQL
 
-# Notes
+A PostgreSQL database is required. Once you have a running instance and
+are connected to `template1` (or any maintenance database), run:
 
-Fdev:
- - Fdev [developer zone](https://user.frontierstore.net/) to create oauth apps.
- - [Developer docs](https://user.frontierstore.net/developer/docs)
- - [Useful notes](https://github.com/Athanasius/fd-api/blob/main/docs/FrontierDevelopments-oAuth2-notes.md)
+```sql
+-- Create roles
+CREATE ROLE edadmin WITH LOGIN PASSWORD 'changeme';
+CREATE ROLE edservice WITH LOGIN PASSWORD 'changeme';
+CREATE ROLE edviewer WITH NOLOGIN;
 
-Google Cloud:
- - [Creating a service account and key](https://docs.cloud.google.com/iam/docs/keys-create-delete)
+-- Create database
+CREATE DATABASE edtools WITH OWNER edadmin;
+```
+
+Then import the schema. Connect to the newly created database (`psql -d
+edtools`) from within the `sql/` directory and run:
+
+```
+\i _all.sql
+```
+
+### Redis
+
+Redis is required for session storage. Any Redis instance (local or
+remote) is supported. Default connection is `localhost:6379`.
+
+### Frontier Developments OAuth2
+
+Authentication is provided exclusively via the
+[Frontier Developments](https://user.frontierstore.net/) OAuth2 provider.
+This service is built for Elite Dangerous community tools and is tied to
+the Frontier auth infrastructure.
+
+Register an OAuth2 application in the
+[Frontier developer zone](https://user.frontierstore.net/) to obtain a
+`client_id` and `client_secret`. Set the redirect URI of your application
+to `https://<your-host>/api/auth/callback`.
+
+Refer to the [Frontier developer docs](https://user.frontierstore.net/developer/docs)
+and [community OAuth2 notes](https://github.com/Athanasius/fd-api/blob/main/docs/FrontierDevelopments-oAuth2-notes.md)
+for details on the authorisation flow.
+
+---
+
+## Build Prerequisites
+
+| Tool | Notes |
+|------|-------|
+| Go 1.25+ | Backend |
+| Node.js 22+ / npm | Angular frontend build |
+| GNU Make (`gmake`) | Build orchestration |
+
+---
+
+## Building
+
+Build everything (frontend + backend, frontend is embedded into the
+binary):
+
+```sh
+gmake build
+```
+
+The resulting binary is placed at `dist/edst`.
+
+To build only the frontend:
+
+```sh
+gmake -C frontend/ build
+```
+
+---
+
+## Configuration
+
+The service is configured via a YAML file. The default path is
+`~/.edsda.yaml`; override with the `-c` flag.
+
+```yaml
+db:
+  host: localhost
+  # port: 5432        # optional, defaults to driver default
+  dbname: edtools
+  user: edservice
+  password: changeme
+  maxconns: 8         # optional, default 8
+  minconns: 1         # optional, default 1
+
+http:
+  port: 8080          # default 80
+
+oauth2:
+  # issuer defaults to https://auth.frontierstore.net
+  clientid: "your-frontier-client-id"
+  clientsecret: "your-frontier-client-secret"
+  # authorizeUrl, tokenUrl, userinfoUrl are derived from issuer by default
+
+sessions:
+  store: redis
+  # Generate a strong random key, e.g.: openssl rand -hex 32
+  key: "replace-with-a-long-random-secret"
+  redis:
+    host: localhost   # optional, default localhost
+    port: 6379        # optional, default 6379
+    # db: 0           # optional, Redis database index
+    # user: ""        # optional
+    # pass: ""        # optional
+    maxidle: 16       # optional, default 16
+    # idletimeout: 5m # optional, default 5m
+
+logging:
+  level: info         # debug, info, warn, error
+  output: stdio       # stdio or syslog
+  timestamp: false
+  syslog:             # only used when output: syslog
+    host: 127.0.0.1
+    port: 514
+    proto: udp
+    facility: LOCAL0
+
+vsds:
+  processorInterval: 1m   # optional, default 1m
+
+edsm:
+  timeout: 5s             # optional, default 5s
+  retries: 10             # optional, default 10
+```
+
+---
+
+## Running
+
+```sh
+./dist/edst -c /path/to/config.yaml -s /path/to/credentials.json
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-c` | `~/.edsda.yaml` | Path to the YAML configuration file |
+| `-s` | `credentials.json` | Path to the GCP service account credentials JSON |
+
+The service listens on the port configured under `http.port` and serves
+the frontend from `/` and the API from `/api`.
+
+Shutdown is handled gracefully on `SIGINT` or `SIGTERM`.

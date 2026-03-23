@@ -146,10 +146,21 @@ export interface VariantValidationRequest {
   };
 }
 
+/**
+ * Mirrors VSDSConfigResponse returned by GET /api/vsds/config.
+ */
+export interface VSDSConfig {
+  gcp_client_email: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class VsdsService {
 
   constructor(private api: ApiService) {}
+
+  getConfig(): Observable<ApiResponse<VSDSConfig>> {
+    return this.api.get<ApiResponse<VSDSConfig>>('/api/vsds/config');
+  }
 
   listFolders(): Observable<ApiResponse<VSDSFolder[]>> {
     return this.api.get<ApiResponse<VSDSFolder[]>>('/api/vsds/folders');
