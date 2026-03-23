@@ -6,40 +6,26 @@
     <nav class="nav-links">
       <!-- VSDS (public, leftmost) -->
       <span class="nav-section">
-        <a class="nav-link section-name" routerLink="/vsds" [class.active]="isVsdsActive">VSDS</a>
-        <span class="section-chevron" [class.active]="isVsdsActive" (click)="vsdsMenu.toggle($event)">
+        <a class="nav-link section-name" routerLink="/vsds"
+           [class.active]="isVsdsActive">VSDS</a>
+        <span class="section-chevron" [class.active]="isVsdsActive"
+              (click)="vsdsMenu.toggle($event)">
           <i class="pi pi-chevron-down" style="font-size: 0.7rem"></i>
         </span>
       </span>
       <p-menu #vsdsMenu [model]="vsdsMenuItems" [popup]="true" />
 
-      <!-- Barfoo (public) -->
-      <a class="nav-link" routerLink="/barfoo" routerLinkActive="active">
-        Barfoo
-      </a>
-
-      <!-- Public Menu (public) -->
-      <a class="nav-link" routerLink="/public-menu"
-         [class.active]="isPublicMenuActive">
-        Public Menu
-      </a>
-
-      @if (!authService.isConfigured) {
-        <span class="nav-link warn-link" title="Authentication service unavailable">
-          <i class="pi pi-exclamation-triangle"></i> Auth Unavailable
+      <!-- Admin (owner-only) -->
+      @if (authService.user?.isowner) {
+        <span class="nav-section">
+          <a class="nav-link section-name" routerLink="/admin"
+             [class.active]="isAdminActive">Admin</a>
+          <span class="section-chevron" [class.active]="isAdminActive"
+                (click)="adminMenu.toggle($event)">
+            <i class="pi pi-chevron-down" style="font-size: 0.7rem"></i>
+          </span>
         </span>
-      } @else if (authService.isLoggedIn) {
-        <!-- Foobar (protected) -->
-        <a class="nav-link" routerLink="/foobar" routerLinkActive="active">
-          Foobar
-        </a>
-
-        <!-- Side Menu dropdown (protected) -->
-        <a class="nav-link" [class.active]="isSidemenuActive"
-           (click)="sideMenu.toggle($event)">
-          Side Menu <i class="pi pi-chevron-down" style="font-size: 0.7rem"></i>
-        </a>
-        <p-menu #sideMenu [model]="sideMenuItems" [popup]="true" />
+        <p-menu #adminMenu [model]="adminMenuItems" [popup]="true" />
       }
     </nav>
   </ng-template>
@@ -51,11 +37,17 @@
                 (onClick)="userMenu.toggle($event)">
         <i class="pi pi-user"></i>
         &nbsp;CMDR {{ authService.user?.name }}
-        <i class="pi pi-chevron-down" style="font-size: 0.7rem; margin-left: 0.3rem"></i>
+        <i class="pi pi-chevron-down"
+           style="font-size: 0.7rem; margin-left: 0.3rem"></i>
       </p-button>
       <p-menu #userMenu [model]="userMenuItems" [popup]="true" />
     } @else if (authService.isConfigured) {
       <p-button label="Login" (onClick)="login()" size="small" />
+    } @else {
+      <span class="nav-link warn-link"
+            title="Authentication service unavailable">
+        <i class="pi pi-exclamation-triangle"></i> Auth Unavailable
+      </span>
     }
   </ng-template>
 </p-toolbar>

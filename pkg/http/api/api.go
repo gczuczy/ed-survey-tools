@@ -8,6 +8,7 @@ import (
 
 	"github.com/gczuczy/ed-survey-tools/pkg/config"
 	"github.com/gczuczy/ed-survey-tools/pkg/http/api/auth"
+	"github.com/gczuczy/ed-survey-tools/pkg/http/api/cmdrs"
 	"github.com/gczuczy/ed-survey-tools/pkg/http/api/vsds"
 )
 
@@ -21,6 +22,12 @@ func Init(r *mux.Router, cfg *config.OAuth2Config) error {
 	sr = r.PathPrefix("/vsds").Subrouter()
 	if err = vsds.Init(sr); err != nil {
 		return errors.Join(err, fmt.Errorf("Unable init vsds endpoints"))
+	}
+
+	sr = r.PathPrefix("/cmdrs").Subrouter()
+	if err = cmdrs.Init(sr); err != nil {
+		return errors.Join(
+			err, fmt.Errorf("Unable init cmdrs endpoints"))
 	}
 
 	return nil

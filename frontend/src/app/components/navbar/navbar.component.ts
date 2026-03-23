@@ -1,20 +1,22 @@
-import { Component, OnInit, OnDestroy, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive, NavigationEnd }  from '@angular/router';
-import { filter, Subscription }               from 'rxjs';
-import { BreadcrumbService }                  from '../../services/breadcrumb.service';
-import { AuthService }                        from '../../auth/auth.service';
-import { ToolbarModule }                      from 'primeng/toolbar';
-import { ButtonModule }                       from 'primeng/button';
-import { MenuModule, Menu }                   from 'primeng/menu';
-import { BreadcrumbModule }                   from 'primeng/breadcrumb';
-import { MenuItem }                           from 'primeng/api';
+import {
+  Component, OnInit, OnDestroy, AfterViewInit,
+  ViewChild, ElementRef,
+} from '@angular/core';
+import { Router, RouterLink, NavigationEnd } from '@angular/router';
+import { filter, Subscription }    from 'rxjs';
+import { BreadcrumbService }       from '../../services/breadcrumb.service';
+import { AuthService }             from '../../auth/auth.service';
+import { ToolbarModule }           from 'primeng/toolbar';
+import { ButtonModule }            from 'primeng/button';
+import { MenuModule, Menu }        from 'primeng/menu';
+import { BreadcrumbModule }        from 'primeng/breadcrumb';
+import { MenuItem }                from 'primeng/api';
 
 @Component({
   selector:    'app-navbar',
   standalone:  true,
   imports: [
     RouterLink,
-    RouterLinkActive,
     ToolbarModule,
     ButtonModule,
     MenuModule,
@@ -24,26 +26,25 @@ import { MenuItem }                           from 'primeng/api';
   styleUrl:    './navbar.component.scss',
 })
 export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
-  isSidemenuActive   = false;
-  isPublicMenuActive = false;
-  isVsdsActive       = false;
+  isVsdsActive  = false;
+  isAdminActive = false;
 
-  sideMenuItems:  MenuItem[] = [];
   userMenuItems:  MenuItem[] = [];
   vsdsMenuItems:  MenuItem[] = [];
+  adminMenuItems: MenuItem[] = [];
 
   breadcrumbItems: MenuItem[] = [];
   homeCrumb: MenuItem = { icon: 'pi pi-home', routerLink: '/' };
   hasBreadcrumb = false;
 
-  @ViewChild('sideMenu') sideMenu!: Menu;
-  @ViewChild('vsdsMenu') vsdsMenu!: Menu;
-  @ViewChild('userMenu') userMenu!: Menu;
+  @ViewChild('vsdsMenu')  vsdsMenu!:  Menu;
+  @ViewChild('adminMenu') adminMenu!: Menu;
+  @ViewChild('userMenu')  userMenu!:  Menu;
 
   private dynamicLabel: string | null = null;
 
-  private navSub?:     Subscription;
-  private crumbSub?:   Subscription;
+  private navSub?:   Subscription;
+  private crumbSub?: Subscription;
   private resizeObserver?: ResizeObserver;
 
   constructor(
@@ -55,30 +56,37 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit(): void {
     const check = () => {
-      this.isSidemenuActive   = window.location.pathname.startsWith('/sidemenu');
-      this.isPublicMenuActive = window.location.pathname.startsWith('/public-menu');
-      this.isVsdsActive       = window.location.pathname.startsWith('/vsds');
+      this.isVsdsActive  = window.location.pathname.startsWith('/vsds');
+      this.isAdminActive = window.location.pathname.startsWith('/admin');
     };
     check();
     window.addEventListener('popstate', check);
 
-    this.sideMenuItems = [
-      { label: 'Alpha', command: () => this.router.navigate(['/sidemenu/alpha']) },
-      { label: 'Beta',  command: () => this.router.navigate(['/sidemenu/beta'])  },
-    ];
-
     this.userMenuItems = [
-      { label: 'Settings', icon: 'pi pi-cog', command: () => this.router.navigate(['/settings']) },
+      {
+        label:   'Settings',
+        icon:    'pi pi-cog',
+        command: () => this.router.navigate(['/settings']),
+      },
       { separator: true },
-      { label: 'Logout', icon: 'pi pi-sign-out', command: () => this.logout() },
+      {
+        label:   'Logout',
+        icon:    'pi pi-sign-out',
+        command: () => this.logout(),
+      },
     ];
 
     this.buildVsdsMenuItems();
+    this.buildAdminMenuItems();
     this.updateBreadcrumbs();
+
     this.navSub = this.router.events.pipe(
       filter(e => e instanceof NavigationEnd)
     ).subscribe(() => {
+      this.isVsdsActive  = this.router.url.startsWith('/vsds');
+      this.isAdminActive = this.router.url.startsWith('/admin');
       this.buildVsdsMenuItems();
+      this.buildAdminMenuItems();
       this.updateBreadcrumbs();
     });
 
@@ -115,9 +123,7 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
       crumbs.push({ label: 'VSDS', routerLink: '/vsds' });
       if (url.includes('/vsds/projects')) {
         if (this.dynamicLabel) {
-          crumbs.push({
-            label: 'Projects', routerLink: '/vsds/projects',
-          });
+          crumbs.push({ label: 'Projects', routerLink: '/vsds/projects' });
           crumbs.push({ label: this.dynamicLabel });
         } else {
           crumbs.push({ label: 'Projects' });
@@ -128,10 +134,15 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
       } else if (url.includes('/vsds/folders')) {
         crumbs.push({ label: 'Folders' });
       }
+    } else if (url.startsWith('/admin/')) {
+      crumbs.push({ label: 'Admin', routerLink: '/admin' });
+      if (url.includes('/admin/cmdrs')) {
+        crumbs.push({ label: 'Commanders' });
+      }
     }
 
     this.breadcrumbItems = crumbs;
-    this.hasBreadcrumb = crumbs.length > 0;
+    this.hasBreadcrumb   = crumbs.length > 0;
   }
 
   private buildVsdsMenuItems(): void {
@@ -149,6 +160,16 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
       });
     }
     this.vsdsMenuItems = items;
+  }
+
+  private buildAdminMenuItems(): void {
+    this.adminMenuItems = [
+      {
+        label:   'Commanders',
+        icon:    'pi pi-users',
+        command: () => this.router.navigate(['/admin/cmdrs']),
+      },
+    ];
   }
 
   login():  void { this.authService.login(); }

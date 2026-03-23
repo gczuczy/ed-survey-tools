@@ -193,3 +193,10 @@ func IsAdmin(r *Request) bool {
 	}
 	return r.U.IsAdmin || r.U.IsOwner
 }
+
+func IsOwner(r *Request) bool {
+	if r.U == nil {
+		return false
+	}
+	return r.U.IsOwner
+}

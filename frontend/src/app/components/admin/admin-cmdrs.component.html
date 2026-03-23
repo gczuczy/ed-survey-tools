@@ -1,0 +1,79 @@
+<p-confirmDialog />
+<div class="admin-cmdrs">
+  <p-card header="Commanders">
+    <!-- Filters -->
+    <div class="filters">
+      <input pInputText
+             [(ngModel)]="nameFilter"
+             placeholder="Filter by name…"
+             class="name-filter" />
+      <p-checkbox [(ngModel)]="onlyWithCustomerId"
+                  [binary]="true"
+                  inputId="custFilter"
+                  label="Only with Customer ID" />
+    </div>
+
+    @if (loadError) {
+      <p-message severity="error" [text]="loadError"
+                 styleClass="table-message" />
+    }
+    @if (updateError) {
+      <p-message severity="error" [text]="updateError"
+                 styleClass="table-message"
+                 [closable]="true"
+                 (onClose)="updateError = null" />
+    }
+
+    <p-table [value]="filteredCmdrs" [loading]="loading">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Name</th>
+          <th>Customer ID</th>
+          <th>Owner</th>
+          <th>Admin</th>
+          <th></th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-cmdr>
+        <tr>
+          <td>{{ cmdr.name }}</td>
+          <td>{{ cmdr.customerid ?? '—' }}</td>
+          <td>
+            @if (cmdr.isowner) {
+              <i class="pi pi-check status-yes" pTooltip="Owner"></i>
+            } @else {
+              <i class="pi pi-minus status-no"></i>
+            }
+          </td>
+          <td>
+            @if (cmdr.isadmin) {
+              <i class="pi pi-check status-yes"></i>
+            } @else {
+              <i class="pi pi-minus status-no"></i>
+            }
+          </td>
+          <td class="actions-cell">
+            <p-button
+              [icon]="cmdr.isadmin ? 'pi pi-shield' : 'pi pi-user'"
+              [severity]="cmdr.isadmin ? 'danger' : 'success'"
+              [text]="true"
+              [rounded]="true"
+              [loading]="updatingId === cmdr.id"
+              [disabled]="cmdr.isowner || (!cmdr.isadmin && !cmdr.customerid)"
+              [pTooltip]="cmdr.isowner
+                ? 'Owner always has admin'
+                : (!cmdr.isadmin && !cmdr.customerid
+                    ? 'Customer ID required to grant admin'
+                    : (cmdr.isadmin ? 'Revoke admin' : 'Grant admin'))"
+              (onClick)="toggleAdmin(cmdr)" />
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="5" class="empty-message">No commanders found.</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
+</div>

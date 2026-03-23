@@ -17,9 +17,11 @@ import (
 var (
 	Pool *DBPool=nil
 
-	ErrNotFound     = fmt.Errorf("not found")
-	ErrDuplicate    = fmt.Errorf("already exists")
-	ErrAlreadyQueued = fmt.Errorf("processing already queued or in progress")
+	ErrNotFound             = fmt.Errorf("not found")
+	ErrDuplicate            = fmt.Errorf("already exists")
+	ErrAlreadyQueued        = fmt.Errorf("processing already queued or in progress")
+	ErrCustomerIDRequired   = fmt.Errorf(
+		"admin requires a linked customer account")
 
 	prepared = map[string]string{
 		// logincmdr
@@ -312,6 +314,26 @@ RETURNING id
 		"deletevariantcheck": `
 DELETE FROM vsds.spreadsheetvariant_checks
 WHERE id = $1::int AND variantid = $2::int
+`,
+
+		// admin: fetch id + customerid for a single cmdr
+		"getcmdrbasic": `
+SELECT id, customerid FROM common.cmdrs WHERE id = $1::int
+`,
+
+		// admin: list all commanders from view
+		"listcmdrs": `
+SELECT id, name, customerid, isowner, isadmin
+FROM common.v_cmdrs
+ORDER BY name
+`,
+
+		// admin: set isadmin on a commander, returns updated row
+		"setcmdradmin": `
+UPDATE common.cmdrs SET isadmin = $2::boolean
+WHERE id = $1::int
+RETURNING id, name, customerid, isowner,
+          (isowner OR isadmin) AS isadmin
 `,
 	}
 
