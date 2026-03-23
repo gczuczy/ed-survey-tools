@@ -2,6 +2,7 @@ package gcp
 
 import (
 	"fmt"
+	"regexp"
 	"time"
 	"errors"
 	"context"
@@ -14,6 +15,7 @@ type Sheet interface {
 	GetName() string
 	Get(row, col int) string
 	Rows() int
+	Cols() int
 }
 
 type GSheet struct {
@@ -27,6 +29,16 @@ func (s *GSheet) GetName() string {
 
 func (s *GSheet) Rows() int {
 	return len(s.data)
+}
+
+func (s *GSheet) Cols() int {
+	max := 0
+	for _, r := range s.data {
+		if len(r) > max {
+			max = len(r)
+		}
+	}
+	return max
 }
 
 func (s *GSheet) Get(row, col int) string {
@@ -166,4 +178,18 @@ func (s *GSpreadsheet) ReadRange(
 			fmt.Errorf("ReadCell(%s!%s:%s)", sheet, start, end))
 	}
 	return ret, err
+}
+
+var sheetIDRe = regexp.MustCompile(
+	`/spreadsheets/d/([A-Za-z0-9_-]+)`)
+
+// ExtractSheetID parses a Google Sheets URL and returns the
+// spreadsheet ID, or an error if the URL does not contain one.
+func ExtractSheetID(rawURL string) (string, error) {
+	m := sheetIDRe.FindStringSubmatch(rawURL)
+	if len(m) < 2 {
+		return "", fmt.Errorf(
+			"cannot extract sheet ID from URL")
+	}
+	return m[1], nil
 }

@@ -20,6 +20,18 @@
 - `POST /api/vsds/folders/{id}/process` - queue folder processing (AuthPost, IsAdmin); returns 409 if already queued/in-progress
 - `GET /api/vsds/projects`, `PUT /api/vsds/projects` etc.
 
+### Variant Validation Endpoint (admin-only, backend complete as of 2026-03-23)
+- `POST /api/vsds/projects/{id}/variants/validate` — validates a variant
+  definition against a live Google Sheet URL; no DB writes
+- Request body: `{ url: string, variant: { name, header_row,
+  sysname_column, zsample_column, syscount_column, maxdistance_column,
+  checks: [{col, row, value}] } }`
+- Response: `{ tabs: [{ name, rows[][], checks[{col,row,expected,actual,ok}],
+  matched }] }` — rows capped at 50×15
+- Handler: `pkg/http/api/vsds/validate.go` `validateVariant`
+- Helpers added: `gcp.ExtractSheetID(url)`, `gcp.Sheet.Cols()`,
+  `pvsds.EvalChecks(checks, sheet)`, `pvsds.CheckInput`, `pvsds.CheckResult`
+
 ### Sheet Variant CRUD (admin-only, backend complete as of 2026-03-21)
 - `GET /api/vsds/projects/{id}/variants` - list variants for project
 - `PUT /api/vsds/projects/{id}/variants` - add variant

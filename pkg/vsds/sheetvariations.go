@@ -83,6 +83,41 @@ func (ve VariantError) Error() string {
 		strings.Join(parts, " "))
 }
 
+// CheckInput is a single header-cell assertion for on-the-fly variant
+// evaluation. Col and Row are 0-indexed.
+type CheckInput struct {
+	Col   int
+	Row   int
+	Value string
+}
+
+// CheckResult is the per-check evaluation outcome returned by EvalChecks.
+type CheckResult struct {
+	Col      int    `json:"col"`
+	Row      int    `json:"row"`
+	Expected string `json:"expected"`
+	Actual   string `json:"actual"`
+	OK       bool   `json:"ok"`
+}
+
+// EvalChecks evaluates every check in checks against sheet, returning
+// one CheckResult per check. Unlike sheetVariant.Eval it does not stop
+// at the first failure — all checks are always evaluated.
+func EvalChecks(checks []CheckInput, sheet gcp.Sheet) []CheckResult {
+	results := make([]CheckResult, len(checks))
+	for i, c := range checks {
+		actual := sheet.Get(c.Row, c.Col)
+		results[i] = CheckResult{
+			Col:      c.Col,
+			Row:      c.Row,
+			Expected: c.Value,
+			Actual:   actual,
+			OK:       actual == c.Value,
+		}
+	}
+	return results
+}
+
 func (sv *sheetVariant) Eval(sheet gcp.Sheet) error {
 	reterr := &VariantError{
 		VariantName: sv.Name,

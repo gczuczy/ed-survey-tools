@@ -2,12 +2,16 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule }                from '@angular/forms';
 import { HttpErrorResponse }          from '@angular/common/http';
 import { ActivatedRoute, Router }     from '@angular/router';
-import { Subscription }               from 'rxjs';
+import { Subscription, forkJoin }     from 'rxjs';
 import { AuthService }                from '../../auth/auth.service';
 import { BreadcrumbService }          from '../../services/breadcrumb.service';
 import { VsdsService, VSDSProject,
          VSDSSheetVariant,
-         VSDSSheetVariantCheck }      from '../../services/vsds.service';
+         VSDSSheetVariantCheck,
+         ValidationCheckResult,
+         ValidationTabResult,
+         ValidationResponse }
+  from '../../services/vsds.service';
 import { ButtonModule }               from 'primeng/button';
 import { CardModule }                 from 'primeng/card';
 import { InputTextModule }            from 'primeng/inputtext';
@@ -19,6 +23,7 @@ import { TooltipModule }              from 'primeng/tooltip';
 import { ConfirmPopupModule }         from 'primeng/confirmpopup';
 import { ConfirmationService }        from 'primeng/api';
 import { PopoverModule }              from 'primeng/popover';
+import { DialogModule }               from 'primeng/dialog';
 
 @Component({
   selector:    'app-vsds-projects',
@@ -35,6 +40,7 @@ import { PopoverModule }              from 'primeng/popover';
     TooltipModule,
     ConfirmPopupModule,
     PopoverModule,
+    DialogModule,
   ],
   providers:   [ConfirmationService],
   templateUrl: './vsds-projects.component.html',
@@ -66,7 +72,7 @@ export class VsdsProjectsComponent implements OnInit, OnDestroy {
   bulkLoad         = false;
   bulkError:       string | null = null;
 
-  // ── Sheet variants ────────────────────────────────────────────────
+  // ── Sheet variants ────────────────────────────────────────────
   variants:         VSDSSheetVariant[] = [];
   loadingVariants   = false;
   variantLoadError: string | null = null;
@@ -74,14 +80,18 @@ export class VsdsProjectsComponent implements OnInit, OnDestroy {
   // which tab is active ('new' | variant.id as number)
   activeVariantTab: string | number = 'new';
 
-  // id of the variant currently being edited, or null
-  editingVariantId: number | null = null;
+  deletingVariantId:  number | null = null;
+  deleteVariantError: string | null = null;
 
-  // mutable draft used while editing an existing variant
-  editDraft: {
+  // ── Dialog state ──────────────────────────────────────────────
+  dialogVisible   = false;
+  dialogMode:       'new' | 'edit' = 'new';
+  dialogVariantId:  number | null = null;
+
+  dialogDraft: {
     name:               string;
     header_row:         number;   // 1-indexed display value
-    sysname_column:     string;
+    sysname_column:     string;   // spreadsheet letter
     zsample_column:     string;
     syscount_column:    string;
     maxdistance_column: string;
@@ -91,37 +101,28 @@ export class VsdsProjectsComponent implements OnInit, OnDestroy {
     syscount_column: 'C', maxdistance_column: 'D',
   };
 
-  // add-new-variant form
-  newVariant = {
-    name:               '',
-    header_row:         1,         // 1-indexed; subtract 1 on submit
-    sysname_column:     'A',       // letter; convert on submit
-    zsample_column:     'B',
-    syscount_column:    'C',
-    maxdistance_column: 'D',
-  };
+  // Local check list (id is undefined for new checks).
+  dialogChecks: Array<{
+    id?:   number;
+    col:   number;
+    row:   number;
+    value: string;
+  }> = [];
+  // IDs of checks that existed in DB when dialog was opened.
+  dialogOriginalCheckIds: Set<number> = new Set();
 
-  // per-active-variant add-check form
-  newCheck = {
-    col:   'A',
-    row:   1,          // 1-indexed; subtract 1 on submit
-    value: '',
-  };
+  dialogNewCheck = { col: 'A', row: 1, value: '' };
+  dialogNewCheckError: string | null = null;
 
-  addVariantLoad    = false;
-  addVariantError:  string | null = null;
+  saveDialogLoading = false;
+  saveDialogError:  string | null = null;
 
-  savingVariantId:  number | null = null;
-  saveVariantError: string | null = null;
-
-  deletingVariantId:  number | null = null;
-  deleteVariantError: string | null = null;
-
-  addCheckLoad    = false;
-  addCheckError:  string | null = null;
-
-  deletingCheckId:  number | null = null;
-  deleteCheckError: string | null = null;
+  // ── Validation state ──────────────────────────────────────────
+  validateUrl     = '';
+  validateLoading = false;
+  validateResult: ValidationResponse | null = null;
+  validateError:  string | null = null;
+  validateActiveTab = 0;
 
   private pendingProjectId: number | null = null;
   private paramSub?:        Subscription;
@@ -188,19 +189,12 @@ export class VsdsProjectsComponent implements OnInit, OnDestroy {
 
   private applyProject(project: VSDSProject): void {
     this.breadcrumbService.set(project.name);
-    this.selectedProject    = project;
-    this.addZSampleError    = null;
-    this.delZSampleError    = null;
-    this.bulkError          = null;
-    this.newZSample         = null;
-    this.bulkZSamples       = '';
-    this.editingVariantId   = null;
-    this.addVariantError    = null;
-    this.saveVariantError   = null;
-    this.deleteVariantError = null;
-    this.addCheckError      = null;
-    this.deleteCheckError   = null;
-    this.newCheck = { col: 'A', row: 1, value: '' };
+    this.selectedProject = project;
+    this.addZSampleError = null;
+    this.delZSampleError = null;
+    this.bulkError       = null;
+    this.newZSample      = null;
+    this.bulkZSamples    = '';
     if (this.isAdmin) {
       this.loadVariants(project.id);
     }
@@ -289,7 +283,7 @@ export class VsdsProjectsComponent implements OnInit, OnDestroy {
       });
   }
 
-  loadVariants(projectId: number): void {
+  loadVariants(projectId: number, selectId?: number): void {
     this.loadingVariants  = true;
     this.variantLoadError = null;
     this.variants = [];
@@ -297,9 +291,14 @@ export class VsdsProjectsComponent implements OnInit, OnDestroy {
       next: (resp) => {
         this.variants        = resp.data ?? [];
         this.loadingVariants = false;
-        this.activeVariantTab = this.variants.length > 0
-          ? this.variants[0].id
-          : 'new';
+        if (selectId !== undefined &&
+            this.variants.some(v => v.id === selectId)) {
+          this.activeVariantTab = selectId;
+        } else {
+          this.activeVariantTab = this.variants.length > 0
+            ? this.variants[0].id
+            : 'new';
+        }
       },
       error: (err: HttpErrorResponse) => {
         this.variantLoadError =
@@ -332,68 +331,6 @@ export class VsdsProjectsComponent implements OnInit, OnDestroy {
       result = result * 26 + (upper.charCodeAt(i) - 64);
     }
     return result - 1;
-  }
-
-  startEdit(variant: VSDSSheetVariant): void {
-    this.editingVariantId = variant.id;
-    this.saveVariantError = null;
-    this.editDraft = {
-      name:               variant.name,
-      header_row:         variant.header_row + 1,
-      sysname_column:     this.colToLetter(variant.sysname_column),
-      zsample_column:     this.colToLetter(variant.zsample_column),
-      syscount_column:    this.colToLetter(variant.syscount_column),
-      maxdistance_column: this.colToLetter(
-        variant.maxdistance_column),
-    };
-  }
-
-  cancelEdit(): void {
-    this.editingVariantId = null;
-    this.saveVariantError = null;
-  }
-
-  saveVariant(variantId: number): void {
-    if (!this.selectedProject) return;
-    const sc  = this.letterToCol(this.editDraft.sysname_column);
-    const zc  = this.letterToCol(this.editDraft.zsample_column);
-    const syc = this.letterToCol(this.editDraft.syscount_column);
-    const mdc = this.letterToCol(
-      this.editDraft.maxdistance_column);
-    if (sc < 0 || zc < 0 || syc < 0 || mdc < 0) {
-      this.saveVariantError =
-        'Column must be a valid letter (A, B, … AA, …)';
-      return;
-    }
-    const hr = this.editDraft.header_row - 1;
-    if (hr < 0) {
-      this.saveVariantError = 'Header row must be at least 1';
-      return;
-    }
-    this.savingVariantId  = variantId;
-    this.saveVariantError = null;
-    this.vsdsService.updateVariant(
-      this.selectedProject.id, variantId,
-      {
-        name:               this.editDraft.name.trim(),
-        header_row:         hr,
-        sysname_column:     sc,
-        zsample_column:     zc,
-        syscount_column:    syc,
-        maxdistance_column: mdc,
-      },
-    ).subscribe({
-      next: (resp) => {
-        this.updateVariantInList(resp.data!);
-        this.editingVariantId = null;
-        this.savingVariantId  = null;
-      },
-      error: (err: HttpErrorResponse) => {
-        this.saveVariantError =
-          err.error?.message ?? 'Failed to save variant';
-        this.savingVariantId  = null;
-      },
-    });
   }
 
   confirmDeleteVariant(event: Event, variantId: number): void {
@@ -430,124 +367,280 @@ export class VsdsProjectsComponent implements OnInit, OnDestroy {
     });
   }
 
-  addVariant(): void {
-    if (!this.selectedProject) return;
-    if (!this.newVariant.name.trim()) {
-      this.addVariantError = 'Name is required';
-      return;
-    }
-    const sc  = this.letterToCol(this.newVariant.sysname_column);
-    const zc  = this.letterToCol(this.newVariant.zsample_column);
-    const syc = this.letterToCol(
-      this.newVariant.syscount_column);
-    const mdc = this.letterToCol(
-      this.newVariant.maxdistance_column);
-    if (sc < 0 || zc < 0 || syc < 0 || mdc < 0) {
-      this.addVariantError =
+  // ── Dialog ────────────────────────────────────────────────────
+
+  openEditDialog(v: VSDSSheetVariant): void {
+    this.dialogMode      = 'edit';
+    this.dialogVariantId = v.id;
+    this.dialogDraft = {
+      name:               v.name,
+      header_row:         v.header_row + 1,
+      sysname_column:     this.colToLetter(v.sysname_column),
+      zsample_column:     this.colToLetter(v.zsample_column),
+      syscount_column:    this.colToLetter(v.syscount_column),
+      maxdistance_column: this.colToLetter(v.maxdistance_column),
+    };
+    this.dialogChecks = v.checks.map(c => ({
+      id: c.id, col: c.col, row: c.row, value: c.value,
+    }));
+    this.dialogOriginalCheckIds = new Set(v.checks.map(c => c.id));
+    this.resetDialogMeta();
+    this.dialogVisible = true;
+  }
+
+  openNewDialog(): void {
+    this.dialogMode      = 'new';
+    this.dialogVariantId = null;
+    this.dialogDraft = {
+      name: '', header_row: 1,
+      sysname_column: 'A', zsample_column: 'B',
+      syscount_column: 'C', maxdistance_column: 'D',
+    };
+    this.dialogChecks           = [];
+    this.dialogOriginalCheckIds = new Set();
+    this.resetDialogMeta();
+    this.dialogVisible = true;
+  }
+
+  private resetDialogMeta(): void {
+    this.dialogNewCheck      = { col: 'A', row: 1, value: '' };
+    this.dialogNewCheckError = null;
+    this.saveDialogLoading   = false;
+    this.saveDialogError     = null;
+    this.validateUrl         = '';
+    this.validateResult      = null;
+    this.validateError       = null;
+    this.validateActiveTab   = 0;
+  }
+
+  closeDialog(): void {
+    this.dialogVisible = false;
+  }
+
+  addDialogCheck(): void {
+    const col = this.letterToCol(this.dialogNewCheck.col);
+    if (col < 0) {
+      this.dialogNewCheckError =
         'Column must be a valid letter (A, B, … AA, …)';
       return;
     }
-    const hr = this.newVariant.header_row - 1;
-    if (hr < 0) {
-      this.addVariantError = 'Header row must be at least 1';
+    const row = this.dialogNewCheck.row - 1;
+    if (row < 0) {
+      this.dialogNewCheckError = 'Row must be at least 1';
       return;
     }
-    this.addVariantLoad  = true;
-    this.addVariantError = null;
-    this.vsdsService.addVariant(this.selectedProject.id, {
-      name:               this.newVariant.name.trim(),
+    if (!this.dialogNewCheck.value.trim()) {
+      this.dialogNewCheckError = 'Value is required';
+      return;
+    }
+    if (this.dialogChecks.some(c => c.col === col && c.row === row)) {
+      this.dialogNewCheckError =
+        'A check for this cell already exists';
+      return;
+    }
+    this.dialogChecks = [
+      ...this.dialogChecks,
+      { col, row, value: this.dialogNewCheck.value.trim() },
+    ];
+    this.dialogNewCheck      = { col: 'A', row: 1, value: '' };
+    this.dialogNewCheckError = null;
+  }
+
+  confirmRemoveDialogCheck(event: Event, index: number): void {
+    this.confirmationService.confirm({
+      target:      event.target as EventTarget,
+      message:     'Remove this check?',
+      icon:        'pi pi-exclamation-triangle',
+      acceptLabel: 'Remove',
+      rejectLabel: 'Cancel',
+      accept: () => this.removeDialogCheck(index),
+    });
+  }
+
+  removeDialogCheck(index: number): void {
+    this.dialogChecks = this.dialogChecks.filter(
+      (_, i) => i !== index);
+  }
+
+  saveDialog(): void {
+    if (!this.selectedProject) return;
+
+    const sc  = this.letterToCol(this.dialogDraft.sysname_column);
+    const zc  = this.letterToCol(this.dialogDraft.zsample_column);
+    const syc = this.letterToCol(this.dialogDraft.syscount_column);
+    const mdc = this.letterToCol(
+      this.dialogDraft.maxdistance_column);
+    if (sc < 0 || zc < 0 || syc < 0 || mdc < 0) {
+      this.saveDialogError =
+        'Column must be a valid letter (A, B, … AA, …)';
+      return;
+    }
+    const hr = this.dialogDraft.header_row - 1;
+    if (hr < 0) {
+      this.saveDialogError = 'Header row must be at least 1';
+      return;
+    }
+    const name = this.dialogDraft.name.trim();
+    if (!name) {
+      this.saveDialogError = 'Name is required';
+      return;
+    }
+
+    this.saveDialogLoading = true;
+    this.saveDialogError   = null;
+
+    const projectId = this.selectedProject.id;
+    const body = {
+      name,
       header_row:         hr,
       sysname_column:     sc,
       zsample_column:     zc,
       syscount_column:    syc,
       maxdistance_column: mdc,
+    };
+
+    const save$ = this.dialogMode === 'new'
+      ? this.vsdsService.addVariant(projectId, body)
+      : this.vsdsService.updateVariant(
+          projectId, this.dialogVariantId!, body);
+
+    save$.subscribe({
+      next: (resp) => {
+        this.doCheckOps(projectId, resp.data!.id);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.saveDialogError =
+          err.error?.message ?? 'Failed to save variant';
+        this.saveDialogLoading = false;
+      },
+    });
+  }
+
+  private doCheckOps(
+    projectId: number,
+    variantId: number,
+  ): void {
+    const toAdd = this.dialogChecks
+      .filter(c => c.id === undefined)
+      .map(c => this.vsdsService.addVariantCheck(
+        projectId, variantId,
+        { col: c.col, row: c.row, value: c.value },
+      ));
+    const toDelete = [...this.dialogOriginalCheckIds]
+      .filter(id => !this.dialogChecks.some(c => c.id === id))
+      .map(id => this.vsdsService.deleteVariantCheck(
+        projectId, variantId, id));
+
+    const all = [...toAdd, ...toDelete];
+    if (all.length === 0) {
+      this.finishSave(projectId, variantId);
+      return;
+    }
+
+    forkJoin(all).subscribe({
+      next: () => this.finishSave(projectId, variantId),
+      error: (err: HttpErrorResponse) => {
+        this.saveDialogError =
+          err.error?.message ?? 'Failed to save checks';
+        this.saveDialogLoading = false;
+      },
+    });
+  }
+
+  private finishSave(
+    projectId: number,
+    variantId: number,
+  ): void {
+    this.saveDialogLoading = false;
+    this.dialogVisible     = false;
+    this.loadVariants(projectId, variantId);
+  }
+
+  // ── Validation ────────────────────────────────────────────────
+
+  validateSheet(): void {
+    if (!this.validateUrl.trim() || !this.selectedProject) return;
+
+    const sc  = this.letterToCol(this.dialogDraft.sysname_column);
+    const zc  = this.letterToCol(this.dialogDraft.zsample_column);
+    const syc = this.letterToCol(
+      this.dialogDraft.syscount_column);
+    const mdc = this.letterToCol(
+      this.dialogDraft.maxdistance_column);
+    if (sc < 0 || zc < 0 || syc < 0 || mdc < 0) {
+      this.validateError = 'Fix column values before validating';
+      return;
+    }
+
+    this.validateLoading   = true;
+    this.validateResult    = null;
+    this.validateError     = null;
+    this.validateActiveTab = 0;
+
+    this.vsdsService.validateVariant(this.selectedProject.id, {
+      url: this.validateUrl.trim(),
+      variant: {
+        name:               this.dialogDraft.name.trim() || 'draft',
+        header_row:         this.dialogDraft.header_row - 1,
+        sysname_column:     sc,
+        zsample_column:     zc,
+        syscount_column:    syc,
+        maxdistance_column: mdc,
+        checks: this.dialogChecks.map(c => ({
+          col: c.col, row: c.row, value: c.value,
+        })),
+      },
     }).subscribe({
       next: (resp) => {
-        this.variants        = [...this.variants, resp.data!];
-        this.addVariantLoad  = false;
-        this.activeVariantTab = resp.data!.id;
-        this.newVariant = {
-          name: '', header_row: 1,
-          sysname_column: 'A', zsample_column: 'B',
-          syscount_column: 'C', maxdistance_column: 'D',
-        };
+        this.validateResult  = resp.data!;
+        this.validateLoading = false;
       },
       error: (err: HttpErrorResponse) => {
-        this.addVariantError =
-          err.error?.message ?? 'Failed to add variant';
-        this.addVariantLoad  = false;
+        this.validateError  =
+          err.error?.message ?? 'Validation failed';
+        this.validateLoading = false;
       },
     });
   }
 
-  addCheck(variantId: number): void {
-    if (!this.selectedProject) return;
-    const col = this.letterToCol(this.newCheck.col);
-    if (col < 0) {
-      this.addCheckError = 'Column must be a valid letter';
-      return;
-    }
-    const row = this.newCheck.row - 1;
-    if (row < 0) {
-      this.addCheckError = 'Row must be at least 1';
-      return;
-    }
-    if (!this.newCheck.value.trim()) {
-      this.addCheckError = 'Value is required';
-      return;
-    }
-    this.addCheckLoad  = true;
-    this.addCheckError = null;
-    this.vsdsService.addVariantCheck(
-      this.selectedProject.id, variantId,
-      { col, row, value: this.newCheck.value.trim() },
-    ).subscribe({
-      next: (resp) => {
-        this.updateVariantInList(resp.data!);
-        this.addCheckLoad = false;
-        this.newCheck = { col: 'A', row: 1, value: '' };
-      },
-      error: (err: HttpErrorResponse) => {
-        this.addCheckError =
-          err.error?.message ?? 'Failed to add check';
-        this.addCheckLoad  = false;
-      },
-    });
+  // ── Spreadsheet cell helpers (used from template) ─────────────
+
+  tabColIndices(tab: ValidationTabResult): number[] {
+    const n = tab.rows.reduce((m, r) => Math.max(m, r.length), 0);
+    return Array.from({ length: n }, (_, i) => i);
   }
 
-  confirmDeleteCheck(
-    event: Event,
-    variantId: number,
-    checkId: number,
-  ): void {
-    this.confirmationService.confirm({
-      target:       event.target as EventTarget,
-      message:      'Remove this header check?',
-      icon:         'pi pi-exclamation-triangle',
-      acceptLabel:  'Remove',
-      rejectLabel:  'Cancel',
-      accept: () => this.deleteCheck(variantId, checkId),
-    });
+  cellCheckResult(
+    tab: ValidationTabResult,
+    row: number,
+    col: number,
+  ): ValidationCheckResult | undefined {
+    return tab.checks.find(c => c.row === row && c.col === col);
   }
 
-  deleteCheck(variantId: number, checkId: number): void {
-    if (!this.selectedProject) return;
-    this.deletingCheckId  = checkId;
-    this.deleteCheckError = null;
-    this.vsdsService.deleteVariantCheck(
-      this.selectedProject.id, variantId, checkId,
-    ).subscribe({
-      next: (resp) => {
-        this.updateVariantInList(resp.data!);
-        this.deletingCheckId = null;
-      },
-      error: (err: HttpErrorResponse) => {
-        this.deleteCheckError =
-          err.error?.message ?? 'Failed to delete check';
-        this.deletingCheckId = null;
-      },
-    });
+  cellClass(
+    tab: ValidationTabResult,
+    row: number,
+    col: number,
+  ): string {
+    const r = this.cellCheckResult(tab, row, col);
+    if (!r) return '';
+    return r.ok ? 'cell-ok' : 'cell-error';
   }
+
+  cellTooltip(
+    tab: ValidationTabResult,
+    row: number,
+    col: number,
+  ): string {
+    const r = this.cellCheckResult(tab, row, col);
+    if (!r) return '';
+    const coord = this.colToLetter(r.col) + (r.row + 1);
+    const base  = `${coord} = '${r.expected}'`;
+    return r.ok ? base : `${base} — found: '${r.actual}'`;
+  }
+
+  // ── Private helpers ───────────────────────────────────────────
 
   private updateProject(project: VSDSProject): void {
     const idx = this.projects.findIndex(p => p.id === project.id);

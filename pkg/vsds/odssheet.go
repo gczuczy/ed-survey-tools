@@ -25,6 +25,16 @@ func (s *OdsSheet) Rows() int {
 	return len(s.rows)
 }
 
+func (s *OdsSheet) Cols() int {
+	max := 0
+	for _, r := range s.rows {
+		if len(r) > max {
+			max = len(r)
+		}
+	}
+	return max
+}
+
 func (s *OdsSheet) Get(row, col int) string {
 	if row >= len(s.rows) {
 		return ""

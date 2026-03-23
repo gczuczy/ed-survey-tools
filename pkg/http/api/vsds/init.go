@@ -42,6 +42,10 @@ func Init(r *mux.Router) error {
 			AuthGet(listVariants, w.IsAdmin).
 			AuthPut(addVariant, w.IsAdmin),
 	)
+	r.Handle(
+		"/projects/{id:[0-9]+}/variants/validate",
+		w.NewAPIHandler().AuthPost(validateVariant, w.IsAdmin),
+	)
 	r.Handle("/projects/{id:[0-9]+}/variants/{vid:[0-9]+}",
 		w.NewAPIHandler().
 			AuthPost(updateVariant, w.IsAdmin).

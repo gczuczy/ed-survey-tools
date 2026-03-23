@@ -21,6 +21,16 @@ func (s *XlsxSheet) Rows() int {
 	return len(s.rows)
 }
 
+func (s *XlsxSheet) Cols() int {
+	max := 0
+	for _, r := range s.rows {
+		if len(r) > max {
+			max = len(r)
+		}
+	}
+	return max
+}
+
 func (s *XlsxSheet) Get(row, col int) string {
 	if row >= len(s.rows) {
 		return ""

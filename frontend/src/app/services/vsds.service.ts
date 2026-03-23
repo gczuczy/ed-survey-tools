@@ -102,6 +102,50 @@ export interface VSDSSheetVariant {
   checks:             VSDSSheetVariantCheck[];
 }
 
+/**
+ * One check evaluation result returned by the validation endpoint.
+ */
+export interface ValidationCheckResult {
+  col:      number;
+  row:      number;
+  expected: string;
+  actual:   string;
+  ok:       boolean;
+}
+
+/**
+ * One spreadsheet tab with its cell data and check results.
+ */
+export interface ValidationTabResult {
+  name:    string;
+  rows:    string[][];
+  checks:  ValidationCheckResult[];
+  matched: boolean;
+}
+
+/**
+ * Top-level payload from POST .../variants/validate.
+ */
+export interface ValidationResponse {
+  tabs: ValidationTabResult[];
+}
+
+/**
+ * Request body for the validation endpoint.
+ */
+export interface VariantValidationRequest {
+  url: string;
+  variant: {
+    name:               string;
+    header_row:         number;
+    sysname_column:     number;
+    zsample_column:     number;
+    syscount_column:    number;
+    maxdistance_column: number;
+    checks: Array<{ col: number; row: number; value: string }>;
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class VsdsService {
 
@@ -218,5 +262,14 @@ export class VsdsService {
     return this.api.delete<ApiResponse<VSDSSheetVariant>>(
       `/api/vsds/projects/${projectId}/variants/${variantId}` +
       `/checks/${checkId}`);
+  }
+
+  validateVariant(
+    projectId: number,
+    body: VariantValidationRequest,
+  ): Observable<ApiResponse<ValidationResponse>> {
+    return this.api.post<ApiResponse<ValidationResponse>>(
+      `/api/vsds/projects/${projectId}/variants/validate`,
+      body);
   }
 }
