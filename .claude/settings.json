@@ -8,6 +8,7 @@
       "Bash(npm update *)",
       "Bash(npm ls *)",
       "Bash(npm view *)",
+      "Bash(npm list *)",
       "Bash(npm install *)",
       "Bash(npm uninstall *)",
 			"Bash(gmake build*)",

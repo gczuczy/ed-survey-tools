@@ -13,23 +13,23 @@
   "devDependencies": {
     "@angular-devkit/build-angular": "^20.3.18",
     "@angular/cli": "^20.3.18",
-    "@angular/compiler-cli": "^20.3.17",
+    "@angular/compiler-cli": "^20.3.18",
     "@types/jasmine": "^5.1.0",
     "@types/node": "^22.0.0",
     "typescript": "~5.8.0"
   },
   "dependencies": {
-    "@angular/animations": "^20.3.17",
-    "@angular/common": "^20.3.17",
-    "@angular/compiler": "^20.3.17",
-    "@angular/core": "^20.3.17",
-    "@angular/forms": "^20.3.17",
-    "@angular/platform-browser": "^20.3.17",
-    "@angular/router": "^20.3.17",
+    "@angular/animations": "^20.3.18",
+    "@angular/common": "^20.3.18",
+    "@angular/compiler": "^20.3.18",
+    "@angular/core": "^20.3.18",
+    "@angular/forms": "^20.3.18",
+    "@angular/platform-browser": "^20.3.18",
+    "@angular/router": "^20.3.18",
     "@primeuix/themes": "^2.0.3",
     "angular-oauth2-oidc": "^20.0.0",
     "primeicons": "^7.0.0",
-    "primeng": "^20.4.0",
+    "primeng": "^20.5.0-lts",
     "rxjs": "^7.8.0",
     "zone.js": "^0.15.0"
   }
