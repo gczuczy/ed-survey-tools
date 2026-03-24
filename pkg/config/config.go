@@ -29,13 +29,14 @@ type VSDSConfig struct {
 }
 
 type DBConfig struct {
-	Host string `koanf:"host"`
-	Port *uint16 `koanf:"port"`
-	Database string `koanf:"dbname"`
-	User string `koanf:"user"`
-	Password string `koanf:"password"`
-	MaxConns int32 `koanf:"maxconns"`
-	MinConns int32 `koanf:"minconns"`
+	Host     string  `koanf:"host"`
+	Port     *uint16 `koanf:"port"`
+	Database string  `koanf:"dbname"`
+	User     string  `koanf:"user"`
+	Password string  `koanf:"password"`
+	MaxConns int32   `koanf:"maxconns"`
+	MinConns int32   `koanf:"minconns"`
+	SSL      bool    `koanf:"ssl"`
 }
 
 type HTTPConfig struct {
@@ -96,6 +97,7 @@ func ParseConfig(k *koanf.Koanf) (*Config, error) {
 		DB: DBConfig{
 			MaxConns: 8,
 			MinConns: 1,
+			SSL:      false,
 		},
 		HTTP: HTTPConfig{
 			Port: 80,

@@ -18,6 +18,7 @@
 			"Read(frontend/node_modules/**)",
 			"Edit(/**/*.go)",
 			"Edit(/frontend/**)",
+			"Edit(/config.yaml.sample)",
 			"Edit(**/*.md)",
 			"Edit(sql/**/*.sql)",
 			"Edit(memory/**.md)",

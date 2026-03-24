@@ -115,6 +115,7 @@ db:
   password: changeme
   maxconns: 8         # optional, default 8
   minconns: 1         # optional, default 1
+  ssl: false          # optional, default false
 
 http:
   port: 8080          # default 80

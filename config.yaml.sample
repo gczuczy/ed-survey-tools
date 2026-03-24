@@ -3,6 +3,7 @@ db:
   user: ''
   password: ''
   dbname: ''
+  # ssl: false
 
 logging:
   level: info
