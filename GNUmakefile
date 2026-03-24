@@ -48,7 +48,7 @@ $(SERVICE): go.mod $(SPABALL) $(shell find ./ -type f -name '*.go') | $(DISTDIR)
 .PHONY: frontend
 frontend: $(SPABALL)
 
-$(SPABALL): $(shell find $(SPADIR)/src -type f)
+$(SPABALL): $(shell find $(SPADIR)/src -type f) $(SPADIR)/package-lock.json
 	$(MAKE) -C $(SPADIR) build
 	tar -C $(SPADISTDIR)/ -cvf $@ .
 
