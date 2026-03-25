@@ -44,12 +44,15 @@ html, body {
 
 // ─── Footer ─────────────────────────────────────────────────────────────────
 .app-footer {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
   padding: 1rem;
   font-size: 0.8rem;
   color: var(--p-text-muted-color);
 
-  a {
+  a, button.footer-link-btn {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
@@ -60,6 +63,19 @@ html, body {
       color: var(--p-primary-color);
       text-decoration: underline;
     }
+  }
+
+  button.footer-link-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-size: inherit;
+    font-family: inherit;
+  }
+
+  .footer-sep {
+    margin: 0 0.5rem;
   }
 
   .github-icon {

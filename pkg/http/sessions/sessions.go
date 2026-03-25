@@ -55,10 +55,17 @@ func Init(cfg *config.SessionsConfig) error {
 				return redis.Dial("tcp", addr, opts...)
 			},
 		}
+		cookieOpts := &sessions.Options{
+			Path:     "/",
+			HttpOnly: true,
+			Secure:   cfg.Secure,
+			SameSite: http.SameSiteStrictMode,
+		}
 		var err error
 		Store, err = redistore.NewStore(
 			redistore.KeysFromStrings(cfg.Key),
 			redistore.WithPool(pool),
+			redistore.WithSessionOptions(cookieOpts),
 		)
 		if err != nil {
 			return errors.Join(err, fmt.Errorf("Unable to init redis pool"))

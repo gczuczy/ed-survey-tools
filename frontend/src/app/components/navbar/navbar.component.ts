@@ -139,6 +139,8 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
       if (url.includes('/admin/cmdrs')) {
         crumbs.push({ label: 'Commanders' });
       }
+    } else if (url.startsWith('/settings')) {
+      crumbs.push({ label: 'Settings' });
     }
 
     this.breadcrumbItems = crumbs;

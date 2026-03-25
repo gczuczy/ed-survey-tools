@@ -335,6 +335,9 @@ WHERE id = $1::int
 RETURNING id, name, customerid, isowner,
           (isowner OR isadmin) AS isadmin
 `,
+
+		// self-delete: remove all personal data for a cmdr
+		"deletecmdr": `SELECT common.deletecmdr($1::int)`,
 	}
 
 
