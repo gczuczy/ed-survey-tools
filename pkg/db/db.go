@@ -352,7 +352,11 @@ func Init(cfg *config.DBConfig) error {
 
 	logger = log.GetLogger("db")
 
-	dbcfg, err := pgxpool.ParseConfig("")
+	sslmode := "disable"
+	if cfg.SSL {
+		sslmode = "prefer"
+	}
+	dbcfg, err := pgxpool.ParseConfig("sslmode=" + sslmode)
 	if err != nil {
 		logger.Error().Err(err).Msg("Unable to parse config")
 		return err
