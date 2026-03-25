@@ -1,58 +1,56 @@
-import { Component }    from '@angular/core';
-import { AuthService }  from '../../auth/auth.service';
-import { ThemeService } from '../../auth/theme.service';
-import { CardModule }   from 'primeng/card';
-import { TagModule }    from 'primeng/tag';
-import { DividerModule } from 'primeng/divider';
+import { Component }           from '@angular/core';
+import { AuthService }         from '../../auth/auth.service';
+import { ThemeService }        from '../../auth/theme.service';
+import { CardModule }          from 'primeng/card';
+import { TagModule }           from 'primeng/tag';
+import { DividerModule }       from 'primeng/divider';
+import { ButtonModule }        from 'primeng/button';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ConfirmationService } from 'primeng/api';
 
 @Component({
-  selector:   'app-settings',
-  standalone: true,
-  imports:    [CardModule, TagModule, DividerModule],
-  template: `
-    <div class="content-center">
-      <p-card header="Settings">
-        <p-tag value="Login-protected" icon="pi pi-lock" severity="warn" />
-
-        <!-- Theme indicator -->
-        <div style="margin-top: 1rem">
-          <label class="label-bold">Current theme</label>
-          <p class="text-muted">
-            <p-tag [value]="themeService.currentTheme" [severity]="themeSeverity" />
-            <small style="margin-left: 0.5rem">(auto-detected from OS preference)</small>
-          </p>
-        </div>
-
-        <p-divider />
-
-        <h4>General</h4>
-        <p class="text-muted"><em>Placeholder – add your settings here.</em></p>
-
-        <h4 style="margin-top: 1rem">Notifications</h4>
-        <p class="text-muted"><em>Placeholder – notification preferences.</em></p>
-      </p-card>
-    </div>
-  `,
-  styles: [`
-    .content-center {
-      max-width: 800px;
-      margin: 1rem auto 0;
-    }
-
-    .label-bold {
-      font-weight: 600;
-      display: block;
-      margin-bottom: 0.25rem;
-    }
-  `]
+  selector:    'app-settings',
+  standalone:  true,
+  imports:     [
+    CardModule, TagModule, DividerModule,
+    ButtonModule, ConfirmDialogModule,
+  ],
+  providers:   [ConfirmationService],
+  templateUrl: './settings.component.html',
+  styleUrl:    './settings.component.scss'
 })
 export class SettingsComponent {
+  deleteError: string | null = null;
+
   constructor(
-    public authService: AuthService,
-    public themeService: ThemeService,
+    public  authService:         AuthService,
+    public  themeService:        ThemeService,
+    private confirmationService: ConfirmationService,
   ) {}
 
   get themeSeverity(): 'secondary' | 'info' {
-    return this.themeService.currentTheme === 'dark' ? 'secondary' : 'info';
+    return this.themeService.currentTheme === 'dark'
+      ? 'secondary' : 'info';
+  }
+
+  confirmDeleteAccount(): void {
+    this.confirmationService.confirm({
+      message: 'This will unlink your Frontier Developments account. ' +
+               'Your CMDR name is retained for survey attribution but ' +
+               'you will no longer be able to log in. Are you sure?',
+      header:  'Delete Account',
+      icon:    'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept:  () => {
+        this.deleteError = null;
+        this.authService.deleteAccount().subscribe({
+          next:  () => this.authService.clearSession(),
+          error: () => {
+            this.deleteError =
+              'Failed to delete account. Please try again.';
+          },
+        });
+      },
+    });
   }
 }

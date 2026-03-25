@@ -96,6 +96,25 @@ func (p *DBPool) SetCMDRAdmin(id int, isAdmin bool) (*User, error) {
 	return users[0], nil
 }
 
+func (p *DBPool) NullifyCMDRCustomerID(id int) error {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Unable to acquire connection from pool")
+		return err
+	}
+	defer conn.Release()
+
+	_, err = conn.Exec(p.ctx, "deletecmdr", id)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "deletecmdr").
+			Msg("Error while executing query")
+		return err
+	}
+	return nil
+}
+
 func (p *DBPool) LoginCMDR(name string, customerid int64) (*User, error) {
 	var rows pgx.Rows
 	conn, err := p.pool.Acquire(p.ctx)

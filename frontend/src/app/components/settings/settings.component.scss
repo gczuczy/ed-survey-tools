@@ -1,0 +1,17 @@
+.content-center {
+  max-width: 800px;
+  margin: 1rem auto 0;
+}
+
+.label-bold {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.delete-error {
+  color: var(--p-red-500);
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+  white-space: pre-wrap;
+}

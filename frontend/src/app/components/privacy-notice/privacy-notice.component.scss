@@ -1,0 +1,35 @@
+.privacy-content {
+  h4 {
+    margin: 1rem 0 0.4rem;
+
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+
+  p, ul {
+    margin: 0 0 0.5rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  ul {
+    padding-left: 1.25rem;
+  }
+
+  li {
+    margin-bottom: 0.4rem;
+  }
+
+  code {
+    font-family: monospace;
+    font-size: 0.85em;
+    background: var(--p-highlight-background);
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+  }
+
+  a {
+    color: var(--p-primary-color);
+  }
+}

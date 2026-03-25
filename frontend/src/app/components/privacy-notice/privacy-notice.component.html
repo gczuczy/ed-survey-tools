@@ -1,0 +1,65 @@
+<p-dialog
+  header="Privacy Notice"
+  [visible]="visible"
+  (visibleChange)="visibleChange.emit($event)"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: '38rem', maxWidth: '95vw' }">
+
+  <div class="privacy-content">
+    <h4>Data We Store</h4>
+    <p>When you log in, we store the following personal data:</p>
+    <ul>
+      <li>
+        <strong>Commander (CMDR) name</strong> — your in-game Elite Dangerous
+        callsign. Obtained from Frontier Developments at login and from
+        survey spreadsheets you submit. Used to identify and attribute
+        your survey contributions.
+      </li>
+      <li>
+        <strong>Frontier Developments customer ID</strong> — a numeric
+        identifier from your FDev account. Used solely to ensure account
+        uniqueness and prevent duplicate records.
+      </li>
+    </ul>
+
+    <h4>Legal Basis</h4>
+    <ul>
+      <li>
+        Login data: <em>contract performance</em> — necessary to provide
+        the service you requested.
+      </li>
+      <li>
+        CMDR names from submitted survey data: <em>legitimate interest</em>
+        — attribution of scientific survey contributions.
+      </li>
+    </ul>
+
+    <h4>Authentication</h4>
+    <p>
+      Login is handled via Frontier Developments' OAuth2 system.
+      Frontier Developments' own privacy policy governs what they collect
+      during authentication.
+    </p>
+
+    <h4>Session Cookie</h4>
+    <p>
+      A single essential session cookie (<code>edst-auth</code>) is used
+      for authentication. No tracking or analytics cookies are used.
+    </p>
+
+    <h4>Retention &amp; Your Rights</h4>
+    <p>
+      Your data is retained for as long as you use the service. You may
+      unlink your FDev account via <strong>Settings → Delete Account</strong>.
+      Your CMDR name is retained afterwards for survey attribution.
+    </p>
+    <p>
+      To exercise your rights (access, rectification, erasure, portability),
+      please
+      <a href="https://github.com/gczuczy/ed-survey-tools"
+         target="_blank" rel="noopener noreferrer">contact us on GitHub</a>.
+    </p>
+  </div>
+</p-dialog>

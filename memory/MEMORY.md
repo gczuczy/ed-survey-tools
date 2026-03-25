@@ -48,3 +48,11 @@
 - Prepared statements in `pkg/db/db.go` `afterConn()` function
 - VSDs types in `pkg/db/vsds.go`
 - Errors: `db.ErrNotFound`, `db.ErrDuplicate`
+
+## GDPR / Personal Data Removal
+Self-delete (from user Settings) nullifies `common.cmdrs.customerid` (sets to
+NULL) and must also invalidate the user's Redis session.  The CMDR name is
+intentionally kept for survey attribution (legitimate interest).
+**INVARIANT**: any future personal data field added anywhere in the schema
+(or any new table with personal data) MUST be added to this removal procedure
+before merging.

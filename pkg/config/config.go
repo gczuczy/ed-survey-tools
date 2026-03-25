@@ -54,9 +54,10 @@ type OAuth2Config struct {
 }
 
 type SessionsConfig struct {
-	Key string `koanf:"key"`
-	Store string `koanf:"store"`
-	Redis *RedisSessionConfig `koanf:"redis"`
+	Key    string              `koanf:"key"`
+	Store  string              `koanf:"store"`
+	Secure bool                `koanf:"secure"`
+	Redis  *RedisSessionConfig `koanf:"redis"`
 }
 
 type RedisSessionConfig struct {

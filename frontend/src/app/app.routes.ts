@@ -1,4 +1,5 @@
-import { Routes } from '@angular/router';
+import { Routes }    from '@angular/router';
+import { authGuard }  from './auth/auth.guard';
 import { adminGuard } from './auth/admin.guard';
 import { ownerGuard } from './auth/owner.guard';
 
@@ -7,6 +8,15 @@ import { HomeComponent } from './components/home/home.component';
 export const routes: Routes = [
   // ── Public routes ─────────────────────────────────────────────────────────
   { path: '', component: HomeComponent },
+
+  // ── Authenticated top-level routes ────────────────────────────────────────
+  {
+    path: 'settings',
+    loadComponent: () =>
+      import('./components/settings/settings.component')
+        .then(m => m.SettingsComponent),
+    canActivate: [authGuard],
+  },
 
   // ── VSDS section (public section, subsections permission-gated) ───────────
   {

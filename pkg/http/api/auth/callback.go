@@ -61,7 +61,6 @@ func callbackHandler(r *wrappers.Request) wrappers.IResponse {
 			http.StatusInternalServerError)
 	}
 
-	r.L.Info().Interface("userinfo", userinfo).Msg("Userinfo lookup")
 	s, _ := sessions.Get(r.R)
 	var (
 		customerid int64
@@ -81,6 +80,7 @@ func callbackHandler(r *wrappers.Request) wrappers.IResponse {
 		cmdrname = userinfo["sub"].(string)
 		customerid = int64(crc32.ChecksumIEEE([]byte(cmdrname)))
 	}
+	r.L.Debug().Str("cmdrname", cmdrname).Msg("Userinfo resolved")
 
 	user, err := db.Pool.LoginCMDR(cmdrname, customerid)
 	if err != nil {

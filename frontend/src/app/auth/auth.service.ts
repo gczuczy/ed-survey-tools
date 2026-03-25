@@ -132,10 +132,16 @@ export class AuthService {
   logout(): void {
     this.api.getConfig<void>('/api/auth/logout').pipe(
       catchError(() => of(undefined))
-    ).subscribe(() => {
-      this.cachedUser = null;
-      this.router.navigateByUrl('/');
-    });
+    ).subscribe(() => this.clearSession());
+  }
+
+  clearSession(): void {
+    this.cachedUser = null;
+    this.router.navigateByUrl('/');
+  }
+
+  deleteAccount(): Observable<void> {
+    return this.api.delete<void>('/api/auth/me');
   }
 
   // ── private helpers ─────────────────────────────────────────────────────

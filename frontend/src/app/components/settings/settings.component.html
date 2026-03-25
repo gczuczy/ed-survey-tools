@@ -1,0 +1,44 @@
+<p-confirmdialog />
+
+<div class="content-center">
+  <p-card header="Settings">
+    <p-tag value="Login-protected" icon="pi pi-lock" severity="warn" />
+
+    <div style="margin-top: 1rem">
+      <label class="label-bold">Current theme</label>
+      <p class="text-muted">
+        <p-tag [value]="themeService.currentTheme"
+               [severity]="themeSeverity" />
+        <small style="margin-left: 0.5rem">
+          (auto-detected from OS preference)
+        </small>
+      </p>
+    </div>
+
+    <p-divider />
+
+    <h4>General</h4>
+    <p class="text-muted"><em>Placeholder – add your settings here.</em></p>
+
+    <h4 style="margin-top: 1rem">Notifications</h4>
+    <p class="text-muted"><em>Placeholder – notification preferences.</em></p>
+
+    <p-divider />
+
+    <h4>Data &amp; Privacy</h4>
+    <p class="text-muted">
+      Your CMDR name and Frontier Developments customer ID are stored to
+      provide this service. Deleting your account removes the FDev customer
+      ID link; your CMDR name is retained for survey attribution.
+    </p>
+    @if (deleteError) {
+      <p class="delete-error">{{ deleteError }}</p>
+    }
+    <p-button
+      label="Delete Account"
+      severity="danger"
+      [outlined]="true"
+      icon="pi pi-trash"
+      (onClick)="confirmDeleteAccount()" />
+  </p-card>
+</div>
