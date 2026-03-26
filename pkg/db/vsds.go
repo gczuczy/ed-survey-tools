@@ -701,6 +701,36 @@ func (p *DBPool) DeleteFolder(id int) (err error) {
 		return
 	}
 
+	return p.RefreshSurveyMaterializedViews()
+}
+
+// RefreshSurveyMaterializedViews refreshes vsds.v_surveypoints and
+// vsds.v_surveys in dependency order. Call after any operation that
+// modifies surveypoints or surveys (processing runs, folder deletion).
+func (p *DBPool) RefreshSurveyMaterializedViews() error {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Unable to acquire connection from pool")
+		return err
+	}
+	defer conn.Release()
+
+	views := []string{
+		"vsds.v_surveypoints",
+		"vsds.v_surveys",
+	}
+	for _, v := range views {
+		if _, err = conn.Exec(
+			p.ctx,
+			"REFRESH MATERIALIZED VIEW "+v,
+		); err != nil {
+			logger.Error().Err(err).Caller().
+				Str("view", v).
+				Msg("Error refreshing materialized view")
+			return err
+		}
+	}
 	return nil
 }
 

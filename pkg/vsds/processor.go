@@ -103,7 +103,20 @@ func (p *Processor) run() {
 }
 
 func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
-	defer db.Pool.FinishFolderProcessing(job.ProcID)
+	defer func() {
+		if ferr := db.Pool.FinishFolderProcessing(
+			job.ProcID); ferr != nil {
+			p.logger.Error().Err(ferr).Caller().
+				Int("procid", job.ProcID).
+				Msg("Error finishing folder processing")
+		}
+		rerr := db.Pool.RefreshSurveyMaterializedViews()
+		if rerr != nil {
+			p.logger.Error().Err(rerr).Caller().
+				Int("procid", job.ProcID).
+				Msg("Error refreshing materialized views")
+		}
+	}()
 	p.logger.Info().
 		Int("procid", job.ProcID).
 		Int("folderid", job.FolderID).

@@ -1,4 +1,8 @@
-CREATE OR REPLACE VIEW vsds.v_surveypoints AS
+-- v_surveys depends on v_surveypoints; drop in reverse order.
+DROP MATERIALIZED VIEW IF EXISTS vsds.v_surveys;
+DROP MATERIALIZED VIEW IF EXISTS vsds.v_surveypoints;
+
+CREATE MATERIALIZED VIEW vsds.v_surveypoints AS
 WITH adjusted AS (
 SELECT sp.id, sp.surveyid, s.name AS sysname,
        sp.zsample, s.x, s.y, s.z,
@@ -20,10 +24,11 @@ SELECT a.*,
        a.z - 25899.96875 AS gc_z
 FROM adjusted a
 ;
+CREATE INDEX ON vsds.v_surveypoints (surveyid);
 GRANT SELECT ON vsds.v_surveypoints TO edservice;
 GRANT SELECT ON vsds.v_surveypoints TO edviewer;
 
-CREATE OR REPLACE VIEW vsds.v_surveys AS
+CREATE MATERIALIZED VIEW vsds.v_surveys AS
 WITH stats AS (
 SELECT sp.surveyid,
        max(sp.rho) AS rho_max,
@@ -45,6 +50,7 @@ FROM vsds.surveys s
      JOIN stats sp ON s.id = sp.surveyid
      JOIN vsds.projects c ON s.projectid = c.id
 ;
+CREATE INDEX ON vsds.v_surveys (id);
 GRANT SELECT ON vsds.v_surveys TO edservice;
 GRANT SELECT ON vsds.v_surveys TO edviewer;
 
