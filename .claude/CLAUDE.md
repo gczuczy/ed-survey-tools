@@ -101,6 +101,12 @@ There must be a breadcrumb bar as part of the navbar, right below the navitems.
 
 # AI Memory
 
-Backend AI self-notes are located at `memory/`, parse these. Maintain these for later efficiency.
+At the start of each session, read all files under `.claude/memory/` (backend
+notes) and `frontend/memory/` (frontend notes) to restore project context.
+Only add new entries when something non-obvious is discovered that cannot be
+derived from the code or git history, or when explicitly asked to remember
+something.
 
-Frontend AI self-notes are located at `frontend/memory/`, parse these. Maintain tehse for alter efficienty.
+# AI Notes
+
+Always be skeptical, support your findings with facts. Also be skeptical about my suggestions and verify them properly.
