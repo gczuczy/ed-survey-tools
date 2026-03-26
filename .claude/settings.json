@@ -24,7 +24,8 @@
 			"Edit(**/*.md)",
 			"Edit(sql/**/*.sql)",
 			"Edit(memory/**.md)",
-			"Edit(frontend/memory/**.md)"
+			"Edit(frontend/memory/**.md)",
+			"Grep"
     ],
     "deny": [
     ]

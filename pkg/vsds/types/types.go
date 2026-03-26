@@ -23,12 +23,13 @@ type SurveyPoint struct {
 }
 
 // Normalize deduplicates SurveyPoints by system name using the
-// supplied z-coordinate map (name → actual Z coordinate).  When
-// the same system appears more than once, the point whose ZSample
-// is closest to the system's real Z is kept; the others are
-// returned so the caller can log them.
+// supplied coordinate map (name → actual galactic Y coordinate;
+// the VSDS 'ZSample' vertical axis maps to real Y).  When the
+// same system appears more than once, the point whose ZSample is
+// closest to the system's real Y is kept; the others are returned
+// so the caller can log them.
 func (s *Survey) Normalize(
-	systemZ map[string]float32,
+	sysRealY map[string]float32,
 ) []SurveyPoint {
 	type entry struct {
 		idx  int
@@ -36,7 +37,7 @@ func (s *Survey) Normalize(
 	}
 	best := make(map[string]entry, len(s.SurveyPoints))
 	for i, sp := range s.SurveyPoints {
-		z, ok := systemZ[sp.SystemName]
+		z, ok := sysRealY[sp.SystemName]
 		var dist float32
 		if ok {
 			diff := z - float32(sp.ZSample)

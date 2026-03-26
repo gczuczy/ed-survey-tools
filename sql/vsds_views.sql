@@ -27,18 +27,16 @@ SELECT sp.surveyid,
        avg(sp.x) AS x,
        avg(sp.y) AS y,
        stddev_samp(sp.rho) AS rho_stddev,
-       jsonb_agg(jsonb_build_object('z', sp.zsample, 'rho', sp.rho)) AS points
+       jsonb_agg(jsonb_build_object('zsample', sp.zsample, 'rho', sp.rho)) AS points
 FROM vsds.v_surveypoints sp
 GROUP BY sp.surveyid
 )
-SELECT cmdr.name AS cmdrname,
-       c.name AS projectname,
+SELECT c.name AS projectname,
        s.*,
        sp.*
 FROM vsds.surveys s
      JOIN stats sp ON s.id = sp.surveyid
      JOIN vsds.projects c ON s.projectid = c.id
-     JOIN common.cmdrs cmdr ON s.cmdrid = cmdr.id
 ;
 GRANT SELECT ON vsds.v_surveys TO edservice;
 GRANT SELECT ON vsds.v_surveys TO edviewer;

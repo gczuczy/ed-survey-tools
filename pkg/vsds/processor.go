@@ -323,11 +323,11 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 				sysMap[s.Name] = s
 			}
 
-			systemZ := make(map[string]float32, len(sysMap))
+			sysRealY := make(map[string]float32, len(sysMap))
 			for name, sys := range sysMap {
-				systemZ[name] = sys.Y
+				sysRealY[name] = sys.Y
 			}
-			for _, dp := range survey.Normalize(systemZ) {
+			for _, dp := range survey.Normalize(sysRealY) {
 				p.logger.Warn().
 					Int("procid", job.ProcID).
 					Str("file_id", item.ID).
