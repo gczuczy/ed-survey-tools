@@ -2,13 +2,19 @@ CREATE OR REPLACE VIEW vsds.v_surveypoints AS
 WITH adjusted AS (
 SELECT sp.id, sp.surveyid, s.name AS sysname,
        sp.zsample, s.x, s.y, s.z,
-       greatest(least(sp.syscount, 50), 1) AS syscount,
+       sp.syscount + 1 AS corrected_n,
        greatest(least(sp.maxdistance, 20), 1) AS maxdistance
 FROM vsds.surveypoints sp
 		 JOIN common.systems s ON sp.sysid = s.id
 )
 SELECT a.*,
-       a.syscount/((4*pi()/3)*power(a.maxdistance, 3)) AS rho
+       CASE
+           WHEN a.corrected_n >= 50
+               THEN 50.0 /
+                    ((4.0*pi()/3.0) * power(a.maxdistance, 3))
+           ELSE a.corrected_n::float /
+                ((4.0*pi()/3.0) * power(20.0, 3))
+       END AS rho
 FROM adjusted a
 ;
 GRANT SELECT ON vsds.v_surveypoints TO edservice;
