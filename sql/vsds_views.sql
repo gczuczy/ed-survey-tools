@@ -14,7 +14,10 @@ SELECT a.*,
                     ((4.0*pi()/3.0) * power(a.maxdistance, 3))
            ELSE a.corrected_n::float /
                 ((4.0*pi()/3.0) * power(20.0, 3))
-       END AS rho
+       END AS rho,
+       a.x - 25.21875    AS gc_x,
+       a.y + 20.90625    AS gc_y,
+       a.z - 25899.96875 AS gc_z
 FROM adjusted a
 ;
 GRANT SELECT ON vsds.v_surveypoints TO edservice;
@@ -25,9 +28,13 @@ WITH stats AS (
 SELECT sp.surveyid,
        max(sp.rho) AS rho_max,
        avg(sp.x) AS x,
-       avg(sp.y) AS y,
+       avg(sp.z) AS z,
        stddev_samp(sp.rho) AS rho_stddev,
-       jsonb_agg(jsonb_build_object('zsample', sp.zsample, 'rho', sp.rho)) AS points
+       avg(sp.x) - 25.21875    AS gc_x,
+       avg(sp.z) - 25899.96875 AS gc_z,
+       jsonb_agg(
+           jsonb_build_object('zsample', sp.zsample, 'rho', sp.rho)
+       ) AS points
 FROM vsds.v_surveypoints sp
 GROUP BY sp.surveyid
 )

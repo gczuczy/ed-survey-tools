@@ -44,6 +44,17 @@
 - View: `vsds.v_spreadsheetvariants` in `sql/vsds_views.sql`
 - Coordinates: 0-indexed (no transform in backend)
 
+## VSDS Coordinate System
+- Galactic coordinates are Sol-centered (0,0,0 = Sol).
+- Galactic center is at `(25.21875, -20.90625, 25899.96875)` in Sol-centered
+  x,y,z.
+- Both `vsds.v_surveypoints` and `vsds.v_surveys` expose GC-relative coords:
+  - `gc_x = x - 25.21875`
+  - `gc_y = y + 20.90625`  (individual points only)
+  - `gc_z = z - 25899.96875`
+- `vsds.v_surveys` centroid is 2D (galactic plane): only `x`/`z` and `gc_x`/
+  `gc_z` — `y` (galactic height) is omitted from the centroid.
+
 ## Database
 - Prepared statements in `pkg/db/db.go` `afterConn()` function
 - VSDs types in `pkg/db/vsds.go`
