@@ -15,6 +15,10 @@
       </span>
       <p-menu #vsdsMenu [model]="vsdsMenuItems" [popup]="true" />
 
+      <!-- Bundles (public, single page — no dropdown) -->
+      <a class="nav-link" routerLink="/bundles"
+         [class.active]="isBundlesActive">Bundles</a>
+
       <!-- Admin (owner-only) -->
       @if (authService.user?.isowner) {
         <span class="nav-section">

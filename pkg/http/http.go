@@ -43,9 +43,13 @@ func New(cfg *config.Config) (*HTTPService, error) {
 
 	router := mux.NewRouter()
 	apisr := router.PathPrefix("/api").Subrouter()
-	if err = api.Init(apisr, &cfg.OAuth2); err != nil {
+	if err = api.Init(apisr, &cfg.OAuth2, &cfg.Bundles); err != nil {
 		l.Error().Err(err).Msg("API init error")
 		return nil, err
+	}
+	if cfg.Bundles.Serve {
+		router.PathPrefix("/static/").
+			Handler(newStaticBundleHandler(cfg.Bundles.Path))
 	}
 	router.PathPrefix(`/`).Handler(spa)
 

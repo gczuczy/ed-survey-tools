@@ -716,20 +716,12 @@ func (p *DBPool) RefreshSurveyMaterializedViews() error {
 	}
 	defer conn.Release()
 
-	views := []string{
-		"vsds.v_surveypoints",
-		"vsds.v_surveys",
-	}
-	for _, v := range views {
-		if _, err = conn.Exec(
-			p.ctx,
-			"REFRESH MATERIALIZED VIEW "+v,
-		); err != nil {
-			logger.Error().Err(err).Caller().
-				Str("view", v).
-				Msg("Error refreshing materialized view")
-			return err
-		}
+	if _, err = conn.Exec(
+		p.ctx, "refreshsurveymatviews",
+	); err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Error refreshing survey materialized views")
+		return err
 	}
 	return nil
 }

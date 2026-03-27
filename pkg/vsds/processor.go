@@ -5,6 +5,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/gczuczy/ed-survey-tools/pkg/bundles"
 	"github.com/gczuczy/ed-survey-tools/pkg/config"
 	"github.com/gczuczy/ed-survey-tools/pkg/db"
 	"github.com/gczuczy/ed-survey-tools/pkg/edsm"
@@ -103,6 +104,8 @@ func (p *Processor) run() {
 }
 
 func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
+	affectedProjects := make(map[int]struct{})
+
 	defer func() {
 		if ferr := db.Pool.FinishFolderProcessing(
 			job.ProcID); ferr != nil {
@@ -115,6 +118,17 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 			p.logger.Error().Err(rerr).Caller().
 				Int("procid", job.ProcID).
 				Msg("Error refreshing materialized views")
+		}
+		if len(affectedProjects) > 0 {
+			pids := make([]int, 0, len(affectedProjects))
+			for pid := range affectedProjects {
+				pids = append(pids, pid)
+			}
+			if err := db.Pool.QueueAutoRegenBundles(pids); err != nil {
+				p.logger.Error().Err(err).
+					Msg("Error queuing auto-regen bundles")
+			}
+			bundles.Signal()
 		}
 	}()
 	p.logger.Info().
@@ -386,6 +400,8 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 					false, sErr.Error())
 				continue
 			}
+
+			affectedProjects[projectID] = struct{}{}
 
 			if lErr != nil {
 				p.recordResult(txn, job.ProcID, sheetID,

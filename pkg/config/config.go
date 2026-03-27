@@ -17,6 +17,14 @@ type Config struct {
 	Logging  LoggingConfig  `koanf:"logging"`
 	VSDS     VSDSConfig     `koanf:"vsds"`
 	EDSM     EDSMConfig     `koanf:"edsm"`
+	Bundles  BundlesConfig  `koanf:"bundles"`
+}
+
+type BundlesConfig struct {
+	Path          string        `koanf:"path"`
+	Serve         bool          `koanf:"serve"`
+	BaseURL       string        `koanf:"baseUrl"`
+	CheckInterval time.Duration `koanf:"checkInterval"`
 }
 
 type EDSMConfig struct {
@@ -122,6 +130,9 @@ func ParseConfig(k *koanf.Koanf) (*Config, error) {
 		EDSM: EDSMConfig{
 			Timeout: 5 * time.Second,
 			Retries: 10,
+		},
+		Bundles: BundlesConfig{
+			CheckInterval: 5 * time.Minute,
 		},
 	}
 	if err = k.Unmarshal("", &cfg); err != nil {

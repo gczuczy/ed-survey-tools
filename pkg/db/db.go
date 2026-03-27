@@ -338,6 +338,133 @@ RETURNING id, name, customerid, isowner,
 
 		// self-delete: remove all personal data for a cmdr
 		"deletecmdr": `SELECT common.deletecmdr($1::int)`,
+
+		// bundles: list pending/queued bundles (vsds view)
+		"listpendingbundles": `
+SELECT * FROM bundles.v_vsds_bundles
+WHERE status IN ('pending', 'queued')
+ORDER BY id
+`,
+
+		// bundles: atomically claim a bundle for generation
+		"setbundlegenerating": `
+UPDATE bundles.bundles
+SET status = 'generating'
+WHERE id = $1 AND status IN ('pending', 'queued')
+`,
+
+		// bundles: mark a bundle as ready
+		"setbundleready": `
+UPDATE bundles.bundles
+SET status = 'ready', generatedat = now(), errormessage = NULL
+WHERE id = $1
+`,
+
+		// bundles: mark a bundle as failed
+		"setbundleerror": `
+UPDATE bundles.bundles
+SET status = 'error', errormessage = $2
+WHERE id = $1
+`,
+
+		// bundles: load VSDS-specific config for a bundle
+		"getvsdsbundleconfig": `
+SELECT subtype, allprojects
+FROM bundles.vsds_bundles
+WHERE bundleid = $1
+`,
+
+		// bundles: load project IDs for a VSDS bundle
+		"getvsdsbundleprojects": `
+SELECT projectid
+FROM bundles.vsds_bundle_projects
+WHERE bundleid = $1
+ORDER BY projectid
+`,
+
+		// bundles: queue autoregen bundles for given project IDs
+		"queueautoregen": `
+SELECT bundles.queue_autoregen_bundles($1::int[])
+`,
+
+		// bundles: list all bundles (VSDS view)
+		"listbundles": `
+SELECT * FROM bundles.v_vsds_bundles ORDER BY id
+`,
+
+		// bundles: get a bundle by ID
+		"getbundle": `
+SELECT * FROM bundles.v_vsds_bundles WHERE id = $1
+`,
+
+		// bundles: create a VSDS bundle via DB function
+		"createvsdsbundle": `
+SELECT * FROM bundles.create_vsds_bundle(
+    $1::varchar, $2::bool, $3::varchar,
+    $4::bool, $5::int[]
+)
+`,
+
+		// bundles: delete a bundle by ID
+		"deletebundle": `
+DELETE FROM bundles.bundles WHERE id = $1
+`,
+
+		// bundles: queue a bundle unless already generating
+		"queuebundle": `
+UPDATE bundles.bundles
+SET status = 'queued'
+WHERE id = $1 AND status != 'generating'
+`,
+
+		// bundles: check whether a bundle row exists
+		"checkbundleexists": `
+SELECT id FROM bundles.bundles WHERE id = $1
+`,
+
+		// bundles: update autoregen flag on a bundle
+		"updatebundleautoregen": `
+UPDATE bundles.bundles SET autoregen = $2 WHERE id = $1
+`,
+
+		// bundles: VSDS survey points — all projects
+		"vsds_bundle_surveypts_all": `
+SELECT sysname, zsample, x, y, z,
+       corrected_n, maxdistance, rho, gc_x, gc_y, gc_z
+FROM vsds.v_surveypoints
+`,
+
+		// bundles: VSDS survey points — filtered by project
+		"vsds_bundle_surveypts_proj": `
+SELECT sysname, zsample, x, y, z,
+       corrected_n, maxdistance, rho, gc_x, gc_y, gc_z
+FROM vsds.v_surveypoints
+WHERE surveyid IN (
+    SELECT id FROM vsds.surveys
+    WHERE projectid = ANY($1::int[])
+)
+`,
+
+		// bundles: VSDS surveys — all projects
+		"vsds_bundle_surveys_all": `
+SELECT projectname, rho_max, x, z,
+       rho_stddev, gc_x, gc_z, points
+FROM vsds.v_surveys
+`,
+
+		// bundles: VSDS surveys — filtered by project
+		"vsds_bundle_surveys_proj": `
+SELECT projectname, rho_max, x, z,
+       rho_stddev, gc_x, gc_z, points
+FROM vsds.v_surveys
+WHERE projectid = ANY($1::int[])
+`,
+
+		// refresh both survey matviews via SECURITY DEFINER
+		// function; avoids requiring edservice to own the views
+		"refreshsurveymatviews": `
+SELECT vsds.refresh_survey_matviews()
+`,
 	}
 
 

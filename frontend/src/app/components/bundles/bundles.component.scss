@@ -1,0 +1,90 @@
+.bundles-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Card header with title + Add button side by side */
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem 0;
+}
+
+.card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* Dialog form */
+.add-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding-top: 0.25rem;
+}
+
+.dialog-field {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dialog-label {
+  width: 8.5rem;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.dialog-input {
+  flex: 1;
+}
+
+.dialog-select {
+  flex: 1;
+}
+
+.dialog-static {
+  font-size: 0.9rem;
+}
+
+.dialog-message {
+  display: block;
+  margin-top: 0.25rem;
+}
+
+/* Table */
+.table-message {
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.actions-cell {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  white-space: nowrap;
+  width: 7rem;
+}
+
+.autoregen-cell {
+  text-align: center;
+}
+
+.empty-message {
+  text-align: center;
+  color: var(--p-text-muted-color);
+  padding: 1.5rem;
+}
+
+.download-link {
+  color: var(--p-primary-color);
+  text-decoration: none;
+  font-size: 1.1rem;
+
+  &:hover {
+    opacity: 0.75;
+  }
+}

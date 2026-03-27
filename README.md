@@ -155,6 +155,14 @@ vsds:
 edsm:
   timeout: 5s             # optional, default 5s
   retries: 10             # optional, default 10
+
+bundles:
+  path: /var/lib/edst/bundles  # directory for .json.gz bundle files
+  serve: false                 # true = serve /static/ from this backend
+  baseUrl: ""                  # URL prefix for download links
+                               # empty = frontend defaults to /static/
+                               # e.g. https://static.example.com/
+  checkInterval: 5m            # optional, default 5m
 ```
 
 ---
@@ -174,3 +182,26 @@ The service listens on the port configured under `http.port` and serves
 the frontend from `/` and the API from `/api`.
 
 Shutdown is handled gracefully on `SIGINT` or `SIGTERM`.
+
+---
+
+## Deployment
+
+### Production static serving
+
+For production, bundle files are best served from a dedicated static host or
+subdomain rather than the application backend. Point nginx at the configured
+`bundles.path` directory with `gzip_static on;` so pre-compressed `.json.gz`
+files are served with the correct `Content-Encoding: gzip` header:
+
+```nginx
+location / {
+    root /var/lib/edst/bundles;
+    gzip_static on;
+    default_type application/json;
+}
+```
+
+Set `bundles.baseUrl` in the application config to the base URL of that host
+(e.g. `https://static.example.com/`) so the frontend constructs correct links.
+Leave `bundles.serve: false` when using external static serving.

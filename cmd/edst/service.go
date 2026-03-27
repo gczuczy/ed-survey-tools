@@ -10,6 +10,7 @@ import (
 	"github.com/knadh/koanf/providers/posflag"
 	flag "github.com/spf13/pflag"
 
+	"github.com/gczuczy/ed-survey-tools/pkg/bundles"
 	"github.com/gczuczy/ed-survey-tools/pkg/config"
 	"github.com/gczuczy/ed-survey-tools/pkg/db"
 	"github.com/gczuczy/ed-survey-tools/pkg/edsm"
@@ -87,12 +88,17 @@ func Run() {
 	proc := vsds.NewProcessor(&cfg.VSDS, edsmClient)
 	proc.Start()
 
+	bundles.P = bundles.NewProcessor(&cfg.Bundles)
+	bundles.Register("vsds", vsds.NewBundleRunner())
+	bundles.P.Start()
+
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
 	sig := <-sigChan
 	fmt.Printf("Received %s, bailing out\n", sig)
 	proc.Stop()
+	bundles.P.Stop()
 	if err = hs.Shutdown(); err != nil {
 		fmt.Fprintf(os.Stderr, "err: %v\n", err)
 		os.Exit(1)

@@ -26,8 +26,9 @@ import { MenuItem }                from 'primeng/api';
   styleUrl:    './navbar.component.scss',
 })
 export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
-  isVsdsActive  = false;
-  isAdminActive = false;
+  isVsdsActive    = false;
+  isBundlesActive = false;
+  isAdminActive   = false;
 
   userMenuItems:  MenuItem[] = [];
   vsdsMenuItems:  MenuItem[] = [];
@@ -56,8 +57,9 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit(): void {
     const check = () => {
-      this.isVsdsActive  = window.location.pathname.startsWith('/vsds');
-      this.isAdminActive = window.location.pathname.startsWith('/admin');
+      this.isVsdsActive    = window.location.pathname.startsWith('/vsds');
+      this.isBundlesActive = window.location.pathname.startsWith('/bundles');
+      this.isAdminActive   = window.location.pathname.startsWith('/admin');
     };
     check();
     window.addEventListener('popstate', check);
@@ -83,8 +85,9 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
     this.navSub = this.router.events.pipe(
       filter(e => e instanceof NavigationEnd)
     ).subscribe(() => {
-      this.isVsdsActive  = this.router.url.startsWith('/vsds');
-      this.isAdminActive = this.router.url.startsWith('/admin');
+      this.isVsdsActive    = this.router.url.startsWith('/vsds');
+      this.isBundlesActive = this.router.url.startsWith('/bundles');
+      this.isAdminActive   = this.router.url.startsWith('/admin');
       this.buildVsdsMenuItems();
       this.buildAdminMenuItems();
       this.updateBreadcrumbs();

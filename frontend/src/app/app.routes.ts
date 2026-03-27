@@ -60,6 +60,14 @@ export const routes: Routes = [
     ]
   },
 
+  // ── Bundles page (public) ─────────────────────────────────────────────────
+  {
+    path: 'bundles',
+    loadComponent: () =>
+      import('./components/bundles/bundles.component')
+        .then(m => m.BundlesComponent),
+  },
+
   // ── Admin section (owner-only) ────────────────────────────────────────────
   {
     path: 'admin',
