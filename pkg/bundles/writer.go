@@ -33,6 +33,11 @@ func write(data any, destPath string) error {
 		return writeErr
 	}
 
+	if err := os.Chmod(tmpName, 0644); err != nil {
+		_ = os.Remove(tmpName)
+		return err
+	}
+
 	if err := os.Rename(tmpName, destPath); err != nil {
 		_ = os.Remove(tmpName)
 		return err
