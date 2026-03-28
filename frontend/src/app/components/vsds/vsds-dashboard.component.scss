@@ -114,9 +114,10 @@
 }
 
 .error-message {
-  font-size:  0.875rem;
-  color:      var(--p-red-500);
-  word-break: break-word;
+  font-size:   0.875rem;
+  color:       var(--p-red-500);
+  word-break:  break-word;
+  white-space: pre-wrap;
 }
 
 .no-data {
