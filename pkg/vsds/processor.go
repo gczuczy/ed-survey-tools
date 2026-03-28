@@ -376,7 +376,7 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 				continue
 			}
 
-			cmdrID, cErr := txn.UpsertCmdr(survey.CMDR)
+			rawCmdrID, cErr := txn.UpsertCmdr(survey.CMDR)
 			if cErr != nil {
 				p.logger.Error().Err(cErr).
 					Int("procid", job.ProcID).
@@ -386,6 +386,10 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 				p.recordResult(txn, job.ProcID, sheetID,
 					false, cErr.Error())
 				continue
+			}
+			var cmdrID *int
+			if rawCmdrID != 0 {
+				cmdrID = &rawCmdrID
 			}
 
 			if sErr := txn.AddSurvey(

@@ -92,7 +92,7 @@ INSERT INTO vsds.project_zsamples (projectid, zsample) VALUES
 CREATE TABLE vsds.surveys (
        id        int GENERATED ALWAYS AS IDENTITY,
        projectid int NOT NULL,
-       cmdrid    int NOT NULL,
+       cmdrid    int,            -- NULL when CMDR could not be extracted
        sheetid   int NOT NULL,
        FOREIGN KEY (projectid) REFERENCES vsds.projects (id),
        FOREIGN KEY (cmdrid)    REFERENCES common.cmdrs (id),

@@ -929,8 +929,13 @@ func (t *Transaction) AddSheet(
 }
 
 // UpsertCmdr inserts or retrieves a CMDR by name within the long
-// transaction and returns the row id.
+// transaction and returns the row id.  An empty name indicates an
+// unresolvable CMDR; 0 is returned with a nil error so the caller
+// can store a NULL FK.
 func (t *Transaction) UpsertCmdr(name string) (int, error) {
+	if name == "" {
+		return 0, nil
+	}
 	var id int
 	err := t.tx.QueryRow(
 		t.ctx, "upsertcmdr", name,
@@ -980,9 +985,10 @@ func (t *Transaction) LookupProject(name string) (int, error) {
 
 // AddSurvey inserts a survey and all its points within the long
 // transaction. systems maps each SurveyPoint.SystemName to its
-// resolved db.System row.
+// resolved db.System row.  cmdrID == 0 stores NULL (unknown CMDR).
 func (t *Transaction) AddSurvey(
-	sheetID, projectID, cmdrID int,
+	sheetID, projectID int,
+	cmdrID *int,
 	points []vsdstypes.SurveyPoint,
 	systems map[string]System,
 ) error {
