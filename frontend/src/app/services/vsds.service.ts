@@ -153,6 +153,41 @@ export interface VSDSConfig {
   gcp_client_email: string;
 }
 
+/**
+ * Mirrors db.CMDRContribution returned by
+ * GET /api/vsds/contribution.
+ * coldev_* are omitted (undefined) when there are no multi-point
+ * surveys to compute a deviation from.
+ */
+export interface VSDSContribution {
+  surveys:     number;
+  points:      number;
+  coldev_min?: number;
+  coldev_avg?: number;
+  coldev_max?: number;
+}
+
+/**
+ * One errored tab within a document in the user's error list.
+ * Mirrors ContribErrorSheetResp.
+ */
+export interface VSDSContribErrorSheet {
+  sheet_name: string;
+  message:    string;
+}
+
+/**
+ * One document with its errored tabs, grouped by processing run.
+ * Mirrors ContribErrorDocResp.
+ */
+export interface VSDSContribErrorDoc {
+  doc_id:      number;
+  doc_name:    string;
+  received_at: string;
+  error_count: number;
+  sheets:      VSDSContribErrorSheet[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class VsdsService {
 
@@ -282,5 +317,15 @@ export class VsdsService {
     return this.api.post<ApiResponse<ValidationResponse>>(
       `/api/vsds/projects/${projectId}/variants/validate`,
       body);
+  }
+
+  getMyContribution(): Observable<ApiResponse<VSDSContribution>> {
+    return this.api.get<ApiResponse<VSDSContribution>>(
+      '/api/vsds/contribution');
+  }
+
+  getMyContributionErrors(): Observable<ApiResponse<VSDSContribErrorDoc[]>> {
+    return this.api.get<ApiResponse<VSDSContribErrorDoc[]>>(
+      '/api/vsds/contribution/errors');
   }
 }

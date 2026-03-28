@@ -34,7 +34,10 @@ SELECT sp.surveyid,
        max(sp.rho) AS rho_max,
        avg(sp.x) AS x,
        avg(sp.z) AS z,
-       stddev_samp(sp.rho) AS rho_stddev,
+       sqrt(
+           power(stddev_samp(sp.x), 2) +
+           power(stddev_samp(sp.z), 2)
+       ) AS column_dev,
        avg(sp.x) - 25.21875    AS gc_x,
        avg(sp.z) - 25899.96875 AS gc_z,
        jsonb_agg(
@@ -128,3 +131,42 @@ GROUP BY sv.id, sv.projectid, p.name, sv.name,
          sv.systemcountcolumn, sv.maxdistancecolumn;
 GRANT SELECT ON vsds.v_spreadsheetvariants TO edservice;
 GRANT SELECT ON vsds.v_spreadsheetvariants TO edviewer;
+
+-- Per-CMDR aggregated contribution stats.
+-- Queries v_surveys (materialized) for column_dev per survey.
+-- Surveys with NULL cmdrid are excluded.
+CREATE OR REPLACE VIEW vsds.v_cmdr_contribution AS
+SELECT s.cmdrid,
+       COUNT(DISTINCT s.id)         AS surveys,
+       COALESCE(SUM(sp_cnt.cnt), 0) AS points,
+       MIN(vs.column_dev)           AS coldev_min,
+       AVG(vs.column_dev)           AS coldev_avg,
+       MAX(vs.column_dev)           AS coldev_max
+FROM vsds.surveys s
+LEFT JOIN (
+    SELECT surveyid, COUNT(*) AS cnt
+    FROM vsds.surveypoints
+    GROUP BY surveyid
+) sp_cnt ON sp_cnt.surveyid = s.id
+LEFT JOIN vsds.v_surveys vs ON vs.id = s.id
+WHERE s.cmdrid IS NOT NULL
+GROUP BY s.cmdrid;
+GRANT SELECT ON vsds.v_cmdr_contribution TO edservice;
+
+-- Failed sheet processing rows attributed to a CMDR.
+-- cmdrid is populated by the processor via a name-lookup at record
+-- time; rows where cmdrid IS NULL are excluded.
+CREATE OR REPLACE VIEW vsds.v_user_sheet_errors AS
+SELECT sp.cmdrid,
+       ss.id   AS doc_id,
+       ss.name AS doc_name,
+       sh.name AS sheet_name,
+       fp.receivedat,
+       sp.message
+FROM vsds.sheet_processing sp
+JOIN vsds.sheets sh          ON sp.sheetid = sh.id
+JOIN vsds.spreadsheets ss    ON sh.spreadsheetid = ss.id
+JOIN vsds.folder_processing fp ON sp.procid = fp.id
+WHERE sp.success = false
+  AND sp.cmdrid IS NOT NULL;
+GRANT SELECT ON vsds.v_user_sheet_errors TO edservice;

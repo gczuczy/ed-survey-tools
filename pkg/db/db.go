@@ -75,10 +75,33 @@ INSERT INTO vsds.surveypoints
 VALUES ($1::int, $2::bigint, $3::int, $4::int, $5::real)
 `,
 
-		// record a sheet processing outcome
+		// record a sheet processing outcome; $5 = cmdrid (nullable)
 		"recordsheetresult": `
-INSERT INTO vsds.sheet_processing (procid, sheetid, success, message)
-VALUES ($1::int, $2::int, $3::boolean, NULLIF($4::text, ''))
+INSERT INTO vsds.sheet_processing
+    (procid, sheetid, success, message, cmdrid)
+VALUES ($1::int, $2::int, $3::boolean,
+        NULLIF($4::text, ''), $5::int)
+`,
+
+		// VSDS: look up a CMDR id by name (no upsert)
+		"lookcmdrbyname": `
+SELECT id FROM common.cmdrs WHERE name = $1::text
+`,
+
+		// VSDS: CMDR contribution stats from v_cmdr_contribution
+		"cmdrsurveystats": `
+SELECT surveys, points,
+       coldev_min, coldev_avg, coldev_max
+FROM vsds.v_cmdr_contribution
+WHERE cmdrid = $1::int
+`,
+
+		// VSDS: user's attributed failed-sheet rows
+		"getusersheeteerrors": `
+SELECT doc_id, doc_name, sheet_name, receivedat, message
+FROM vsds.v_user_sheet_errors
+WHERE cmdrid = $1::int
+ORDER BY receivedat DESC, doc_id, sheet_name
 `,
 
 		// VSDS: list projects
@@ -448,14 +471,14 @@ WHERE surveyid IN (
 		// bundles: VSDS surveys — all projects
 		"vsds_bundle_surveys_all": `
 SELECT projectname, rho_max, x, z,
-       rho_stddev, gc_x, gc_z, points
+       column_dev, gc_x, gc_z, points
 FROM vsds.v_surveys
 `,
 
 		// bundles: VSDS surveys — filtered by project
 		"vsds_bundle_surveys_proj": `
 SELECT projectname, rho_max, x, z,
-       rho_stddev, gc_x, gc_z, points
+       column_dev, gc_x, gc_z, points
 FROM vsds.v_surveys
 WHERE projectid = ANY($1::int[])
 `,

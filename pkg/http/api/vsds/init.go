@@ -65,5 +65,12 @@ func Init(r *mux.Router) error {
 		w.NewAPIHandler().
 			AuthDelete(deleteVariantCheck, w.IsAdmin),
 	)
+
+	r.Handle("/contribution",
+		w.NewAPIHandler().AuthGet(getContribution),
+	)
+	r.Handle("/contribution/errors",
+		w.NewAPIHandler().AuthGet(getContributionErrors),
+	)
 	return nil
 }

@@ -277,7 +277,7 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 					Str("tab", tabName).
 					Msg("Error parsing sheet")
 				p.recordResult(txn, job.ProcID, sheetID,
-					false, err.Error())
+					false, err.Error(), survey.CMDR)
 				continue
 			}
 
@@ -321,7 +321,7 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 							Msg("Error rolling back transaction")
 					}
 					p.recordResult(txn, job.ProcID, sheetID,
-						false, lErr.Error())
+						false, lErr.Error(), survey.CMDR)
 					continue
 				}
 				// Partial resolution: some systems found.
@@ -372,7 +372,7 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 					Str("project", survey.Project).
 					Msg("Error looking up project")
 				p.recordResult(txn, job.ProcID, sheetID,
-					false, pErr.Error())
+					false, pErr.Error(), survey.CMDR)
 				continue
 			}
 
@@ -384,7 +384,7 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 					Str("cmdr", survey.CMDR).
 					Msg("Error upserting CMDR")
 				p.recordResult(txn, job.ProcID, sheetID,
-					false, cErr.Error())
+					false, cErr.Error(), survey.CMDR)
 				continue
 			}
 			var cmdrID *int
@@ -401,7 +401,7 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 					Str("tab", tabName).
 					Msg("Error adding survey to DB")
 				p.recordResult(txn, job.ProcID, sheetID,
-					false, sErr.Error())
+					false, sErr.Error(), survey.CMDR)
 				continue
 			}
 
@@ -409,25 +409,27 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 
 			if lErr != nil {
 				p.recordResult(txn, job.ProcID, sheetID,
-					false, lErr.Error())
+					false, lErr.Error(), survey.CMDR)
 			} else {
 				p.recordResult(txn, job.ProcID, sheetID,
-					true, "")
+					true, "", survey.CMDR)
 			}
 		}
 	}
 }
 
 // recordResult writes a sheet_processing row. Errors are logged but
-// do not alter the processing flow of the caller.
+// do not alter the processing flow of the caller.  cmdrName is used
+// for a best-effort CMDR lookup; pass survey.CMDR (may be empty).
 func (p *Processor) recordResult(
 	txn *db.Transaction,
 	procID, sheetID int,
 	success bool,
 	message string,
+	cmdrName string,
 ) {
 	if err := txn.RecordSheetResult(
-		procID, sheetID, success, message,
+		procID, sheetID, success, message, cmdrName,
 	); err != nil {
 		p.logger.Error().Err(err).
 			Int("procid", procID).

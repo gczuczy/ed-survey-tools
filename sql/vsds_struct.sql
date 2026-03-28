@@ -103,6 +103,8 @@ CREATE TABLE vsds.surveys (
 GRANT SELECT, INSERT ON vsds.surveys TO edservice;
 GRANT SELECT ON vsds.surveys TO edviewer;
 
+CREATE INDEX idx_surveys_cmdrid ON vsds.surveys (cmdrid);
+
 CREATE TABLE vsds.surveypoints (
        id          int    GENERATED ALWAYS AS IDENTITY,
        surveyid    int    NOT NULL,
@@ -136,19 +138,23 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON vsds.folder_processing TO edservice;
 
 -- Tracks per-sheet processing outcome within a folder_processing run.
 -- success: NULL = in progress, true = ok, false = failed.
+-- cmdrid: nullable — CMDR attributed to this sheet (if determinable).
 -- Cascades from both sides: deleting the processing run or the sheet
 -- removes the tracking row.
 CREATE TABLE vsds.sheet_processing (
-       id      bigint GENERATED ALWAYS AS IDENTITY,
-       procid  int    NOT NULL,
-       sheetid int    NOT NULL,
+       id      bigint  GENERATED ALWAYS AS IDENTITY,
+       procid  int     NOT NULL,
+       sheetid int     NOT NULL,
        success boolean,
        message text,
+       cmdrid  int,
        PRIMARY KEY (id),
        FOREIGN KEY (procid)
            REFERENCES vsds.folder_processing (id) ON DELETE CASCADE,
        FOREIGN KEY (sheetid)
-           REFERENCES vsds.sheets (id) ON DELETE CASCADE
+           REFERENCES vsds.sheets (id) ON DELETE CASCADE,
+       FOREIGN KEY (cmdrid)
+           REFERENCES common.cmdrs (id)
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON vsds.sheet_processing TO edservice;
 

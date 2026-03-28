@@ -30,7 +30,7 @@ type bundleSurvey struct {
 	RhoMax      float64         `db:"rho_max"     json:"rho_max"`
 	X           float64         `db:"x"           json:"x"`
 	Z           float64         `db:"z"           json:"z"`
-	RhoStddev   *float64        `db:"rho_stddev"  json:"rho_stddev"`
+	ColDev      *float64        `db:"column_dev"  json:"column_dev"`
 	GCX         float64         `db:"gc_x"        json:"gc_x"`
 	GCZ         float64         `db:"gc_z"        json:"gc_z"`
 	Points      json.RawMessage `db:"points"      json:"points"`
