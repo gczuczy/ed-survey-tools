@@ -65,6 +65,7 @@ type SessionsConfig struct {
 	Key    string              `koanf:"key"`
 	Store  string              `koanf:"store"`
 	Secure bool                `koanf:"secure"`
+	MaxAge int                 `koanf:"maxAge"`
 	Redis  *RedisSessionConfig `koanf:"redis"`
 }
 
@@ -133,6 +134,9 @@ func ParseConfig(k *koanf.Koanf) (*Config, error) {
 		},
 		Bundles: BundlesConfig{
 			CheckInterval: 5 * time.Minute,
+		},
+		Sessions: SessionsConfig{
+			MaxAge: 7200,
 		},
 	}
 	if err = k.Unmarshal("", &cfg); err != nil {
