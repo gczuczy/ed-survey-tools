@@ -1,4 +1,5 @@
-import { Component, OnInit }           from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { interval, Subscription }      from 'rxjs';
 import { FormsModule }                 from '@angular/forms';
 import { DatePipe }                    from '@angular/common';
 import { RouterLink }                  from '@angular/router';
@@ -21,7 +22,7 @@ import { ConfirmationService }         from 'primeng/api';
   templateUrl: './vsds-folders.component.html',
   styleUrl:    './vsds-folders.component.scss',
 })
-export class VsdsFoldersComponent implements OnInit {
+export class VsdsFoldersComponent implements OnInit, OnDestroy {
   gcpClientEmail = '';
 
   folders:    VSDSFolder[] = [];
@@ -39,6 +40,8 @@ export class VsdsFoldersComponent implements OnInit {
   processingId:  number | null = null;
   processError:  string | null = null;
 
+  private pollSub: Subscription | null = null;
+
   constructor(private vsdsService: VsdsService, private confirmationService: ConfirmationService) {}
 
   ngOnInit(): void {
@@ -48,6 +51,10 @@ export class VsdsFoldersComponent implements OnInit {
     this.loadFolders();
   }
 
+  ngOnDestroy(): void {
+    this.stopPolling();
+  }
+
   loadFolders(): void {
     this.loading   = true;
     this.loadError = null;
@@ -55,6 +62,7 @@ export class VsdsFoldersComponent implements OnInit {
       next: (resp) => {
         this.folders = resp.data ?? [];
         this.loading = false;
+        this.updatePolling();
       },
       error: (err: HttpErrorResponse) => {
         this.loadError = err.error?.message ?? 'Failed to load folders';
@@ -104,6 +112,41 @@ export class VsdsFoldersComponent implements OnInit {
         this.processingId = null;
       },
     });
+  }
+
+  private isAnyProcessing(): boolean {
+    return this.folders.some(
+      f => !!f.received_at && !f.finished_at
+    );
+  }
+
+  private updatePolling(): void {
+    if (this.isAnyProcessing()) {
+      this.startPolling();
+    } else {
+      this.stopPolling();
+    }
+  }
+
+  private startPolling(): void {
+    if (this.pollSub) return;
+    this.pollSub = interval(10000).subscribe(() => {
+      this.vsdsService.listFolders().subscribe({
+        next: (resp) => {
+          this.folders = resp.data ?? [];
+          if (!this.isAnyProcessing()) {
+            this.stopPolling();
+          }
+        },
+      });
+    });
+  }
+
+  private stopPolling(): void {
+    if (this.pollSub) {
+      this.pollSub.unsubscribe();
+      this.pollSub = null;
+    }
   }
 
   deleteFolder(folder: VSDSFolder): void {
