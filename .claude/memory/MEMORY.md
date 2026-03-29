@@ -44,6 +44,13 @@
 - View: `vsds.v_spreadsheetvariants` in `sql/vsds_views.sql`
 - Coordinates: 0-indexed (no transform in backend)
 
+## VSDS Rho Display Convention
+- Raw DB value `rho` is in **systems/ly³** (formula: `corrected_n / (4/3·π·maxdistance³)`,
+  `maxdistance` ≤ 20 ly — see `sql/vsds_views.sql`).
+- **Default display unit: systems/kLy³** — multiply raw value by 10⁹ (1 kLy³ = 10⁹ ly³).
+- Any UI component showing rho **must** include a toggle to switch to raw systems/ly³
+  (unnormalized).
+
 ## VSDS Coordinate System
 - Galactic coordinates are Sol-centered (0,0,0 = Sol).
 - Galactic center is at `(25.21875, -20.90625, 25899.96875)` in Sol-centered

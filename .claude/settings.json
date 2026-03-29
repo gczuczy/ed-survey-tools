@@ -23,7 +23,7 @@
 			"Edit(/config.yaml.sample)",
 			"Edit(**/*.md)",
 			"Edit(sql/**/*.sql)",
-			"Edit(memory/**.md)",
+			"Edit(.claude/memory/**.md)",
 			"Edit(frontend/memory/**.md)",
 			"Grep"
     ],
