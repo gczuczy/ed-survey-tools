@@ -27,7 +27,7 @@
 - Landing page: dashboard with `p-carousel` of accessible subsections
 - Subsection components loaded in router-outlet
 
-## VSDS Section (vsds-basics branch)
+## VSDS Section
 - Path: `/vsds` (public section)
 - Shell: `components/vsds/vsds.component.ts` - sidebar + router-outlet only (no breadcrumb)
 - Dashboard: `components/vsds/vsds-dashboard.component.ts` - carousel landing page
@@ -70,9 +70,9 @@
     - Process button: `pi pi-play`, success severity, disabled if `!canProcess(folder)`
     - `canProcess`: enabled if `!received_at` OR `finished_at != null`
     - On success: reloads folder list; on error: shows `processError` message
-  - Future: each folder row will expand to show document processing details
-    - **TBD**: either collapsible row expansion in p-table OR route to /vsds/folders/{id}
-    - When implemented, needs breadcrumb update in navbar.component.ts (not vsds.component.ts)
+  - Clicking a folder row navigates to `/vsds/folders/{id}` (route decision made)
+    - Component: `components/vsds/vsds-folder-extraction.component.ts`
+    - Breadcrumb shows folder name dynamically via `breadcrumbService`
 
 ## PrimeNG 20 Import Pattern
 - Use `*Module` imports (e.g., `TableModule`, `CardModule`, `ButtonModule`)
@@ -102,5 +102,5 @@
   reinitialize and requiring double-click to navigate
 
 ## Recurring Correction Patterns
-See `frontend/memory/CORRECTION_PATTERNS.md` for a full checklist of mistakes
-that were historically corrected by the user after implementation.
+See `.claude/skills/frontend-corrections.md` — load before implementing any
+frontend feature.

@@ -101,11 +101,23 @@ There must be a breadcrumb bar as part of the navbar, right below the navitems.
 
 # AI Memory
 
-At the start of each session, read all files under `.claude/memory/` (backend
-notes) and `frontend/memory/` (frontend notes) to restore project context.
+At the start of each session, read these files to restore project context:
+- `.claude/memory/MEMORY.md` — backend notes, API patterns, DB conventions
+- `frontend/memory/MEMORY.md` — frontend structure, components, auth, sections
+- `frontend/memory/UI_FRAMEWORK.md` — PrimeNG usage, CSS tokens, theming rules
+
 Only add new entries when something non-obvious is discovered that cannot be
 derived from the code or git history, or when explicitly asked to remember
 something.
+
+## On-demand skills
+
+Read these only when the task requires it — do NOT load at session start:
+- `.claude/skills/frontend-corrections.md` — **read before implementing any
+  frontend feature**; contains a full checklist of recurring mistakes and
+  explicit rules compiled from past corrections
+- `.claude/skills/auth-integration.md` — read when working on
+  authentication, OAuth2 flow, or session handling
 
 # AI Notes
 

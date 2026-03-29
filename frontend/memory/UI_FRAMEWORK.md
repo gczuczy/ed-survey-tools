@@ -46,6 +46,17 @@ import { TagModule }  from 'primeng/tag';
 - `TagModule` (primeng/tag) — badges/labels
 - `MessageModule` (primeng/message) — alerts/warnings
 - `DividerModule` (primeng/divider) — horizontal dividers
+- `TableModule` (primeng/table) — data tables
+- `CarouselModule` (primeng/carousel) — dashboard landing carousels
+- `DialogModule` (primeng/dialog) — modal dialogs
+- `ConfirmPopupModule` (primeng/confirmpopup) — inline delete confirmations
+- `ConfirmDialogModule` (primeng/confirmdialog) — modal confirmations
+- `InputTextModule` (primeng/inputtext) — text inputs
+- `InputNumberModule` (primeng/inputnumber) — numeric inputs
+- `TextareaModule` (primeng/textarea) — multiline text
+- `TabsModule` (primeng/tabs) — tabbed panels
+- `TooltipModule` (primeng/tooltip) — tooltips
+- `PopoverModule` (primeng/popover) — popovers
 
 ## Layout
 No grid library is used. Layouts use plain CSS flexbox. The `.sidebar` and `.page-wrapper` classes are defined in `src/styles.scss`.
