@@ -47,7 +47,8 @@
 ## VSDS Rho Display Convention
 - Raw DB value `rho` is in **systems/ly³** (formula: `corrected_n / (4/3·π·maxdistance³)`,
   `maxdistance` ≤ 20 ly — see `sql/vsds_views.sql`).
-- **Default display unit: systems/kLy³** — multiply raw value by 10⁹ (1 kLy³ = 10⁹ ly³).
+- **Default display unit: systems/(10 Ly)³** — multiply raw value by 1000
+  (1 box = 10×10×10 ly = 1000 ly³). Example: 0.001283 → 1.283 systems/box.
 - Any UI component showing rho **must** include a toggle to switch to raw systems/ly³
   (unnormalized).
 
@@ -67,10 +68,42 @@
 - VSDs types in `pkg/db/vsds.go`
 - Errors: `db.ErrNotFound`, `db.ErrDuplicate`
 
-## GDPR / Personal Data Removal
-Self-delete (from user Settings) nullifies `common.cmdrs.customerid` (sets to
-NULL) and must also invalidate the user's Redis session.  The CMDR name is
-intentionally kept for survey attribution (legitimate interest).
-**INVARIANT**: any future personal data field added anywhere in the schema
-(or any new table with personal data) MUST be added to this removal procedure
-before merging.
+## SPA Handler MIME Types
+`pkg/http/spahandler.go` has an `init()` that calls `mime.AddExtensionType`
+for every extension used by the embedded frontend bundle.
+**Why:** `tarfs.file` does not implement `io.Seeker`. When `net/http` doesn't
+know the Content-Type (e.g. `.woff2` missing from minimal Linux MIME DB), it
+falls back to content sniffing: reads 512 bytes then seeks back — that seek
+fails, returning HTTP 500. CSS/JS worked fine; font files did not.
+**Rule:** If new file types are added to the Angular build output, add the
+corresponding `mime.AddExtensionType` entry to `init()`. Current set:
+`.css`, `.eot`, `.html`, `.ico`, `.js`, `.svg`, `.ttf`, `.woff`, `.woff2`.
+
+## GDPR / Personal Data
+App is EU-based and EU-served — GDPR applies.
+**Personal data stored:**
+- `common.cmdrs.name` — CMDR in-game name, from FDev CAPI (login) and from
+  processed survey spreadsheets (passive contributor, may not have logged in)
+- `common.cmdrs.customerid` — FDev numeric account ID, only for logged-in users
+
+**Legal basis:**
+- Logged-in users: contract performance (Art. 6(1)(b))
+- Spreadsheet-sourced CMDR names: legitimate interest (Art. 6(1)(f))
+
+**Contact for data subject rights:** GitHub (open an issue / contact via profile)
+
+**Erasure (self-delete in user Settings):** nullifies `common.cmdrs.customerid`
+(sets to NULL); keeps CMDR name for survey attribution (legitimate interest
+exemption); must also invalidate the user's Redis session.
+**INVARIANT**: any future personal data field added to the schema MUST be
+included in this removal before merging.
+
+**Already implemented (2026-03-25):**
+- Session cookie flags: `HttpOnly`, `SameSite=Strict`, `Secure`
+  (config-driven; `sessions.secure: true` in prod, off by default for dev)
+- Removed full FDev userinfo from INFO log in `pkg/http/api/auth/callback.go`
+
+**Still to implement:**
+- Cookie notice banner (one-time, localStorage-dismissed)
+- Privacy notice (footer link → p-dialog)
+- Self-delete endpoint (backend) + Settings UI (frontend)

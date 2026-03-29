@@ -52,3 +52,10 @@ No grid library is used. Layouts use plain CSS flexbox. The `.sidebar` and `.pag
 
 ## No PrimeFlex
 PrimeFlex is deprecated. Layout is handled with custom CSS flexbox.
+
+## PrimeNG Version Policy
+Never use LTS-tagged PrimeNG versions (e.g. `20.5.0-lts`). Use the latest
+non-LTS release (e.g. `^20.4.0`). LTS versions display a license banner
+("You are using an LTS version of PrimeNG with an invalid license") because
+the project does not have a PrimeStore license. Always pick the highest
+non-LTS version tag for the current major.
