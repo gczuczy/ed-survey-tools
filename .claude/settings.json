@@ -25,6 +25,15 @@
 			"Edit(sql/**/*.sql)",
 			"Edit(.claude/memory/**.md)",
 			"Edit(frontend/memory/**.md)",
+			"Write(.claude/prompts/*-design.md)",
+			"Edit(.claude/prompts/*-design.md)",
+			"Write(.claude/prompts/*-phase*.md)",
+			"Edit(.claude/prompts/*-phase*.md)",
+			"Read(.claude/prompts/*-review.md)",
+			"Write(static/*.webp)",
+			"Edit(static/*.webp)",
+			"Write(static/*.png)",
+			"Edit(static/*.png)",
 			"Grep"
     ],
     "deny": [
