@@ -110,6 +110,14 @@ Only add new entries when something non-obvious is discovered that cannot be
 derived from the code or git history, or when explicitly asked to remember
 something.
 
+Before storing any new project knowledge, decide the correct location:
+- **Memory** (`MEMORY.md`): non-obvious facts not derivable from code or
+  git history
+- **Skill file** (`.claude/skills/`): domain knowledge, usage patterns, or
+  API references that benefit from being pre-summarised for a specific task
+- After creating a skill file, add it to the "On-demand skills" list below
+  with a one-line trigger description
+
 ## On-demand skills
 
 Read these only when the task requires it — do NOT load at session start:
@@ -118,6 +126,8 @@ Read these only when the task requires it — do NOT load at session start:
   explicit rules compiled from past corrections
 - `.claude/skills/auth-integration.md` — read when working on
   authentication, OAuth2 flow, or session handling
+- `.claude/skills/galaxy-map.md` — read when implementing any feature that
+  renders or interacts with the galaxy map image
 
 # AI Notes
 
