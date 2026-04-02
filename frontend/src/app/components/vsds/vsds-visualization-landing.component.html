@@ -1,0 +1,12 @@
+<div class="vis-landing">
+  @for (card of cards; track card.route) {
+    <p-card styleClass="vis-card">
+      <div class="vis-card-body">
+        <i [class]="card.icon + ' vis-icon'"></i>
+        <h3 class="vis-title">{{ card.label }}</h3>
+        <p class="vis-desc">{{ card.description }}</p>
+        <p-button label="Open" (onClick)="open(card.route)" />
+      </div>
+    </p-card>
+  }
+</div>

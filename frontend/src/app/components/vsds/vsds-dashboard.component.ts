@@ -59,6 +59,13 @@ export class VsdsDashboardComponent implements OnInit {
       route:       '/vsds/projects',
     });
 
+    cards.push({
+      label:       'Visualization',
+      description: 'Interactive 3D and cross-section density plots.',
+      icon:        'pi pi-chart-scatter',
+      route:       '/vsds/visualization',
+    });
+
     if (this.authService.user?.isadmin) {
       cards.push({
         label:       'Folders',

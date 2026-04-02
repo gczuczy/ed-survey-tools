@@ -1,0 +1,28 @@
+.vis-landing {
+  display:   flex;
+  gap:       1.5rem;
+  flex-wrap: wrap;
+  padding:   1.5rem;
+}
+
+.vis-card-body {
+  display:        flex;
+  flex-direction: column;
+  align-items:    flex-start;
+  gap:            0.75rem;
+}
+
+.vis-icon {
+  font-size: 2rem;
+  color:     var(--p-primary-color);
+}
+
+.vis-title {
+  margin:    0;
+  font-size: 1.25rem;
+}
+
+.vis-desc {
+  margin: 0;
+  flex:   1;
+}

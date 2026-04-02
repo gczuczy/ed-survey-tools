@@ -1,0 +1,196 @@
+<div class="cs-layout">
+
+  <!-- Source / bundle selection -->
+  <div class="cs-controls">
+    @if (authService.user) {
+      <p-selectButton [options]="sourceOptions"
+                      [(ngModel)]="selectedSource"
+                      optionLabel="label"
+                      optionValue="value" />
+    }
+    @if (selectedSource === 'bundles' || !authService.user) {
+      <p-select [options]="filteredBundles"
+                [(ngModel)]="selectedBundle"
+                optionLabel="name"
+                placeholder="Select bundle"
+                [style]="{'min-width': '16rem'}"
+                (onChange)="onBundleChange()" />
+    }
+    @if (selectedSource === 'db' && authService.user) {
+      <div class="db-params">
+        <label>X-Z step</label>
+        <p-inputNumber [(ngModel)]="xzStep" suffix=" ly"
+                       [min]="10" [max]="5000" />
+        <label>Y step</label>
+        <p-inputNumber [(ngModel)]="yStep" suffix=" ly"
+                       [min]="10" [max]="50000" />
+        <p-button label="Load" [loading]="dbLoading"
+                  (onClick)="loadFromDB()" />
+      </div>
+      @if (dbError) {
+        <p-message severity="error" [text]="dbError"
+                   [closable]="true"
+                   (onClose)="dbError = null" />
+      }
+    }
+    @if (loading) {
+      <p-message severity="info" text="Loading bundle…" [closable]="false" />
+    }
+    @if (loadError) {
+      <p-message severity="error"
+                 [text]="loadError"
+                 [closable]="true"
+                 (onClose)="loadError = null" />
+    }
+  </div>
+
+  @if (view === 'map') {
+    <!-- Phase A: parameters bar -->
+    <div class="cs-params">
+      <label>Corridor &plusmn;</label>
+      <p-inputNumber [(ngModel)]="corridorD"
+                     suffix=" ly"
+                     [min]="10" />
+      <label>Render as</label>
+      <p-selectButton [options]="renderModeOptions"
+                      [(ngModel)]="renderMode"
+                      optionLabel="label"
+                      optionValue="value" />
+      <p-button label="Draw Section"
+                [disabled]="selState !== 'ready'"
+                (onClick)="drawSection()" />
+    </div>
+
+    <!-- Galaxy map with SVG overlay -->
+    <div class="cs-map-container" #mapContainer>
+      @if (mapUrl) {
+        <img [src]="mapUrl" class="cs-galaxy-img" alt="Galaxy map" />
+      }
+      <svg #svgOverlay
+           class="cs-svg-overlay"
+           preserveAspectRatio="xMidYMid meet"
+           [attr.viewBox]="svgViewBox"
+           (click)="onMapClick($event)"
+           (mousemove)="onMapMouseMove($event)"
+           [style.cursor]="selState !== 'ready' ? 'crosshair' : 'default'">
+
+        <!-- Coverage cells -->
+        @for (cell of coverageCells; track cell.gc_x + '_' + cell.gc_z) {
+          <rect [attr.x]="cell.gc_x"
+                [attr.y]="cell.gc_z"
+                [attr.width]="cellSizeLy"
+                [attr.height]="cellSizeLy"
+                [attr.fill]="coverageFill(cell.count)"
+                opacity="0.4"
+                pointer-events="none" />
+        }
+
+        <!-- Corridor band -->
+        @if (selState === 'ready') {
+          <polygon [attr.points]="corridorPolygon"
+                   fill="rgba(255,255,0,0.08)"
+                   stroke="rgba(255,255,0,0.5)"
+                   stroke-width="50" />
+        }
+
+        <!-- A-B line -->
+        @if (selState === 'ready' && pointA && pointB) {
+          <line [attr.x1]="pointA.gc_x" [attr.y1]="pointA.gc_z"
+                [attr.x2]="pointB.gc_x" [attr.y2]="pointB.gc_z"
+                stroke="yellow" stroke-width="100" />
+        }
+
+        <!-- Point A marker -->
+        @if (selState === 'a_set' || selState === 'ready') {
+          <circle [attr.cx]="pointA!.gc_x"
+                  [attr.cy]="pointA!.gc_z"
+                  r="300" fill="lime" stroke="white" stroke-width="60"
+                  cursor="grab"
+                  (mousedown)="startDrag($event, 'a')"
+                  (click)="$event.stopPropagation()" />
+          <text [attr.x]="pointA!.gc_x + 400"
+                [attr.y]="pointA!.gc_z - 200"
+                fill="white" font-size="800"
+                pointer-events="none">A</text>
+        }
+
+        <!-- Point B marker -->
+        @if (selState === 'ready') {
+          <circle [attr.cx]="pointB!.gc_x"
+                  [attr.cy]="pointB!.gc_z"
+                  r="300" fill="red" stroke="white" stroke-width="60"
+                  cursor="grab"
+                  (mousedown)="startDrag($event, 'b')"
+                  (click)="$event.stopPropagation()" />
+          <text [attr.x]="pointB!.gc_x + 400"
+                [attr.y]="pointB!.gc_z - 200"
+                fill="white" font-size="800"
+                pointer-events="none">B</text>
+        }
+      </svg>
+
+      <!-- Hint overlays -->
+      @if (selState === 'idle') {
+        <div class="cs-hint">Click to place point A</div>
+      } @else if (selState === 'a_set') {
+        <div class="cs-hint">Click to place point B</div>
+      }
+    </div>
+  }
+
+  @if (view === 'section') {
+    <!-- Phase B: section header -->
+    <div class="cs-section-header">
+      <p-button label="&#8592; Back to map"
+                severity="secondary"
+                (onClick)="backToMap()" />
+      <span class="cs-section-info">
+        {{ abLengthDisplay }} ly section,
+        {{ filteredCount }} points within {{ corridorD }} ly
+      </span>
+    </div>
+
+    <!-- Phase B: section canvas -->
+    <div class="cs-section-container">
+      @if (renderMode === 'heatmap') {
+        <canvas #heatmapCanvas class="cs-heatmap"></canvas>
+      }
+      @if (renderMode === '3d') {
+        <canvas #threeCanvas class="cs-three-canvas"></canvas>
+      }
+
+      @if (scale) {
+        <div class="cs-legend">
+          <div class="legend-gradient"></div>
+          <div class="legend-labels">
+            <span>{{ formatRho(scale.scaleMax) }} {{ unitLabel }}</span>
+            <span>{{ formatRho(scale.scaleMin) }}</span>
+          </div>
+          <div class="legend-controls">
+            <div class="legend-row">
+              <label class="legend-label">Scale max</label>
+              <p-inputNumber [(ngModel)]="scaleMaxInput"
+                             [minFractionDigits]="0"
+                             [maxFractionDigits]="6"
+                             (onBlur)="onScaleMaxChange()" />
+            </div>
+            <div class="legend-row">
+              <p-button label="Reset"
+                        severity="secondary"
+                        size="small"
+                        (onClick)="resetScaleMax()" />
+            </div>
+            <div class="legend-row">
+              <p-selectButton [options]="unitOptions"
+                              [(ngModel)]="rhoUnit"
+                              optionLabel="label"
+                              optionValue="value"
+                              (onChange)="onUnitChange()" />
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+</div>

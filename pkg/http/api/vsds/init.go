@@ -72,5 +72,9 @@ func Init(r *mux.Router) error {
 	r.Handle("/contribution/errors",
 		w.NewAPIHandler().AuthGet(getContributionErrors),
 	)
+
+	r.Handle("/visualization/sectors",
+		w.NewAPIHandler().AuthGet(listSectors),
+	)
 	return nil
 }

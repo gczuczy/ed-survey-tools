@@ -1,5 +1,6 @@
 import { Injectable }              from '@angular/core';
 import { Observable }              from 'rxjs';
+import { map }                     from 'rxjs/operators';
 import { ApiService, ApiResponse } from './api.service';
 
 /**
@@ -188,6 +189,21 @@ export interface VSDSContribErrorDoc {
   sheets:      VSDSContribErrorSheet[];
 }
 
+/**
+ * One voxel bucket returned by
+ * GET /api/vsds/visualization/sectors.
+ */
+export interface SectorVoxel {
+  gc_x:    number;
+  gc_z:    number;
+  y_min:   number;
+  y_max:   number;
+  rho_min: number;
+  rho_avg: number;
+  rho_max: number;
+  count:   number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class VsdsService {
 
@@ -327,5 +343,17 @@ export class VsdsService {
   getMyContributionErrors(): Observable<ApiResponse<VSDSContribErrorDoc[]>> {
     return this.api.get<ApiResponse<VSDSContribErrorDoc[]>>(
       '/api/vsds/contribution/errors');
+  }
+
+  listSectors(
+    xzStep: number,
+    yStep:  number,
+  ): Observable<SectorVoxel[]> {
+    return this.api
+      .get<ApiResponse<SectorVoxel[]>>(
+        `/api/vsds/visualization/sectors` +
+        `?xz_step=${xzStep}&y_step=${yStep}`,
+      )
+      .pipe(map(resp => resp.data ?? []));
   }
 }

@@ -483,6 +483,13 @@ FROM vsds.v_surveys
 WHERE projectid = ANY($1::int[])
 `,
 
+		// VSDS sectors: aggregate survey point density into voxels
+		"vsds_sectors": `
+SELECT gc_x, gc_z, y_min, y_max,
+       rho_min, rho_avg, rho_max, cnt
+FROM vsds.sectors($1::float8, $2::float8)
+`,
+
 		// refresh both survey matviews via SECURITY DEFINER
 		// function; avoids requiring edservice to own the views
 		"refreshsurveymatviews": `
