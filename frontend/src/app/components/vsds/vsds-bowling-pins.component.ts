@@ -57,10 +57,13 @@ interface SelectOption {
 
 // ── Default camera position ────────────────────────────────────────────────
 
-// Galaxy image center is at gc_z=25000 (image spans -20000..+70000).
-// At FOV=45°, height=120000 covers ±49700 ly — enough for ±45000.
-const CAM_DEFAULT_POS    = new THREE.Vector3(0, 120000, 25000);
-const CAM_DEFAULT_TARGET = new THREE.Vector3(0, 0, 25000);
+// World coordinates are GC-relative (gc_x, gc_z).
+// Galaxy image Sol-centered center (0, 25000) converts to
+// GC-relative (-25.22, -899.97).
+// Camera default: above the Galactic Centre (gc_x=0, gc_z=0).
+// At FOV=45°, altitude=120000 covers ±49700 ly — image fits (±45000).
+const CAM_DEFAULT_POS    = new THREE.Vector3(0, 120000, 0);
+const CAM_DEFAULT_TARGET = new THREE.Vector3(0, 0, 0);
 
 @Component({
   selector:    'app-vsds-bowling-pins',
@@ -142,6 +145,7 @@ export class VsdsBowlingPinsComponent
   private bundleBaseUrl: string | null = null;
   private resizeObserver?: ResizeObserver;
   private fitTimer: ReturnType<typeof setTimeout> | null = null;
+  private markerObjects: THREE.Object3D[] = [];
 
   // ── Event handlers (kept for removeEventListener) ─────────────────────
   private boundMouseMove?: (e: MouseEvent) => void;
@@ -183,6 +187,7 @@ export class VsdsBowlingPinsComponent
       this.initScene();
       this.sceneReady = true;
       if (this.bundleBaseUrl) this.createGalaxyPlane();
+      this.buildMarkers();
       this.startLoop();
     });
   }
@@ -196,6 +201,7 @@ export class VsdsBowlingPinsComponent
       canvas.removeEventListener('mousemove', this.boundMouseMove);
     }
     this.clearPins();
+    this.clearMarkers();
     if (this.galaxyPlane) {
       this.scene?.remove(this.galaxyPlane);
       this.galaxyPlane.geometry.dispose();
@@ -218,13 +224,16 @@ export class VsdsBowlingPinsComponent
     });
     this.renderer.setSize(w, h);
     this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.toneMapping         = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 0.9;
 
     this.camera = new THREE.PerspectiveCamera(45, w / h, 1, 200_000);
+    this.camera.up.set(0, 0, -1);
     this.camera.position.copy(CAM_DEFAULT_POS);
     this.camera.lookAt(CAM_DEFAULT_TARGET);
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x111111);
+    this.scene.background = new THREE.Color(0x000000);
     this.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
     const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
     dirLight.position.set(0, 10000, 0);
@@ -258,6 +267,10 @@ export class VsdsBowlingPinsComponent
     const url    = galaxyMapUrl(this.bundleBaseUrl);
     const loader = new THREE.TextureLoader();
     loader.load(url, (texture) => {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      // flipY=false: UV V matches the negated-Z world axis.
+      // X mirror is handled via scale.x = −1 on the mesh.
+      texture.flipY = false;
       const geo = new THREE.PlaneGeometry(90000, 90000);
       const mat = new THREE.MeshBasicMaterial({
         map:        texture,
@@ -268,7 +281,15 @@ export class VsdsBowlingPinsComponent
       this.galaxyPlane = new THREE.Mesh(geo, mat);
       this.galaxyPlane.renderOrder = -1;
       this.galaxyPlane.rotation.x = -Math.PI / 2;
-      this.galaxyPlane.position.set(0, -1, 25000);
+      // Flip mesh in X so the spiral is counter-clockwise.
+      // All world X positions use +gc_x to stay aligned.
+      this.galaxyPlane.scale.x = -1;
+      // scale.x=−1 mirrors the mesh in X → CCW spiral.
+      // Plane center: gc_x=−25.21875 → world X=−25.21875.
+      // All world positions use (+gc_x, 0, −gc_z).
+      this.galaxyPlane.position.set(
+        -25.21875, -1, 899.96875,
+      );
       this.scene.add(this.galaxyPlane);
     });
   }
@@ -439,7 +460,7 @@ export class VsdsBowlingPinsComponent
     this.frustum.setFromProjectionMatrix(this.projMatrix);
     const tmp = new THREE.Vector3();
     const visible = this.surveys.filter(s => {
-      tmp.set(s.gc_x, 0, s.gc_z);
+      tmp.set(s.gc_x, 0, -s.gc_z);
       return this.frustum.containsPoint(tmp);
     });
     if (visible.length === 0) return;
@@ -496,7 +517,8 @@ export class VsdsBowlingPinsComponent
       if (pts.length === 0) continue;
 
       const group = new THREE.Group();
-      group.position.set(s.gc_x, 0, s.gc_z);
+      // World convention: (+gc_x, 0, −gc_z).
+      group.position.set(s.gc_x, 0, -s.gc_z);
       this.buildPin(group, pts, scaleMin, scaleMax);
       this.scene.add(group);
       this.pinGroups.push(group);
@@ -513,7 +535,7 @@ export class VsdsBowlingPinsComponent
       const hitMat =
         new THREE.MeshBasicMaterial({ visible: false });
       const hit    = new THREE.Mesh(hitGeo, hitMat);
-      hit.position.set(s.gc_x, pinMid, s.gc_z);
+      hit.position.set(s.gc_x, pinMid, -s.gc_z);
       hit.userData['surveyIndex'] = si;
       this.scene.add(hit);
       this.hitMeshes.push(hit);
@@ -603,9 +625,96 @@ export class VsdsBowlingPinsComponent
     this.buildPins();
   }
 
+  // ── Reference markers ─────────────────────────────────────────────────
+
+  private clearMarkers(): void {
+    for (const obj of this.markerObjects) {
+      this.scene?.remove(obj);
+      obj.traverse(child => {
+        if ((child as THREE.Mesh).isMesh) {
+          const m = child as THREE.Mesh;
+          m.geometry.dispose();
+          (m.material as THREE.Material).dispose();
+        }
+        if ((child as THREE.Sprite).isSprite) {
+          const s = child as THREE.Sprite;
+          (s.material as THREE.SpriteMaterial).map?.dispose();
+          s.material.dispose();
+        }
+      });
+    }
+    this.markerObjects = [];
+  }
+
+  private buildMarkers(): void {
+    this.clearMarkers();
+    const markers = [
+      {
+        name:  'Sol',
+        gc_x:  -25.21875,
+        gc_z:  -25899.96875,
+        color: 0xffee44,
+      },
+      {
+        name:  'Galactic Centre',
+        gc_x:   0,
+        gc_z:   0,
+        color: 0xff9922,
+      },
+    ];
+    for (const m of markers) {
+      const group = new THREE.Group();
+      group.position.set(m.gc_x, 0, -m.gc_z);
+
+      const ringGeo = new THREE.RingGeometry(600, 2200, 48);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color:      m.color,
+        side:       THREE.DoubleSide,
+        depthTest:  false,
+        depthWrite: false,
+      });
+      const ring      = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y =  10;
+      group.add(ring);
+
+      const sprite = this.makeTextSprite(m.name, m.color);
+      sprite.position.y = 5500;
+      sprite.scale.set(6000, 1500, 1);
+      group.add(sprite);
+
+      this.scene.add(group);
+      this.markerObjects.push(group);
+    }
+  }
+
+  private makeTextSprite(
+    text:  string,
+    color: number,
+  ): THREE.Sprite {
+    const canvas  = document.createElement('canvas');
+    canvas.width  = 256;
+    canvas.height = 64;
+    const ctx     = canvas.getContext('2d')!;
+    const r = (color >> 16) & 0xff;
+    const g = (color >>  8) & 0xff;
+    const b =  color        & 0xff;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font         = 'bold 28px sans-serif';
+    ctx.fillStyle    = `rgb(${r},${g},${b})`;
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+    const tex = new THREE.CanvasTexture(canvas);
+    return new THREE.Sprite(
+      new THREE.SpriteMaterial({ map: tex, depthTest: false }),
+    );
+  }
+
   // ── Camera ─────────────────────────────────────────────────────────────
 
   resetCamera(): void {
+    this.camera.up.set(0, 0, -1);
     this.camera.position.copy(CAM_DEFAULT_POS);
     this.camera.lookAt(CAM_DEFAULT_TARGET);
     this.controls.target.copy(CAM_DEFAULT_TARGET);
