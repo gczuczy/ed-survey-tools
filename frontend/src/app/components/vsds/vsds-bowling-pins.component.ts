@@ -187,7 +187,6 @@ export class VsdsBowlingPinsComponent
       this.initScene();
       this.sceneReady = true;
       if (this.bundleBaseUrl) this.createGalaxyPlane();
-      this.buildMarkers();
       this.startLoop();
     });
   }
@@ -201,7 +200,6 @@ export class VsdsBowlingPinsComponent
       canvas.removeEventListener('mousemove', this.boundMouseMove);
     }
     this.clearPins();
-    this.clearMarkers();
     if (this.galaxyPlane) {
       this.scene?.remove(this.galaxyPlane);
       this.galaxyPlane.geometry.dispose();
@@ -625,92 +623,6 @@ export class VsdsBowlingPinsComponent
   private rebuildPins(): void {
     if (!this.scale) return;
     this.buildPins();
-  }
-
-  // ── Reference markers ─────────────────────────────────────────────────
-
-  private clearMarkers(): void {
-    for (const obj of this.markerObjects) {
-      this.scene?.remove(obj);
-      obj.traverse(child => {
-        if ((child as THREE.Mesh).isMesh) {
-          const m = child as THREE.Mesh;
-          m.geometry.dispose();
-          (m.material as THREE.Material).dispose();
-        }
-        if ((child as THREE.Sprite).isSprite) {
-          const s = child as THREE.Sprite;
-          (s.material as THREE.SpriteMaterial).map?.dispose();
-          s.material.dispose();
-        }
-      });
-    }
-    this.markerObjects = [];
-  }
-
-  private buildMarkers(): void {
-    this.clearMarkers();
-    const markers = [
-      {
-        name:  'Sol',
-        gc_x:  -25.21875,
-        gc_z:  -25899.96875,
-        color: 0xffee44,
-      },
-      {
-        name:  'Galactic Centre',
-        gc_x:   0,
-        gc_z:   0,
-        color: 0xff9922,
-      },
-    ];
-    for (const m of markers) {
-      const group = new THREE.Group();
-      group.position.set(m.gc_x, 0, -m.gc_z);
-
-      const ringGeo = new THREE.RingGeometry(600, 2200, 48);
-      const ringMat = new THREE.MeshBasicMaterial({
-        color:      m.color,
-        side:       THREE.DoubleSide,
-        depthTest:  false,
-        depthWrite: false,
-      });
-      const ring      = new THREE.Mesh(ringGeo, ringMat);
-      ring.rotation.x = -Math.PI / 2;
-      ring.position.y =  10;
-      group.add(ring);
-
-      const sprite = this.makeTextSprite(m.name, m.color);
-      sprite.position.y = 5500;
-      sprite.scale.set(6000, 1500, 1);
-      group.add(sprite);
-
-      this.scene.add(group);
-      this.markerObjects.push(group);
-    }
-  }
-
-  private makeTextSprite(
-    text:  string,
-    color: number,
-  ): THREE.Sprite {
-    const canvas  = document.createElement('canvas');
-    canvas.width  = 256;
-    canvas.height = 64;
-    const ctx     = canvas.getContext('2d')!;
-    const r = (color >> 16) & 0xff;
-    const g = (color >>  8) & 0xff;
-    const b =  color        & 0xff;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font         = 'bold 28px sans-serif';
-    ctx.fillStyle    = `rgb(${r},${g},${b})`;
-    ctx.textAlign    = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-    const tex = new THREE.CanvasTexture(canvas);
-    return new THREE.Sprite(
-      new THREE.SpriteMaterial({ map: tex, depthTest: false }),
-    );
   }
 
   // ── Camera ─────────────────────────────────────────────────────────────
