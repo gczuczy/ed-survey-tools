@@ -271,6 +271,8 @@ export class VsdsBowlingPinsComponent
       // flipY=false: UV V matches the negated-Z world axis.
       // X mirror is handled via scale.x = −1 on the mesh.
       texture.flipY = false;
+			texture.rotation = Math.PI;
+			texture.center = new THREE.Vector2(0.5, 0.5);
       const geo = new THREE.PlaneGeometry(90000, 90000);
       const mat = new THREE.MeshBasicMaterial({
         map:        texture,
