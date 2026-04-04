@@ -50,17 +50,34 @@
   display:          flex;
   flex-direction:   column;
   gap:              0.5rem;
-  min-width:        180px;
+  min-width:        160px;
   pointer-events:   all;
+}
+
+// ── Color bar ──────────────────────────────────────────────────────────────
+
+.legend-colorbar {
+  display:     flex;
+  flex-direction: row;
+  gap:         0.4rem;
+  align-items: stretch;
 }
 
 .legend-gradient {
   height:        120px;
   width:         20px;
+  flex-shrink:   0;
   background:    linear-gradient(
     to bottom,
-    rgb(253, 231,  37),
-    rgb( 68,   1,  84)
+    rgb(253, 231,  37),   /* t=1.000 — yellow      */
+    rgb(237, 248,  32),   /* t=0.875               */
+    rgb(183, 222,  41),   /* t=0.750               */
+    rgb( 94, 201,  98),   /* t=0.625               */
+    rgb( 33, 165, 133),   /* t=0.500 — teal        */
+    rgb( 49, 123, 133),   /* t=0.375               */
+    rgb( 62,  83, 160),   /* t=0.250 — blue        */
+    rgb( 72,  40, 120),   /* t=0.125               */
+    rgb( 68,   1,  84)    /* t=0.000 — purple      */
   );
   border-radius: 3px;
 }
@@ -69,16 +86,45 @@
   display:         flex;
   flex-direction:  column;
   justify-content: space-between;
+  height:          120px;   /* matches .legend-gradient height */
   font-size:       0.7rem;
   line-height:     1.2;
 }
 
-.legend-controls {
+// ── Stacked caption + control ──────────────────────────────────────────────
+
+.legend-stacked {
   display:        flex;
   flex-direction: column;
-  gap:            0.4rem;
-  margin-top:     0.25rem;
+  gap:            0.2rem;
 }
+
+.legend-caption {
+  font-size:   0.7rem;
+  color:       rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+}
+
+// ── Color scale max slider ─────────────────────────────────────────────────
+
+.legend-slider {
+  width:        100%;
+  cursor:       pointer;
+  accent-color: rgb(94, 201, 98);   /* mid-Viridis green */
+
+  &:disabled {
+    opacity: 0.35;
+    cursor:  not-allowed;
+  }
+}
+
+.legend-slider-value {
+  font-size:   0.7rem;
+  text-align:  right;
+  line-height: 1.2;
+}
+
+// ── Simple row ─────────────────────────────────────────────────────────────
 
 .legend-row {
   display:     flex;
@@ -86,11 +132,7 @@
   gap:         0.4rem;
 }
 
-.legend-label {
-  font-size:    0.75rem;
-  white-space:  nowrap;
-  min-width:    5.5rem;
-}
+// ── Hover tooltip ──────────────────────────────────────────────────────────
 
 .bp-tooltip {
   position:        fixed;

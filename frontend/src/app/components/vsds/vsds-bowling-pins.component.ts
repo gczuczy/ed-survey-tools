@@ -57,12 +57,19 @@ interface SelectOption {
 
 // ── Default camera position ────────────────────────────────────────────────
 
-// World coordinates are GC-relative (gc_x, gc_z).
-// Galaxy image Sol-centered center (0, 25000) converts to
-// GC-relative (-25.22, -899.97).
-// Camera default: above the Galactic Centre (gc_x=0, gc_z=0).
-// At FOV=45°, altitude=120000 covers ±49700 ly — image fits (±45000).
-const CAM_DEFAULT_POS    = new THREE.Vector3(0, 120000, 0);
+// World coordinates are GC-relative (gc_x, gc_z). Galaxy in XZ plane.
+//
+// camera.up = (0,1,0) so OrbitControls rotates around world-Y.
+// This means horizontal drag orbits in the XZ plane — "turning left/right".
+//
+// The camera must NOT sit on the Y axis (0,Y,0) with up=(0,1,0): that puts
+// it at the OrbitControls north-pole singularity, where horizontal drag
+// produces a roll instead of a turn.
+//
+// Default: elevated at ~59° above the galactic plane, looking from +Z.
+//   r ≈ 116 620 ly, phi ≈ 31° from pole — responsive horizontal orbit.
+//   FOV=45° → visible radius ≈ 48 300 ly, covers the ±45 000 ly image.
+const CAM_DEFAULT_POS    = new THREE.Vector3(0, 100000, 60000);
 const CAM_DEFAULT_TARGET = new THREE.Vector3(0, 0, 0);
 
 @Component({
@@ -106,10 +113,10 @@ export class VsdsBowlingPinsComponent
   loadError: string | null = null;
 
   // ── Scale ──────────────────────────────────────────────────────────────
-  scale:         RhoScale | null = null;
-  scaleMaxInput  = 0;
-  rhoUnit:       'kly3' | 'ly3' = 'kly3';
-  scaleMode:     'global' | 'fit-to-view' = 'global';
+  scale:     RhoScale | null = null;
+  sliderPos  = 100;   // 0–100, log-mapped to [dataMin, dataMax]
+  rhoUnit:   'kly3' | 'ly3' = 'kly3';
+  scaleMode: 'global' | 'fit-to-view' = 'global';
 
   scaleModeOptions: SelectOption[] = [
     { label: 'Global',       value: 'global' },
@@ -226,7 +233,7 @@ export class VsdsBowlingPinsComponent
     this.renderer.toneMappingExposure = 0.9;
 
     this.camera = new THREE.PerspectiveCamera(45, w / h, 1, 200_000);
-    this.camera.up.set(0, 0, -1);
+    this.camera.up.set(0, 1, 0);  // world-Y up: horizontal drag = turn, not roll
     this.camera.position.copy(CAM_DEFAULT_POS);
     this.camera.lookAt(CAM_DEFAULT_TARGET);
 
@@ -238,7 +245,9 @@ export class VsdsBowlingPinsComponent
     this.scene.add(dirLight);
 
     this.controls = new OrbitControls(this.camera, canvas);
-    this.controls.minPolarAngle = 0;
+    // Prevent camera from reaching the Y-axis pole (phi=0) where horizontal
+    // drag degenerates into a roll. maxPolarAngle=π allows looking from below.
+    this.controls.minPolarAngle = 0.05;
     this.controls.maxPolarAngle = Math.PI;
     this.controls.dampingFactor = 0.05;
     this.controls.enableDamping = true;
@@ -404,22 +413,14 @@ export class VsdsBowlingPinsComponent
       scaleMax: dataMax,
       mode: 'global',
     };
-    this.scaleMode     = 'global';
-    this.scaleMaxInput = this.toDisplay(dataMax);
-  }
-
-  onScaleMaxChange(): void {
-    if (!this.scale || this.scaleMode !== 'global') return;
-    const raw = this.fromDisplay(this.scaleMaxInput);
-    if (raw <= 0) return;
-    this.scale = { ...this.scale, scaleMax: raw };
-    this.ngZone.runOutsideAngular(() => this.rebuildPins());
+    this.scaleMode = 'global';
+    this.sliderPos = 100;
   }
 
   resetScaleMax(): void {
     if (!this.scale || this.scaleMode !== 'global') return;
-    this.scale         = { ...this.scale, scaleMax: this.scale.dataMax };
-    this.scaleMaxInput = this.toDisplay(this.scale.dataMax);
+    this.scale     = { ...this.scale, scaleMax: this.scale.dataMax };
+    this.sliderPos = 100;
     this.ngZone.runOutsideAngular(() => this.rebuildPins());
   }
 
@@ -427,17 +428,55 @@ export class VsdsBowlingPinsComponent
     if (!this.scale) return;
     this.scale = { ...this.scale, mode: this.scaleMode };
     if (this.scaleMode === 'global') {
-      this.scale         = { ...this.scale, scaleMax: this.scale.dataMax };
-      this.scaleMaxInput = this.toDisplay(this.scale.dataMax);
+      this.scale     = { ...this.scale, scaleMax: this.scale.dataMax };
+      this.sliderPos = this.rhoToSlider(this.scale.dataMax);
       this.ngZone.runOutsideAngular(() => this.rebuildPins());
     } else {
       this.debouncedFrustumUpdate();
     }
   }
 
-  onUnitChange(): void {
-    if (!this.scale) return;
-    this.scaleMaxInput = this.toDisplay(this.scale.scaleMax);
+  onSliderInput(event: Event): void {
+    if (!this.scale || this.scaleMode !== 'global') return;
+    const pos     = +(event.target as HTMLInputElement).value;
+    const rawRho  = this.sliderToRho(pos);
+    const snapped = this.snapToRound(rawRho);
+    this.scale    = { ...this.scale, scaleMax: snapped };
+    // Snap the slider thumb back to the rounded rho position.
+    // To make this freeform (no snapping): remove snapToRound() call above
+    // and use rawRho directly; then remove the sliderPos reassignment below.
+    this.sliderPos = this.rhoToSlider(snapped);
+    this.ngZone.runOutsideAngular(() => this.rebuildPins());
+  }
+
+  /**
+   * Snap a positive value to 2 significant figures.
+   * E.g. 0.001523 → 0.0015, 2.374 → 2.4, 13.7 → 14.
+   *
+   * To disable snapping and allow freeform values: remove the call to
+   * snapToRound() in onSliderInput() and use rawRho directly.
+   */
+  private snapToRound(value: number): number {
+    if (value <= 0) return value;
+    const mag   = Math.floor(Math.log10(value));
+    const scale = Math.pow(10, mag - 1);   // 2 significant figures
+    return Math.round(value / scale) * scale;
+  }
+
+  /** Map slider position [0, 100] → raw rho on a log scale. */
+  private sliderToRho(pos: number): number {
+    const logMin = Math.log(this.scale!.dataMin);
+    const logMax = Math.log(this.scale!.dataMax);
+    return Math.exp(logMin + (pos / 100) * (logMax - logMin));
+  }
+
+  /** Map raw rho → slider position [0, 100] on a log scale. */
+  private rhoToSlider(rho: number): number {
+    const logMin = Math.log(this.scale!.dataMin);
+    const logMax = Math.log(this.scale!.dataMax);
+    if (logMax <= logMin) return 100;
+    const t = (Math.log(rho) - logMin) / (logMax - logMin);
+    return Math.max(0, Math.min(100, t * 100));
   }
 
   // ── Fit-to-view ────────────────────────────────────────────────────────
@@ -478,7 +517,7 @@ export class VsdsBowlingPinsComponent
       mode: 'fit-to-view',
     };
     this.ngZone.run(() => {
-      this.scaleMaxInput = this.toDisplay(viewMax);
+      this.sliderPos = this.rhoToSlider(viewMax);
       this.cdr.detectChanges();
     });
     this.rebuildPins();
@@ -628,7 +667,7 @@ export class VsdsBowlingPinsComponent
   // ── Camera ─────────────────────────────────────────────────────────────
 
   resetCamera(): void {
-    this.camera.up.set(0, 0, -1);
+    this.camera.up.set(0, 1, 0);
     this.camera.position.copy(CAM_DEFAULT_POS);
     this.camera.lookAt(CAM_DEFAULT_TARGET);
     this.controls.target.copy(CAM_DEFAULT_TARGET);
@@ -673,11 +712,6 @@ export class VsdsBowlingPinsComponent
   /** Raw rho → display value in active unit. */
   toDisplay(rho: number): number {
     return this.rhoUnit === 'kly3' ? rho * 1000 : rho;
-  }
-
-  /** Display value in active unit → raw rho. */
-  fromDisplay(v: number): number {
-    return this.rhoUnit === 'kly3' ? v / 1000 : v;
   }
 
   /** Format rho for display in active unit. */

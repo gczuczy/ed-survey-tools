@@ -51,48 +51,64 @@
     <!-- Legend overlay (only shown once data is loaded) -->
     @if (scale) {
       <div class="bp-legend">
-        <div class="legend-gradient"></div>
-        <div class="legend-labels">
-          <span>{{ formatRho(scale.scaleMax) }} {{ unitLabel }}</span>
-          <span>{{ formatRho(scale.scaleMin) }} {{ unitLabel }}</span>
-        </div>
-        <div class="legend-controls">
-          <div class="legend-row">
-            <label class="legend-label">Scale max</label>
-            <p-inputNumber [(ngModel)]="scaleMaxInput"
-                           [disabled]="scaleMode === 'fit-to-view'"
-                           [minFractionDigits]="0"
-                           [maxFractionDigits]="6"
-                           (onBlur)="onScaleMaxChange()" />
-          </div>
-          <div class="legend-row">
-            <p-button label="Reset"
-                      severity="secondary"
-                      size="small"
-                      [disabled]="scaleMode === 'fit-to-view'"
-                      (onClick)="resetScaleMax()" />
-          </div>
-          <div class="legend-row">
-            <p-selectButton [options]="scaleModeOptions"
-                            [(ngModel)]="scaleMode"
-                            optionLabel="label"
-                            optionValue="value"
-                            (onChange)="onScaleModeChange()" />
-          </div>
-          <div class="legend-row">
-            <p-selectButton [options]="unitOptions"
-                            [(ngModel)]="rhoUnit"
-                            optionLabel="label"
-                            optionValue="value"
-                            (onChange)="onUnitChange()" />
-          </div>
-          <div class="legend-row">
-            <p-button label="Reset view"
-                      severity="secondary"
-                      size="small"
-                      (onClick)="resetCamera()" />
+
+        <!-- Color bar: gradient beside min/max labels -->
+        <div class="legend-colorbar">
+          <div class="legend-gradient"></div>
+          <div class="legend-labels">
+            <span>{{ formatRho(scale.scaleMax) }} {{ unitLabel }}</span>
+            <span>{{ formatRho(scale.scaleMin) }} {{ unitLabel }}</span>
           </div>
         </div>
+
+        <!-- Color scale max slider -->
+        <div class="legend-stacked">
+          <label class="legend-caption">Color scale max</label>
+          <input type="range" class="legend-slider"
+                 min="0" max="100" step="0.1"
+                 [value]="sliderPos"
+                 [disabled]="scaleMode === 'fit-to-view'"
+                 (input)="onSliderInput($event)" />
+          <span class="legend-slider-value">
+            {{ formatRho(scale.scaleMax) }} {{ unitLabel }}
+          </span>
+        </div>
+
+        <!-- Reset scale max -->
+        <div class="legend-row">
+          <p-button label="Reset"
+                    severity="secondary"
+                    size="small"
+                    [disabled]="scaleMode === 'fit-to-view'"
+                    (onClick)="resetScaleMax()" />
+        </div>
+
+        <!-- Scale mode (stacked to reduce width) -->
+        <div class="legend-stacked">
+          <label class="legend-caption">Scale mode</label>
+          <p-selectButton [options]="scaleModeOptions"
+                          [(ngModel)]="scaleMode"
+                          optionLabel="label"
+                          optionValue="value"
+                          (onChange)="onScaleModeChange()" />
+        </div>
+
+        <!-- Unit toggle -->
+        <div class="legend-row">
+          <p-selectButton [options]="unitOptions"
+                          [(ngModel)]="rhoUnit"
+                          optionLabel="label"
+                          optionValue="value" />
+        </div>
+
+        <!-- Reset camera -->
+        <div class="legend-row">
+          <p-button label="Reset view"
+                    severity="secondary"
+                    size="small"
+                    (onClick)="resetCamera()" />
+        </div>
+
       </div>
     }
 
