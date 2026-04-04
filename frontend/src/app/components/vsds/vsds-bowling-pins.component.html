@@ -1,0 +1,131 @@
+<div class="bp-layout">
+
+  <!-- Source / bundle selection -->
+  <div class="bp-controls">
+    @if (authService.user) {
+      <p-selectButton [options]="sourceOptions"
+                      [(ngModel)]="selectedSource"
+                      optionLabel="label"
+                      optionValue="value" />
+    }
+    @if (selectedSource === 'bundles' || !authService.user) {
+      <p-select [options]="filteredBundles"
+                [(ngModel)]="selectedBundle"
+                optionLabel="name"
+                placeholder="Select bundle"
+                [style]="{'min-width': '16rem'}"
+                (onChange)="onBundleChange()" />
+    }
+    @if (selectedSource === 'db' && authService.user) {
+      <div class="db-params">
+        <label>X-Z step</label>
+        <p-inputNumber [(ngModel)]="xzStep" suffix=" ly"
+                       [min]="10" [max]="5000" />
+        <label>Y step</label>
+        <p-inputNumber [(ngModel)]="yStep" suffix=" ly"
+                       [min]="10" [max]="50000" />
+        <p-button label="Load" [loading]="dbLoading"
+                  (onClick)="loadFromDB()" />
+      </div>
+      @if (dbError) {
+        <p-message severity="error" [text]="dbError"
+                   [closable]="true"
+                   (onClose)="dbError = null" />
+      }
+    }
+    @if (loading) {
+      <p-message severity="info" text="Loading bundle…" [closable]="false" />
+    }
+    @if (loadError) {
+      <p-message severity="error"
+                 [text]="loadError"
+                 [closable]="true"
+                 (onClose)="loadError = null" />
+    }
+  </div>
+
+  <!-- Canvas + legend -->
+  <div class="bp-canvas-wrapper">
+    <canvas #canvas class="bp-canvas"></canvas>
+
+    <!-- Legend overlay (only shown once data is loaded) -->
+    @if (scale) {
+      <div class="bp-legend">
+
+        <!-- Color bar: gradient beside min/max labels -->
+        <div class="legend-colorbar">
+          <div class="legend-gradient"></div>
+          <div class="legend-labels">
+            <span>{{ formatRho(scale.scaleMax) }} {{ unitLabel }}</span>
+            <span>{{ formatRho(scale.scaleMin) }} {{ unitLabel }}</span>
+          </div>
+        </div>
+
+        <!-- Color scale max slider -->
+        <div class="legend-stacked">
+          <label class="legend-caption">Color scale max</label>
+          <input type="range" class="legend-slider"
+                 min="0" max="100" step="0.1"
+                 [value]="sliderPos"
+                 [disabled]="scaleMode === 'fit-to-view'"
+                 (input)="onSliderInput($event)" />
+          <span class="legend-slider-value">
+            {{ formatRho(scale.scaleMax) }} {{ unitLabel }}
+          </span>
+        </div>
+
+        <!-- Reset scale max -->
+        <div class="legend-row">
+          <p-button label="Reset"
+                    severity="secondary"
+                    size="small"
+                    [disabled]="scaleMode === 'fit-to-view'"
+                    (onClick)="resetScaleMax()" />
+        </div>
+
+        <!-- Scale mode (stacked to reduce width) -->
+        <div class="legend-stacked">
+          <label class="legend-caption">Scale mode</label>
+          <p-selectButton [options]="scaleModeOptions"
+                          [(ngModel)]="scaleMode"
+                          optionLabel="label"
+                          optionValue="value"
+                          (onChange)="onScaleModeChange()" />
+        </div>
+
+        <!-- Unit toggle -->
+        <div class="legend-row">
+          <p-selectButton [options]="unitOptions"
+                          [(ngModel)]="rhoUnit"
+                          optionLabel="label"
+                          optionValue="value" />
+        </div>
+
+        <!-- Reset camera -->
+        <div class="legend-row">
+          <p-button label="Reset view"
+                    severity="secondary"
+                    size="small"
+                    (onClick)="resetCamera()" />
+        </div>
+
+      </div>
+    }
+
+    <!-- Hover tooltip -->
+    @if (tooltipVisible && tooltipSurvey) {
+      <div class="bp-tooltip"
+           [style.left.px]="tooltipX + 12"
+           [style.top.px]="tooltipY - 8">
+        <strong>{{ tooltipSurvey.projectname }}</strong><br>
+        rho max: {{ formatRho(tooltipSurvey.rho_max) }} {{ unitLabel }}<br>
+        @if (tooltipSurvey.column_dev != null) {
+          col dev:
+          {{ tooltipSurvey.column_dev | number:'1.1-1' }} ly<br>
+        }
+        {{ tooltipSurvey.points.length }} z-samples
+      </div>
+    }
+  </div>
+
+</div>

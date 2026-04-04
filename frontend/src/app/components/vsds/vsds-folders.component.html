@@ -51,7 +51,6 @@
           <th>ID</th>
           <th>Name</th>
           <th>Received</th>
-          <th>In Progress</th>
           <th>Finished</th>
           <th>Failed</th>
           <th></th>
@@ -68,7 +67,6 @@
             }
           </td>
           <td>{{ folder.received_at ? (folder.received_at | date:'yyyy-MM-dd HH:mm:ss':'UTC') : '—' }}</td>
-          <td>{{ folder.in_progress ?? '—' }}</td>
           <td>{{ folder.finished ?? '—' }}</td>
           <td>{{ folder.failed ?? '—' }}</td>
           <td class="actions-cell">
@@ -103,7 +101,7 @@
       </ng-template>
       <ng-template pTemplate="emptymessage">
         <tr>
-          <td colspan="7" class="empty-message">No folders found.</td>
+          <td colspan="6" class="empty-message">No folders found.</td>
         </tr>
       </ng-template>
     </p-table>

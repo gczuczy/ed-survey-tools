@@ -11,6 +11,7 @@
       "Bash(npm list *)",
       "Bash(npm install *)",
       "Bash(npm uninstall *)",
+      "Bash(npx tsc *)",
 			"Bash(gmake build*)",
 			"Bash(gmake -C frontend/ build *)",
 			"Bash(grep *)",
@@ -23,8 +24,20 @@
 			"Edit(/config.yaml.sample)",
 			"Edit(**/*.md)",
 			"Edit(sql/**/*.sql)",
-			"Edit(memory/**.md)",
-			"Edit(frontend/memory/**.md)"
+			"Edit(.claude/memory/**.md)",
+			"Edit(frontend/memory/**.md)",
+			"Write(.claude/prompts/*-design.md)",
+			"Edit(.claude/prompts/*-design.md)",
+			"Write(.claude/prompts/*-phase*.md)",
+			"Edit(.claude/prompts/*-phase*.md)",
+			"Read(.claude/prompts/*-review.md)",
+			"Write(.claude/skills/*.md)",
+			"Edit(.claude/skills/*.md)",
+			"Write(static/*.webp)",
+			"Edit(static/*.webp)",
+			"Write(static/*.png)",
+			"Edit(static/*.png)",
+			"Grep"
     ],
     "deny": [
     ]

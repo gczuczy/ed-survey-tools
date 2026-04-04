@@ -57,7 +57,44 @@ export const routes: Routes = [
             .then(m => m.VsdsFolderExtractionComponent),
         canActivate: [adminGuard],
       },
+      {
+        path: 'visualization',
+        loadComponent: () =>
+          import('./components/vsds/vsds-visualization.component')
+            .then(m => m.VsdsVisualizationComponent),
+        children: [
+          {
+            path: '',
+            loadComponent: () =>
+              import(
+                './components/vsds/vsds-visualization-landing.component'
+              ).then(m => m.VsdsVisualizationLandingComponent),
+          },
+          {
+            path: 'bowling-pins',
+            loadComponent: () =>
+              import(
+                './components/vsds/vsds-bowling-pins.component'
+              ).then(m => m.VsdsBowlingPinsComponent),
+          },
+          {
+            path: 'crosssection',
+            loadComponent: () =>
+              import(
+                './components/vsds/vsds-crosssection.component'
+              ).then(m => m.VsdsCrossSectionComponent),
+          },
+        ],
+      },
     ]
+  },
+
+  // ── Bundles page (public) ─────────────────────────────────────────────────
+  {
+    path: 'bundles',
+    loadComponent: () =>
+      import('./components/bundles/bundles.component')
+        .then(m => m.BundlesComponent),
   },
 
   // ── Admin section (owner-only) ────────────────────────────────────────────

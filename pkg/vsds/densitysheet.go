@@ -13,7 +13,7 @@ import (
 
 var (
 	skipSysNames = []string{
-		"-", "N/A", "",
+		"-", "N/A", "", "NO SYSTEM FOUND",
 	}
 )
 
@@ -30,6 +30,28 @@ func stripCmdrPrefix(name string) string {
 	return name
 }
 
+// cleanCmdrName extracts and normalises a CMDR name from a cell
+// that should contain "CMDR Name - Project Name".  People often
+// omit the leading space before the dash, wrap the name in asterisks
+// or quotes, or leave the field blank.
+func cleanCmdrName(cell string) string {
+	// Try the canonical separator first, fall back to "- " (no
+	// leading space) which is the most common mis-format.
+	var name string
+	if parts := strings.SplitN(cell, " - ", 2); len(parts) == 2 {
+		name = parts[0]
+	} else if parts := strings.SplitN(cell, "- ", 2); len(parts) == 2 {
+		name = parts[0]
+	} else {
+		name = cell
+	}
+	name = stripCmdrPrefix(name)
+	name = strings.Trim(name, "*")
+	name = strings.Trim(name, "\"")
+	name = strings.TrimSpace(name)
+	return name
+}
+
 func ParseSheet(
 	sheet gcp.Sheet, vs *VariantService,
 ) (vsdstypes.Survey, error) {
@@ -39,18 +61,11 @@ func ParseSheet(
 		SurveyPoints: make([]vsdstypes.SurveyPoint, 0, 32),
 	}
 
-	parts := strings.Split(sheet.Get(0, 0), " - ")
-	if len(parts) == 2 {
-		m.CMDR = parts[0]
-		m.Project = parts[1]
-	} else {
-		m.CMDR = sheet.Get(0, 0)
-	}
-	// strip the `CMDR ` prefix
-	m.CMDR = stripCmdrPrefix(m.CMDR)
+	cell00 := sheet.Get(0, 0)
+	m.CMDR = cleanCmdrName(cell00)
 	b1name := sheet.Get(0, 1)
 	if strings.ToLower(m.CMDR) == "name" && b1name != "" {
-		m.CMDR = stripCmdrPrefix(b1name)
+		m.CMDR = cleanCmdrName(b1name)
 	}
 
 	variant, err := vs.Identify(sheet)
@@ -83,7 +98,7 @@ func ParseSheet(
 			continue
 		}
 		mdstr = sheet.Get(i, variant.MaxDistanceColumn)
-		if mdstr == "" {
+		if mdstr == "" || strings.EqualFold(mdstr, "n/a") {
 			md = 20.0
 		} else if md, err = parseFloat(mdstr, 32); err != nil {
 			return m, errors.Join(err, fmt.Errorf(
@@ -95,9 +110,9 @@ func ParseSheet(
 		if len(systemName) == 0 || slices.Contains(skipSysNames, systemName) {
 			continue
 		}
-		// if both are 0, then md=20
+		// both zero means no real data — skip rather than fabricate
 		if c == 0 && md < 0.01 {
-			md = 20.0
+			continue
 		}
 		if md > 20.0 {
 			// forgotten dot

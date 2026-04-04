@@ -46,9 +46,27 @@ import { TagModule }  from 'primeng/tag';
 - `TagModule` (primeng/tag) — badges/labels
 - `MessageModule` (primeng/message) — alerts/warnings
 - `DividerModule` (primeng/divider) — horizontal dividers
+- `TableModule` (primeng/table) — data tables
+- `CarouselModule` (primeng/carousel) — dashboard landing carousels
+- `DialogModule` (primeng/dialog) — modal dialogs
+- `ConfirmPopupModule` (primeng/confirmpopup) — inline delete confirmations
+- `ConfirmDialogModule` (primeng/confirmdialog) — modal confirmations
+- `InputTextModule` (primeng/inputtext) — text inputs
+- `InputNumberModule` (primeng/inputnumber) — numeric inputs
+- `TextareaModule` (primeng/textarea) — multiline text
+- `TabsModule` (primeng/tabs) — tabbed panels
+- `TooltipModule` (primeng/tooltip) — tooltips
+- `PopoverModule` (primeng/popover) — popovers
 
 ## Layout
 No grid library is used. Layouts use plain CSS flexbox. The `.sidebar` and `.page-wrapper` classes are defined in `src/styles.scss`.
 
 ## No PrimeFlex
 PrimeFlex is deprecated. Layout is handled with custom CSS flexbox.
+
+## PrimeNG Version Policy
+Never use LTS-tagged PrimeNG versions (e.g. `20.5.0-lts`). Use the latest
+non-LTS release (e.g. `^20.4.0`). LTS versions display a license banner
+("You are using an LTS version of PrimeNG with an invalid license") because
+the project does not have a PrimeStore license. Always pick the highest
+non-LTS version tag for the current major.

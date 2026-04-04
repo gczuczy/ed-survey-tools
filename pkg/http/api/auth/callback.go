@@ -1,22 +1,23 @@
 package auth
 
 import (
-	"io"
 	"fmt"
 	"errors"
-	"strconv"
 	"net/url"
 	"net/http"
-	"encoding/json"
-	"hash/crc32"
 
 	"github.com/gczuczy/ed-survey-tools/pkg/http/wrappers"
 	"github.com/gczuczy/ed-survey-tools/pkg/http/sessions"
 	"github.com/gczuczy/ed-survey-tools/pkg/db"
+	"github.com/gczuczy/ed-survey-tools/pkg/capi"
 )
 
 func callbackHandler(r *wrappers.Request) wrappers.IResponse {
-	ctx := r.R.Context()
+	var (
+		userinfo *Userinfo
+		err error
+	)
+	ctx := ctxWithClient(r.R.Context())
 
 	code := r.R.URL.Query().Get("code")
 	state := r.R.URL.Query().Get("state")
@@ -39,56 +40,46 @@ func callbackHandler(r *wrappers.Request) wrappers.IResponse {
 	}
 
 	client := cfg.Client(ctx, token)
-	resp, err := client.Get(config.UserInfoURL)
-	if err != nil {
+	if userinfo, err = getUserinfo(client); err != nil {
 		return wrappers.NewError(
 			errors.Join(err, fmt.Errorf("Failed to fetch userinfo")),
 			http.StatusInternalServerError)
 	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return wrappers.NewError(
-			errors.Join(err, fmt.Errorf("Failed to read userinfo")),
-			http.StatusInternalServerError)
-	}
-
-	var userinfo map[string]any
-	if err := json.Unmarshal(body, &userinfo); err != nil {
-		return wrappers.NewError(
-			errors.Join(err, fmt.Errorf("Failed to parse userinfo")),
-			http.StatusInternalServerError)
-	}
 
 	s, _ := sessions.Get(r.R)
-	var (
-		customerid int64
-		cmdrname string
-	)
-	if fdevcid, ok := userinfo["customer_id"]; ok {
-		// TODO: acquire CMDR name from CAPI
-		cmdrname = "CAPI-once-we-have-the-oauth2-apps-approved"
-		customerid, err = strconv.ParseInt(fdevcid.(string), 10, 64)
-		if err != nil {
-			return wrappers.NewError(
-				errors.Join(err, fmt.Errorf("Failed to parse FDev custoemr_id")),
-				http.StatusInternalServerError)
-		}
-	} else {
-		// testing IdP
-		cmdrname = userinfo["sub"].(string)
-		customerid = int64(crc32.ChecksumIEEE([]byte(cmdrname)))
+	if userinfo.User == nil || userinfo.User.CustomerID == 0 {
+		return wrappers.NewError(
+			errors.Join(err, fmt.Errorf("Userinfo missing customer_id")),
+			http.StatusInternalServerError)
 	}
-	r.L.Debug().Str("cmdrname", cmdrname).Msg("Userinfo resolved")
+	// now callout to CAPI for cmdr name
+	capicl, err := capi.New(token.AccessToken)
+	if err != nil {
+		return wrappers.NewError(
+			errors.Join(err, fmt.Errorf("Unable to get CAPI client")),
+			http.StatusInternalServerError)
+	}
 
-	user, err := db.Pool.LoginCMDR(cmdrname, customerid)
+	p, err := capicl.GetProfile()
+	if err != nil {
+		return wrappers.NewError(
+			errors.Join(err, fmt.Errorf("Unable to get Profile from CAPI")),
+			http.StatusInternalServerError)
+	}
+
+	// final sanity check
+	if len(p.Commander.Name)==0 || userinfo.User.CustomerID == 0 {
+		return wrappers.NewError(
+			errors.Join(err, fmt.Errorf("Out Of Cheese error")),
+			http.StatusInternalServerError)
+	}
+
+	user, err := db.Pool.LoginCMDR(p.Commander.Name, userinfo.User.CustomerID)
 	if err != nil {
 		return wrappers.NewError(
 			errors.Join(err, fmt.Errorf("Failed login")),
 			http.StatusInternalServerError)
 	}
-	r.L.Info().Interface("user", user).Msg("Logged in")
 	s.Values["user"] = user
 
 	v := url.Values{}

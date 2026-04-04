@@ -26,8 +26,9 @@ import { MenuItem }                from 'primeng/api';
   styleUrl:    './navbar.component.scss',
 })
 export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
-  isVsdsActive  = false;
-  isAdminActive = false;
+  isVsdsActive    = false;
+  isBundlesActive = false;
+  isAdminActive   = false;
 
   userMenuItems:  MenuItem[] = [];
   vsdsMenuItems:  MenuItem[] = [];
@@ -56,8 +57,9 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit(): void {
     const check = () => {
-      this.isVsdsActive  = window.location.pathname.startsWith('/vsds');
-      this.isAdminActive = window.location.pathname.startsWith('/admin');
+      this.isVsdsActive    = window.location.pathname.startsWith('/vsds');
+      this.isBundlesActive = window.location.pathname.startsWith('/bundles');
+      this.isAdminActive   = window.location.pathname.startsWith('/admin');
     };
     check();
     window.addEventListener('popstate', check);
@@ -83,8 +85,9 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
     this.navSub = this.router.events.pipe(
       filter(e => e instanceof NavigationEnd)
     ).subscribe(() => {
-      this.isVsdsActive  = this.router.url.startsWith('/vsds');
-      this.isAdminActive = this.router.url.startsWith('/admin');
+      this.isVsdsActive    = this.router.url.startsWith('/vsds');
+      this.isBundlesActive = this.router.url.startsWith('/bundles');
+      this.isAdminActive   = this.router.url.startsWith('/admin');
       this.buildVsdsMenuItems();
       this.buildAdminMenuItems();
       this.updateBreadcrumbs();
@@ -121,7 +124,21 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (url.startsWith('/vsds/')) {
       crumbs.push({ label: 'VSDS', routerLink: '/vsds' });
-      if (url.includes('/vsds/projects')) {
+      if (url.includes('/vsds/visualization/bowling-pins')) {
+        crumbs.push({
+          label:      'Visualization',
+          routerLink: '/vsds/visualization',
+        });
+        crumbs.push({ label: 'Bowling Pins' });
+      } else if (url.includes('/vsds/visualization/crosssection')) {
+        crumbs.push({
+          label:      'Visualization',
+          routerLink: '/vsds/visualization',
+        });
+        crumbs.push({ label: 'Cross-Section' });
+      } else if (url.includes('/vsds/visualization')) {
+        crumbs.push({ label: 'Visualization' });
+      } else if (url.includes('/vsds/projects')) {
         if (this.dynamicLabel) {
           crumbs.push({ label: 'Projects', routerLink: '/vsds/projects' });
           crumbs.push({ label: this.dynamicLabel });
@@ -153,6 +170,11 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
       label:   'Projects',
       icon:    'pi pi-briefcase',
       command: () => this.router.navigate(['/vsds/projects']),
+    });
+    items.push({
+      label:   'Visualization',
+      icon:    'pi pi-chart-scatter',
+      command: () => this.router.navigate(['/vsds/visualization']),
     });
     if (this.authService.user?.isadmin) {
       items.push({

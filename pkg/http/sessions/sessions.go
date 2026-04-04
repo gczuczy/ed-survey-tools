@@ -55,11 +55,16 @@ func Init(cfg *config.SessionsConfig) error {
 				return redis.Dial("tcp", addr, opts...)
 			},
 		}
+		maxage := cfg.MaxAge
+		if maxage <= 0 {
+			maxage = 7200
+		}
 		cookieOpts := &sessions.Options{
 			Path:     "/",
 			HttpOnly: true,
 			Secure:   cfg.Secure,
 			SameSite: http.SameSiteStrictMode,
+			MaxAge:   maxage,
 		}
 		var err error
 		Store, err = redistore.NewStore(

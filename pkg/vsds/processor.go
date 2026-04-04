@@ -5,6 +5,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/gczuczy/ed-survey-tools/pkg/bundles"
 	"github.com/gczuczy/ed-survey-tools/pkg/config"
 	"github.com/gczuczy/ed-survey-tools/pkg/db"
 	"github.com/gczuczy/ed-survey-tools/pkg/edsm"
@@ -103,7 +104,33 @@ func (p *Processor) run() {
 }
 
 func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
-	defer db.Pool.FinishFolderProcessing(job.ProcID)
+	affectedProjects := make(map[int]struct{})
+
+	defer func() {
+		if ferr := db.Pool.FinishFolderProcessing(
+			job.ProcID); ferr != nil {
+			p.logger.Error().Err(ferr).Caller().
+				Int("procid", job.ProcID).
+				Msg("Error finishing folder processing")
+		}
+		rerr := db.Pool.RefreshSurveyMaterializedViews()
+		if rerr != nil {
+			p.logger.Error().Err(rerr).Caller().
+				Int("procid", job.ProcID).
+				Msg("Error refreshing materialized views")
+		}
+		if len(affectedProjects) > 0 {
+			pids := make([]int, 0, len(affectedProjects))
+			for pid := range affectedProjects {
+				pids = append(pids, pid)
+			}
+			if err := db.Pool.QueueAutoRegenBundles(pids); err != nil {
+				p.logger.Error().Err(err).
+					Msg("Error queuing auto-regen bundles")
+			}
+			bundles.Signal()
+		}
+	}()
 	p.logger.Info().
 		Int("procid", job.ProcID).
 		Int("folderid", job.FolderID).
@@ -250,7 +277,7 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 					Str("tab", tabName).
 					Msg("Error parsing sheet")
 				p.recordResult(txn, job.ProcID, sheetID,
-					false, err.Error())
+					false, err.Error(), survey.CMDR)
 				continue
 			}
 
@@ -294,7 +321,7 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 							Msg("Error rolling back transaction")
 					}
 					p.recordResult(txn, job.ProcID, sheetID,
-						false, lErr.Error())
+						false, lErr.Error(), survey.CMDR)
 					continue
 				}
 				// Partial resolution: some systems found.
@@ -323,11 +350,11 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 				sysMap[s.Name] = s
 			}
 
-			systemZ := make(map[string]float32, len(sysMap))
+			sysRealY := make(map[string]float32, len(sysMap))
 			for name, sys := range sysMap {
-				systemZ[name] = sys.Y
+				sysRealY[name] = sys.Y
 			}
-			for _, dp := range survey.Normalize(systemZ) {
+			for _, dp := range survey.Normalize(sysRealY) {
 				p.logger.Warn().
 					Int("procid", job.ProcID).
 					Str("file_id", item.ID).
@@ -345,11 +372,11 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 					Str("project", survey.Project).
 					Msg("Error looking up project")
 				p.recordResult(txn, job.ProcID, sheetID,
-					false, pErr.Error())
+					false, pErr.Error(), survey.CMDR)
 				continue
 			}
 
-			cmdrID, cErr := txn.UpsertCmdr(survey.CMDR)
+			rawCmdrID, cErr := txn.UpsertCmdr(survey.CMDR)
 			if cErr != nil {
 				p.logger.Error().Err(cErr).
 					Int("procid", job.ProcID).
@@ -357,8 +384,12 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 					Str("cmdr", survey.CMDR).
 					Msg("Error upserting CMDR")
 				p.recordResult(txn, job.ProcID, sheetID,
-					false, cErr.Error())
+					false, cErr.Error(), survey.CMDR)
 				continue
+			}
+			var cmdrID *int
+			if rawCmdrID != 0 {
+				cmdrID = &rawCmdrID
 			}
 
 			if sErr := txn.AddSurvey(
@@ -370,31 +401,35 @@ func (p *Processor) process(job *vsdstypes.FolderProcessingJob) {
 					Str("tab", tabName).
 					Msg("Error adding survey to DB")
 				p.recordResult(txn, job.ProcID, sheetID,
-					false, sErr.Error())
+					false, sErr.Error(), survey.CMDR)
 				continue
 			}
 
+			affectedProjects[projectID] = struct{}{}
+
 			if lErr != nil {
 				p.recordResult(txn, job.ProcID, sheetID,
-					false, lErr.Error())
+					false, lErr.Error(), survey.CMDR)
 			} else {
 				p.recordResult(txn, job.ProcID, sheetID,
-					true, "")
+					true, "", survey.CMDR)
 			}
 		}
 	}
 }
 
 // recordResult writes a sheet_processing row. Errors are logged but
-// do not alter the processing flow of the caller.
+// do not alter the processing flow of the caller.  cmdrName is used
+// for a best-effort CMDR lookup; pass survey.CMDR (may be empty).
 func (p *Processor) recordResult(
 	txn *db.Transaction,
 	procID, sheetID int,
 	success bool,
 	message string,
+	cmdrName string,
 ) {
 	if err := txn.RecordSheetResult(
-		procID, sheetID, success, message,
+		procID, sheetID, success, message, cmdrName,
 	); err != nil {
 		p.logger.Error().Err(err).
 			Int("procid", procID).

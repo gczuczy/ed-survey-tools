@@ -38,6 +38,26 @@ type FolderProcessingSheetRow struct {
 	Message     string `db:"message"`
 }
 
+// CMDRContribution holds aggregated contribution statistics for a
+// single CMDR, returned by GetCMDRContribution.
+type CMDRContribution struct {
+	Surveys   int64    `db:"surveys"    json:"surveys"`
+	Points    int64    `db:"points"     json:"points"`
+	ColdevMin *float64 `db:"coldev_min" json:"coldev_min,omitempty"`
+	ColdevAvg *float64 `db:"coldev_avg" json:"coldev_avg,omitempty"`
+	ColdevMax *float64 `db:"coldev_max" json:"coldev_max,omitempty"`
+}
+
+// UserSheetErrorRow is one flat row from v_user_sheet_errors,
+// grouped by the API handler before being sent to the client.
+type UserSheetErrorRow struct {
+	DocID      int       `db:"doc_id"`
+	DocName    string    `db:"doc_name"`
+	SheetName  string    `db:"sheet_name"`
+	ReceivedAt time.Time `db:"receivedat"`
+	Message    string    `db:"message"`
+}
+
 type VSDSFolder struct {
 	FolderID   int        `db:"folderid" json:"id"`
 	Name       string     `db:"name" json:"name"`
@@ -701,6 +721,28 @@ func (p *DBPool) DeleteFolder(id int) (err error) {
 		return
 	}
 
+	return p.RefreshSurveyMaterializedViews()
+}
+
+// RefreshSurveyMaterializedViews refreshes vsds.v_surveypoints and
+// vsds.v_surveys in dependency order. Call after any operation that
+// modifies surveypoints or surveys (processing runs, folder deletion).
+func (p *DBPool) RefreshSurveyMaterializedViews() error {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Unable to acquire connection from pool")
+		return err
+	}
+	defer conn.Release()
+
+	if _, err = conn.Exec(
+		p.ctx, "refreshsurveymatviews",
+	); err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Error refreshing survey materialized views")
+		return err
+	}
 	return nil
 }
 
@@ -907,8 +949,13 @@ func (t *Transaction) AddSheet(
 }
 
 // UpsertCmdr inserts or retrieves a CMDR by name within the long
-// transaction and returns the row id.
+// transaction and returns the row id.  An empty name indicates an
+// unresolvable CMDR; 0 is returned with a nil error so the caller
+// can store a NULL FK.
 func (t *Transaction) UpsertCmdr(name string) (int, error) {
+	if name == "" {
+		return 0, nil
+	}
 	var id int
 	err := t.tx.QueryRow(
 		t.ctx, "upsertcmdr", name,
@@ -927,6 +974,29 @@ func (t *Transaction) UpsertCmdr(name string) (int, error) {
 		})
 	}
 	return id, t.saveCheckpoint()
+}
+
+// LookupCMDRByName looks up a CMDR by name within the current
+// transaction without upserting.  Returns (id, nil) when found,
+// (0, nil) when not found, and (0, err) on a query error.
+func (t *Transaction) LookupCMDRByName(name string) (int, error) {
+	if name == "" {
+		return 0, nil
+	}
+	var id int
+	err := t.tx.QueryRow(
+		t.ctx, "lookcmdrbyname", name).Scan(&id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, nil
+		}
+		logger.Error().Err(err).Caller().
+			Str("query", "lookcmdrbyname").
+			Str("name", name).
+			Msg("Error while looking up CMDR by name")
+		return 0, err
+	}
+	return id, nil
 }
 
 // LookupProject resolves a project id by name within the long
@@ -958,9 +1028,10 @@ func (t *Transaction) LookupProject(name string) (int, error) {
 
 // AddSurvey inserts a survey and all its points within the long
 // transaction. systems maps each SurveyPoint.SystemName to its
-// resolved db.System row.
+// resolved db.System row.  cmdrID == 0 stores NULL (unknown CMDR).
 func (t *Transaction) AddSurvey(
-	sheetID, projectID, cmdrID int,
+	sheetID, projectID int,
+	cmdrID *int,
 	points []vsdstypes.SurveyPoint,
 	systems map[string]System,
 ) error {
@@ -1022,21 +1093,34 @@ func (t *Transaction) AddSurvey(
 }
 
 // RecordSheetResult inserts a sheet_processing row recording the
-// outcome of processing one sheet. An empty message is stored as
-// NULL via the NULLIF in the prepared query.
+// outcome of processing one sheet.  If cmdrName is non-empty a
+// best-effort CMDR lookup is performed within the same transaction;
+// the cmdrid FK is stored when found, NULL otherwise (non-fatal).
 func (t *Transaction) RecordSheetResult(
 	procID, sheetID int,
 	success bool,
 	message string,
+	cmdrName string,
 ) error {
+	var cmdrID *int
+	if cmdrName != "" {
+		id, lerr := t.LookupCMDRByName(cmdrName)
+		if lerr != nil {
+			logger.Warn().Err(lerr).
+				Str("cmdr", cmdrName).
+				Msg("CMDR lookup failed; cmdrid will be NULL")
+		} else if id != 0 {
+			cmdrID = &id
+		}
+	}
 	_, err := t.tx.Exec(
 		t.ctx, "recordsheetresult",
-		procID, sheetID, success, message,
+		procID, sheetID, success, message, cmdrID,
 	)
 	if err != nil {
 		logger.Error().Err(err).Caller().
 			Str("query", "recordsheetresult").
-			Msg("Error while executing query")
+			Msg("Error while recording sheet result")
 		if rerr := t.rollbackToCheckpoint(); rerr != nil {
 			logger.Error().Err(rerr).Caller().
 				Msg("Error rolling back to checkpoint")
@@ -1450,4 +1534,74 @@ func (p *DBPool) DeleteVariantCheck(
 		return
 	}
 	return parseVariantRow(scanRows[0])
+}
+
+// GetCMDRContribution returns aggregated survey statistics for a
+// CMDR.  Returns a zero-value CMDRContribution (not an error) when
+// the CMDR has not submitted any surveys yet.
+func (p *DBPool) GetCMDRContribution(
+	cmdrID int,
+) (contrib CMDRContribution, err error) {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Unable to acquire connection from pool")
+		return
+	}
+	defer conn.Release()
+
+	rows, err := conn.Query(
+		p.ctx, "cmdrsurveystats", cmdrID)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "cmdrsurveystats").
+			Msg("Error while executing query")
+		return
+	}
+	defer rows.Close()
+
+	results, err := pgx.CollectRows(
+		rows, pgx.RowToStructByName[CMDRContribution])
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Error while reading contribution results")
+		return
+	}
+	if len(results) == 0 {
+		return CMDRContribution{}, nil
+	}
+	return results[0], nil
+}
+
+// GetCMDRSheetErrors returns failed sheet processing rows attributed
+// to the given CMDR, ordered newest first.
+func (p *DBPool) GetCMDRSheetErrors(
+	cmdrID int,
+) (result []UserSheetErrorRow, err error) {
+	conn, err := p.pool.Acquire(p.ctx)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Unable to acquire connection from pool")
+		return
+	}
+	defer conn.Release()
+
+	rows, err := conn.Query(
+		p.ctx, "getusersheeteerrors", cmdrID)
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Str("query", "getusersheeteerrors").
+			Msg("Error while executing query")
+		return
+	}
+	defer rows.Close()
+
+	result, err = pgx.CollectRows(
+		rows, pgx.RowToStructByName[UserSheetErrorRow])
+	if err != nil {
+		logger.Error().Err(err).Caller().
+			Msg("Error while reading sheet error rows")
+		return
+	}
+	return
 }

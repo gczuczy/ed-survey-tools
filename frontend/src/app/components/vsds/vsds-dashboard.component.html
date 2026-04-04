@@ -1,6 +1,10 @@
 <div class="vsds-dashboard">
+
   @if (subsections.length > 0) {
-    <p-carousel [value]="subsections" [numVisible]="3" [numScroll]="1" [circular]="false">
+    <p-carousel [value]="subsections"
+                [numVisible]="3"
+                [numScroll]="1"
+                [circular]="false">
       <ng-template pTemplate="item" let-card>
         <div class="subsection-card" (click)="navigate(card.route)">
           <p-card>
@@ -16,4 +20,115 @@
   } @else {
     <p class="no-subsections text-muted">No sections available.</p>
   }
+
+  @if (authService.user) {
+    <div class="my-contribution">
+      <h3 class="contribution-title">My Contribution</h3>
+
+      @if (contribLoading) {
+        <p-message severity="info" text="Loading…" />
+      } @else if (contribution) {
+
+        <div class="contrib-stats">
+          <div class="stat-item">
+            <span class="stat-label">Surveys Submitted</span>
+            <span class="stat-value">{{ contribution.surveys }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Survey Points</span>
+            <span class="stat-value">{{ contribution.points }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Column Deviation (min / avg / max)</span>
+            <span class="stat-value">
+              @if (contribution.coldev_avg != null) {
+                {{ contribution.coldev_min | number:'1.2-2' }} /
+                {{ contribution.coldev_avg | number:'1.2-2' }} /
+                {{ contribution.coldev_max | number:'1.2-2' }} Ly
+              } @else {
+                N/A
+              }
+            </span>
+          </div>
+        </div>
+
+        @if (contribErrors && contribErrors.length > 0) {
+          <div class="contrib-errors">
+            <h4 class="errors-title">Processing Errors</h4>
+            <p-table #errTable
+                     [value]="contribErrors"
+                     dataKey="doc_id">
+              <ng-template pTemplate="header">
+                <tr>
+                  <th class="expand-col"></th>
+                  <th>Document</th>
+                  <th>Processed At</th>
+                  <th>Errors</th>
+                </tr>
+              </ng-template>
+
+              <ng-template pTemplate="body" let-doc>
+                <tr>
+                  <td class="expand-col">
+                    <p-button type="button"
+                              [text]="true"
+                              [rounded]="true"
+                              [icon]="errTable.isRowExpanded(doc)
+                                ? 'pi pi-chevron-down'
+                                : 'pi pi-chevron-right'"
+                              (onClick)="errTable.toggleRow(doc)" />
+                  </td>
+                  <td>{{ doc.doc_name }}</td>
+                  <td class="timestamp">
+                    {{ doc.received_at
+                       | date:'yyyy-MM-dd HH:mm:ss':'UTC' }} UTC
+                  </td>
+                  <td>
+                    <p-tag [value]="doc.error_count.toString()"
+                           severity="danger" />
+                  </td>
+                </tr>
+              </ng-template>
+
+              <ng-template pTemplate="expandedrow" let-doc>
+                <tr class="expansion-row">
+                  <td colspan="4">
+                    <div class="sheets-expansion">
+                      <p-table [value]="doc.sheets">
+                        <ng-template pTemplate="header">
+                          <tr>
+                            <th>Tab</th>
+                            <th>Error</th>
+                          </tr>
+                        </ng-template>
+                        <ng-template pTemplate="body" let-sheet>
+                          <tr>
+                            <td class="sheet-name">
+                              {{ sheet.sheet_name }}
+                            </td>
+                            <td class="error-message">
+                              {{ sheet.message }}
+                            </td>
+                          </tr>
+                        </ng-template>
+                      </p-table>
+                    </div>
+                  </td>
+                </tr>
+              </ng-template>
+
+            </p-table>
+          </div>
+        }
+
+        @if (contribution.surveys === 0) {
+          <p class="no-data text-muted">
+            No surveys submitted yet.
+          </p>
+        }
+
+      }
+    </div>
+  }
+
 </div>
